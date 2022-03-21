@@ -50,7 +50,7 @@ jobs:
           java-version: '15'
 
       - name: Generate Tag
-        run: ./gradlew --full-stacktrace createSemverTag "-Psemver.stage=alpha"
+        run: ./gradlew --full-stacktrace createSemverTag "-Psemver.stage=alpha" "-Psemver.scope=major"
 
       - name: Push
         run: git push --follow-tags
