@@ -11,8 +11,6 @@
 # Java class files
 *.class
 
-kotlin-js-store
-
 # Generated files
 bin/
 gen/
