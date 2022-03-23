@@ -3,4 +3,4 @@ package arrow
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.ANNOTATION_CLASS)
 @MustBeDocumented
-annotation class Context
+public annotation class Context

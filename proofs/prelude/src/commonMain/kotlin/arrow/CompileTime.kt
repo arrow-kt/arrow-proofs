@@ -3,4 +3,4 @@ package arrow
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION)
 @MustBeDocumented
-annotation class CompileTime
+public annotation class CompileTime

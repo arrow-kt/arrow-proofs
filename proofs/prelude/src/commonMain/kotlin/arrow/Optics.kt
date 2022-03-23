@@ -3,4 +3,4 @@ package arrow
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.CLASS)
 @MustBeDocumented
-annotation class Optics
+public annotation class Optics
