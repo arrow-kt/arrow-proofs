@@ -6,11 +6,11 @@ import arrow.meta.plugins.proofs.phases.Proof
 import arrow.meta.plugins.proofs.phases.ProofsCache
 import arrow.meta.plugins.proofs.phases.asProof
 import arrow.meta.plugins.proofs.phases.isProof
+import java.util.concurrent.ConcurrentHashMap
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.types.KotlinType
-import java.util.concurrent.ConcurrentHashMap
 
 val proofCache: ConcurrentHashMap<ModuleDescriptor, ProofsCache> = ConcurrentHashMap()
 
