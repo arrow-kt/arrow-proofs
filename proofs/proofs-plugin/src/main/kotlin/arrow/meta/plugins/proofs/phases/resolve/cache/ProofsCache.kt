@@ -3,12 +3,16 @@ package arrow.meta.plugins.proofs.phases.resolve.cache
 import arrow.meta.phases.CompilerContext
 import arrow.meta.plugins.proofs.phases.GivenProof
 import arrow.meta.plugins.proofs.phases.Proof
+import arrow.meta.plugins.proofs.phases.ProofsCache
 import arrow.meta.plugins.proofs.phases.asProof
 import arrow.meta.plugins.proofs.phases.isProof
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.types.KotlinType
+import java.util.concurrent.ConcurrentHashMap
+
+val proofCache: ConcurrentHashMap<ModuleDescriptor, ProofsCache> = ConcurrentHashMap()
 
 fun CompilerContext.cachedModule(name: Name): ModuleDescriptor? =
   proofCache.keys.firstOrNull { it.name == name }
