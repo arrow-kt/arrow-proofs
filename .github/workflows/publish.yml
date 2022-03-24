@@ -1,0 +1,119 @@
+name: Publish Artifacts
+
+on:
+  push:
+    tags:
+      - '**'
+
+env:
+  OSS_USER: '${{ secrets.OSS_USER }}'
+  OSS_TOKEN: '${{ secrets.OSS_TOKEN }}'
+  OSS_STAGING_PROFILE_ID: '${{ secrets.OSS_STAGING_PROFILE_ID }}'
+  SIGNING_KEY_NAME: '${{ secrets.SIGNING_KEY_NAME }}'
+  SIGNING_KEY_ID: '${{ secrets.SIGNING_KEY_ID }}'
+  SIGNING_KEY_PASSPHRASE: '${{ secrets.SIGNING_KEY_PASSPHRASE }}'
+  SIGNING_KEY: '${{ secrets.SIGNING_KEY }}'
+  GRADLE_PUBLISH_KEY: '${{ secrets.GRADLE_PUBLISH_KEY }}'
+  GRADLE_PUBLISH_SECRET: '${{ secrets.GRADLE_PUBLISH_SECRET }}'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        kotlin: [ '1.6.0', '1.6.10' ]
+        jvm_target: [ '1.8', '11', '15' ]
+
+    outputs:
+      analysis-version: ${{ steps.get-proofs-version.outputs.proofs-version }}
+
+    steps:
+      - uses: actions/checkout@v3.0.0
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v3.0.0
+        with:
+          distribution: 'adopt'
+          java-version: '15'
+
+      - name: Build and test with Gradle
+        uses: gradle/gradle-build-action@v2.1.4
+        with:
+          arguments: -PkotlinVersion=${{ matrix.kotlin }} -PjvmTargetVersion=${{ matrix.jvm_target }} build --scan --stacktrace
+
+      - id: get-proofs-version
+        name: Get Analysis version
+        run: |
+          ./gradlew
+          echo "::set-output name=proofs-version::$(head -n 1 build/semver/version.txt)"
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v3.0.0
+        with:
+          name: 'reports-${{ matrix.os }}'
+          path: '**/build/reports/**'
+
+      - name: Stop Gradle daemons
+        run: ./gradlew --stop
+
+#      - name: Bundle SARIF report
+#        run: mkdir sarif && find . -name '*.sarif' | xargs -I{} cp "{}" ./sarif/
+#
+#      - name: Upload SARIF report
+#        uses: github/codeql-action/upload-sarif@v1.1.5
+#        continue-on-error: true
+#        with:
+#          # Path to SARIF file relative to the root of the repository
+#          sarif_file: sarif
+#
+  publish:
+    needs: build
+    env:
+      JAVA_OPTS: -Xms512m -Xmx1024m
+
+    runs-on: macos-11
+
+    steps:
+    - uses: actions/checkout@v3.0.0
+
+    - uses: actions/setup-java@v3.0.0
+      with:
+        distribution: 'adopt'
+        java-version: '15'
+        cache: 'gradle'
+
+    - name: Publish alpha/beta/rc artifacts
+      if: |
+        contains(needs.build.outputs.proofs-version, 'alpha') ||
+        contains(needs.build.outputs.proofs-version, 'beta') ||
+        contains(needs.build.outputs.proofs-version, 'rc')
+      run: ./gradlew --full-stacktrace publishToSonatype closeAndReleaseSonatypeStagingRepository
+
+    - name: Publish final artifacts
+      if: |
+        !contains(needs.build.outputs.proofs-version, 'alpha') &&
+        !contains(needs.build.outputs.proofs-version, 'beta') &&
+        !contains(needs.build.outputs.proofs-version, 'rc')
+      run: ./gradlew --full-stacktrace publishToSonatype closeAndReleaseSonatypeStagingRepository
+
+    - name: Publish alpha/beta/rc gradle plugins
+      if: |
+        contains(needs.build.outputs.proofs-version, 'alpha') ||
+        contains(needs.build.outputs.proofs-version, 'beta') ||
+        contains(needs.build.outputs.proofs-version, 'rc')
+      run: ./gradlew --full-stacktrace publishPlugins
+
+    - name: Publish final gradle plugins
+      if: |
+        !contains(needs.build.outputs.proofs-version, 'alpha') &&
+        !contains(needs.build.outputs.proofs-version, 'beta') &&
+        !contains(needs.build.outputs.proofs-version, 'rc')
+      run: ./gradlew --full-stacktrace publishPlugins
+
+    - name: Stop Gradle daemons
+      run: ./gradlew --stop

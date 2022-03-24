@@ -1,5 +1,6 @@
 [versions]
 arrow = "1.0.1"
+arrowMeta = "1.6.1-alpha.2"
 arrowGradleConfig = "0.10.0"
 assertj = "3.22.0"
 classgraph = "4.8.141"
@@ -15,11 +16,16 @@ kotlinCompileTesting = "1.4.7"
 javaCompileTesting = "0.19"
 apacheCommonsText = "1.9"
 sarif4k = "0.0.1"
+kotlinBinaryCompatibilityValidator = "0.8.0"
+detekt = "1.19.0"
 
 [libraries]
 arrowAnnotations = { module = "io.arrow-kt:arrow-annotations", version.ref = "arrow" }
 arrowCore = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
 arrowOptics = { module = "io.arrow-kt:arrow-optics", version.ref = "arrow" }
+arrowMeta = { module = "io.arrow-kt:arrow-meta", version.ref = "arrowMeta" }
+arrowMetaTest = { module = "io.arrow-kt:arrow-meta-test", version.ref = "arrowMeta" }
+arrowGradlePluginCommons = { module = "io.arrow-kt:arrow-gradle-plugin-commons", version.ref = "arrowMeta" }
 assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 classgraph = { module = "io.github.classgraph:classgraph", version.ref = "classgraph" }
 intellijOpenApi = { module = "com.intellij:openapi", version.ref = "intellijOpenApi" }
@@ -53,3 +59,6 @@ arrowGradleConfig-formatter = { id = "io.arrow-kt.arrow-gradle-config-formatter"
 arrowGradleConfig-kotlin = { id = "io.arrow-kt.arrow-gradle-config-kotlin", version.ref = "arrowGradleConfig" }
 arrowGradleConfig-nexus = { id = "io.arrow-kt.arrow-gradle-config-nexus", version.ref = "arrowGradleConfig" }
 arrowGradleConfig-publish = { id = "io.arrow-kt.arrow-gradle-config-publish", version.ref = "arrowGradleConfig" }
+arrowGradleConfig-versioning = { id = "io.arrow-kt.arrow-gradle-config-versioning", version.ref = "arrowGradleConfig" }
+kotlin-binaryCompatibilityValidator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "kotlinBinaryCompatibilityValidator" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
