@@ -6,6 +6,7 @@ plugins {
   alias(libs.plugins.arrowGradleConfig.nexus)
   alias(libs.plugins.arrowGradleConfig.formatter)
   alias(libs.plugins.arrowGradleConfig.versioning)
+  alias(libs.plugins.kotlin.binaryCompatibilityValidator)
   java
 }
 
