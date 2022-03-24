@@ -9,5 +9,7 @@ fun ConfigSyntax.newMetaDependencies(): List<Config> {
   val currentVersion = System.getProperty("CURRENT_VERSION")
   val proofsCompilerPlugin =
     CompilerPlugin("Arrow Meta Proofs", listOf(Dependency("arrow-proofs-plugin:$currentVersion")))
-  return metaDependencies + addCompilerPlugins(proofsCompilerPlugin)
+  return metaDependencies +
+    addCompilerPlugins(proofsCompilerPlugin) +
+    addDependencies(Dependency("arrow-meta-prelude:$currentVersion"))
 }

@@ -17,7 +17,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.arrowMetaTest)
     testRuntimeOnly(libs.arrowMeta)
-    //testRuntimeOnly(projects.arrowMetaPrelude)
+    testRuntimeOnly(projects.arrowMetaPrelude)
     testRuntimeOnly(projects.arrowProofsPlugin)
     testRuntimeOnly(libs.arrowCore)
 }

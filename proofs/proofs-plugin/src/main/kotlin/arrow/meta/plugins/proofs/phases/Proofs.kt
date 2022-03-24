@@ -3,6 +3,7 @@ package arrow.meta.plugins.proofs.phases
 import arrow.meta.phases.CompilerContext
 import arrow.meta.phases.analysis.diagnostic.ProofRenderer
 import arrow.meta.plugins.proofs.phases.resolve.cache.initializeProofCache
+import arrow.meta.plugins.proofs.phases.resolve.cache.proofCache
 import arrow.meta.plugins.proofs.phases.resolve.isResolved
 import arrow.meta.plugins.proofs.phases.resolve.matchingCandidates
 import arrow.meta.plugins.proofs.phases.resolve.skippedProofsDueToAmbiguities
@@ -121,7 +122,7 @@ fun CompilerContext.givenProofs(): Map<KotlinType, List<GivenProof>> =
 fun ModuleDescriptor.proofs(ctx: CompilerContext): List<Proof> =
   if (this is ModuleDescriptorImpl) {
     try {
-      val cacheValue = ctx.proofCache[this]
+      val cacheValue = proofCache[this]
       when {
         cacheValue != null -> {
           cacheValue.proofs
