@@ -1,0 +1,366 @@
+public final class arrow/meta/ProofsMetaCliProcessor : arrow/meta/MetaCliProcessor {
+	public fun <init> ()V
+}
+
+public class arrow/meta/ProofsMetaPlugin : arrow/meta/Meta {
+	public fun <init> ()V
+	public fun IrGeneration (Larrow/meta/dsl/codegen/ir/IrSyntax;Lkotlin/jvm/functions/Function3;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun additionalSources (Lkotlin/jvm/functions/Function4;)Larrow/meta/phases/analysis/CollectAdditionalSources;
+	public fun analysis (Lkotlin/jvm/functions/Function7;Lkotlin/jvm/functions/Function5;)Larrow/meta/phases/analysis/AnalysisHandler;
+	public fun callChecker (Lkotlin/jvm/functions/Function4;)Larrow/meta/phases/config/StorageComponentContainer;
+	public fun codegen (Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/asm/Codegen;
+	public fun compilerContextService ()Larrow/meta/phases/config/StorageComponentContainer;
+	public fun declarationAttributeAlterer (Lkotlin/jvm/functions/Function7;)Larrow/meta/phases/resolve/DeclarationAttributeAlterer;
+	public fun declarationChecker (Lkotlin/jvm/functions/Function4;)Larrow/meta/phases/config/StorageComponentContainer;
+	public fun enableIr ()Larrow/meta/phases/ExtensionPhase;
+	public fun extraImports (Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/analysis/ExtraImports;
+	public fun intercept (Larrow/meta/phases/CompilerContext;)Ljava/util/List;
+	public fun irAnonymousInitializer (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irBlock (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irBlockBody (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irBody (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irBranch (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irBreak (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irBreakContinue (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irCall (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irCallableReference (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irCatch (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irClass (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irClassReference (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irComposite (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irConst (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irConstructor (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irConstructorCall (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irContainerExpression (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irContinue (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irDeclaration (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irDeclarationReference (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irDelegatingConstructorCall (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irDoWhileLoop (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irDump (Larrow/meta/Meta;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irDumpKotlinLike (Larrow/meta/Meta;Lorg/jetbrains/kotlin/ir/util/KotlinLikeDumpOptions;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irDynamicExpression (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irDynamicMemberExpression (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irDynamicOperatorExpression (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irElseBranch (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irEnumConstructorCall (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irEnumEntry (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irErrorCallExpression (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irErrorDeclaration (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irErrorExpression (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irExpression (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irExpressionBody (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irField (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irFieldAccess (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irFile (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irFunction (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irFunctionAccess (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irFunctionReference (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irGetClass (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irGetEnumValue (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irGetField (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irGetObjectValue (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irGetValue (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irInstanceInitializerCall (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irLocalDelegatedProperty (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irLocalDelegatedPropertyReference (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irLoop (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irMemberAccess (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irModuleFragment (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irProperty (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irPropertyReference (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irReturn (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irSetField (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irSetValue (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irSimpleFunction (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irSingletonReference (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irSpreadElement (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irStringConcatenation (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irSuspendableExpression (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irSuspensionPoint (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irSyntheticBody (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irThrow (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irTry (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irTypeAlias (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irTypeOperator (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irTypeParameter (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irValueAccess (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irValueParameter (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irVararg (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irVariable (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irWhen (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun irWhileLoop (Larrow/meta/Meta;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/codegen/ir/IRGeneration;
+	public fun meta ([Larrow/meta/phases/ExtensionPhase;)Ljava/util/List;
+	public fun packageFragmentProvider (Lkotlin/jvm/functions/Function7;)Larrow/meta/phases/resolve/PackageProvider;
+	public fun packageFragmentProvider (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/resolve/PackageProvider;Larrow/meta/phases/CompilerContext;)V
+	public fun preprocessedVirtualFileFactory (Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/analysis/PreprocessedVirtualFileFactory;
+	public fun registerAnalysisHandler (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/analysis/AnalysisHandler;Larrow/meta/phases/CompilerContext;)V
+	public fun registerClassBuilder (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/codegen/asm/ClassBuilder;Larrow/meta/phases/CompilerContext;)V
+	public fun registerCodegen (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/codegen/asm/Codegen;Larrow/meta/phases/CompilerContext;)V
+	public fun registerCollectAdditionalSources (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/analysis/CollectAdditionalSources;Larrow/meta/phases/CompilerContext;)V
+	public fun registerCompilerConfiguration (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/config/Config;Larrow/meta/phases/CompilerContext;)V
+	public fun registerDeclarationAttributeAlterer (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/resolve/DeclarationAttributeAlterer;Larrow/meta/phases/CompilerContext;)V
+	public fun registerExtraImports (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/analysis/ExtraImports;Larrow/meta/phases/CompilerContext;)V
+	public fun registerIRGeneration (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/codegen/ir/IRGeneration;Larrow/meta/phases/CompilerContext;)V
+	public fun registerMetaAnalyzer ()Larrow/meta/phases/ExtensionPhase;
+	public fun registerMetaComponents (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Lorg/jetbrains/kotlin/config/CompilerConfiguration;Larrow/meta/phases/CompilerContext;)V
+	public fun registerPreprocessedVirtualFileFactory (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/analysis/PreprocessedVirtualFileFactory;Larrow/meta/phases/CompilerContext;)V
+	public fun registerProjectComponents (Lorg/jetbrains/kotlin/com/intellij/mock/MockProject;Lorg/jetbrains/kotlin/config/CompilerConfiguration;)V
+	public fun registerStorageComponentContainer (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/config/StorageComponentContainer;Larrow/meta/phases/CompilerContext;)V
+	public fun registerSyntheticResolver (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/resolve/synthetics/SyntheticResolver;Larrow/meta/phases/CompilerContext;)V
+	public fun registerSyntheticScopeProvider (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;Larrow/meta/phases/resolve/synthetics/SyntheticScopeProvider;Larrow/meta/phases/CompilerContext;)V
+	public fun registerSyntheticScopeProviderIfNeeded (Lorg/jetbrains/kotlin/com/intellij/openapi/project/Project;)V
+	public fun storageComponent (Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function4;)Larrow/meta/phases/config/StorageComponentContainer;
+	public fun suppressDiagnostic (Lkotlin/jvm/functions/Function1;)Larrow/meta/phases/ExtensionPhase;
+	public fun suppressDiagnosticWithTrace (Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/ExtensionPhase;
+	public fun syntheticResolver (Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function6;Lkotlin/jvm/functions/Function6;Lkotlin/jvm/functions/Function6;Lkotlin/jvm/functions/Function6;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/resolve/synthetics/SyntheticResolver;
+	public fun syntheticScopes (Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;)Larrow/meta/phases/ExtensionPhase;
+	public fun updateConfig (Lkotlin/jvm/functions/Function2;)Larrow/meta/phases/config/Config;
+}
+
+public class arrow/meta/diagnostic/MetaDefaultErrorMessages : org/jetbrains/kotlin/diagnostics/rendering/DefaultErrorMessages$Extension {
+	public static final field MAP Lorg/jetbrains/kotlin/diagnostics/rendering/DiagnosticFactoryToRendererMap;
+	public fun <init> ()V
+	public fun getMap ()Lorg/jetbrains/kotlin/diagnostics/rendering/DiagnosticFactoryToRendererMap;
+}
+
+public abstract interface class arrow/meta/diagnostic/MetaErrors {
+	public static final field AmbiguousProof Lorg/jetbrains/kotlin/diagnostics/DiagnosticFactory2;
+	public static final field AmbiguousProofForSupertype Lorg/jetbrains/kotlin/diagnostics/DiagnosticFactory3;
+	public static final field CycleOnGivenProof Lorg/jetbrains/kotlin/diagnostics/DiagnosticFactory2;
+	public static final field OwnershipViolatedProof Lorg/jetbrains/kotlin/diagnostics/DiagnosticFactory1;
+	public static final field PublishedInternalOrphan Lorg/jetbrains/kotlin/diagnostics/DiagnosticFactory0;
+	public static final field UnresolvedGivenCallSite Lorg/jetbrains/kotlin/diagnostics/DiagnosticFactory2;
+	public static final field UnresolvedGivenProof Lorg/jetbrains/kotlin/diagnostics/DiagnosticFactory1;
+	public static final field _initializer Ljava/lang/Object;
+}
+
+public final class arrow/meta/phases/analysis/diagnostic/RenderersKt {
+	public static final field RenderProof Lorg/jetbrains/kotlin/diagnostics/rendering/DiagnosticParameterRenderer;
+	public static final field RenderProofs Lorg/jetbrains/kotlin/diagnostics/rendering/DiagnosticParameterRenderer;
+	public static final field RenderTypes Lorg/jetbrains/kotlin/diagnostics/rendering/DiagnosticParameterRenderer;
+	public static final fun getProofRenderer ()Lorg/jetbrains/kotlin/renderer/DescriptorRenderer;
+}
+
+public final class arrow/meta/plugins/proofs/ProofsPluginKt {
+	public static final fun getTypeProofs (Larrow/meta/Meta;)Larrow/meta/Plugin;
+}
+
+public final class arrow/meta/plugins/proofs/phases/CallableMemberProof : arrow/meta/plugins/proofs/phases/GivenProof {
+	public fun <init> (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/CallableMemberDescriptor;)V
+	public final fun component1 ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public final fun component2 ()Lorg/jetbrains/kotlin/descriptors/CallableMemberDescriptor;
+	public final fun copy (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/CallableMemberDescriptor;)Larrow/meta/plugins/proofs/phases/CallableMemberProof;
+	public static synthetic fun copy$default (Larrow/meta/plugins/proofs/phases/CallableMemberProof;Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/CallableMemberDescriptor;ILjava/lang/Object;)Larrow/meta/plugins/proofs/phases/CallableMemberProof;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getCallableDescriptor ()Lorg/jetbrains/kotlin/descriptors/CallableDescriptor;
+	public fun getThrough ()Lorg/jetbrains/kotlin/descriptors/CallableMemberDescriptor;
+	public synthetic fun getThrough ()Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;
+	public fun getTo ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class arrow/meta/plugins/proofs/phases/ClassProof : arrow/meta/plugins/proofs/phases/GivenProof {
+	public fun <init> (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;)V
+	public final fun component1 ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public final fun component2 ()Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;
+	public final fun copy (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;)Larrow/meta/plugins/proofs/phases/ClassProof;
+	public static synthetic fun copy$default (Larrow/meta/plugins/proofs/phases/ClassProof;Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;ILjava/lang/Object;)Larrow/meta/plugins/proofs/phases/ClassProof;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getCallableDescriptor ()Lorg/jetbrains/kotlin/descriptors/CallableDescriptor;
+	public fun getThrough ()Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;
+	public synthetic fun getThrough ()Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;
+	public fun getTo ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class arrow/meta/plugins/proofs/phases/GivenProof : arrow/meta/plugins/proofs/phases/Proof {
+	public synthetic fun <init> (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public abstract fun getCallableDescriptor ()Lorg/jetbrains/kotlin/descriptors/CallableDescriptor;
+	public final fun getContexts ()Ljava/util/Set;
+	public fun getThrough ()Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;
+	public fun getTo ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public fun isContextAmbiguous (Larrow/meta/plugins/proofs/phases/Proof;)Z
+}
+
+public final class arrow/meta/plugins/proofs/phases/GivenProofResolution {
+	public fun <init> (Larrow/meta/plugins/proofs/phases/GivenProof;Lorg/jetbrains/kotlin/types/KotlinType;Ljava/util/List;)V
+	public final fun component1 ()Larrow/meta/plugins/proofs/phases/GivenProof;
+	public final fun component2 ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Larrow/meta/plugins/proofs/phases/GivenProof;Lorg/jetbrains/kotlin/types/KotlinType;Ljava/util/List;)Larrow/meta/plugins/proofs/phases/GivenProofResolution;
+	public static synthetic fun copy$default (Larrow/meta/plugins/proofs/phases/GivenProofResolution;Larrow/meta/plugins/proofs/phases/GivenProof;Lorg/jetbrains/kotlin/types/KotlinType;Ljava/util/List;ILjava/lang/Object;)Larrow/meta/plugins/proofs/phases/GivenProofResolution;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAmbiguousProofs ()Ljava/util/List;
+	public final fun getGivenProof ()Larrow/meta/plugins/proofs/phases/GivenProof;
+	public final fun getTargetType ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class arrow/meta/plugins/proofs/phases/ObjectProof : arrow/meta/plugins/proofs/phases/GivenProof {
+	public fun <init> (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;)V
+	public final fun component1 ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public final fun component2 ()Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;
+	public final fun copy (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;)Larrow/meta/plugins/proofs/phases/ObjectProof;
+	public static synthetic fun copy$default (Larrow/meta/plugins/proofs/phases/ObjectProof;Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;ILjava/lang/Object;)Larrow/meta/plugins/proofs/phases/ObjectProof;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getCallableDescriptor ()Lorg/jetbrains/kotlin/descriptors/CallableDescriptor;
+	public fun getThrough ()Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;
+	public synthetic fun getThrough ()Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;
+	public fun getTo ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class arrow/meta/plugins/proofs/phases/Proof {
+	public synthetic fun <init> (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun fold (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public fun getThrough ()Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;
+	public fun getTo ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public abstract fun isContextAmbiguous (Larrow/meta/plugins/proofs/phases/Proof;)Z
+}
+
+public final class arrow/meta/plugins/proofs/phases/ProofKt {
+	public static final fun asProof (Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;)Lkotlin/sequences/Sequence;
+	public static final fun asProof (Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;)Lkotlin/sequences/Sequence;
+	public static final fun asProof (Lorg/jetbrains/kotlin/descriptors/FunctionDescriptor;)Lkotlin/sequences/Sequence;
+	public static final fun asProof (Lorg/jetbrains/kotlin/descriptors/PropertyDescriptor;)Lkotlin/sequences/Sequence;
+	public static final fun contextualAnnotations (Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;)Ljava/util/Set;
+	public static final fun isGivenContextProof (Lorg/jetbrains/kotlin/descriptors/annotations/AnnotationDescriptor;)Z
+}
+
+public final class arrow/meta/plugins/proofs/phases/ProofsCache {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Larrow/meta/plugins/proofs/phases/ProofsCache;
+	public static synthetic fun copy$default (Larrow/meta/plugins/proofs/phases/ProofsCache;Ljava/util/List;ILjava/lang/Object;)Larrow/meta/plugins/proofs/phases/ProofsCache;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getProofs ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class arrow/meta/plugins/proofs/phases/ProofsKt {
+	public static final fun allGivenProofs (Larrow/meta/phases/CompilerContext;)Ljava/util/Map;
+	public static final fun annotations (Lorg/jetbrains/kotlin/psi/KtAnnotated;Lorg/jetbrains/kotlin/resolve/BindingContext;)Ljava/util/List;
+	public static final fun annotations (Lorg/jetbrains/kotlin/psi/KtAnnotated;Lorg/jetbrains/kotlin/resolve/BindingTrace;)Ljava/util/List;
+	public static final fun asString (Larrow/meta/plugins/proofs/phases/Proof;)Ljava/lang/String;
+	public static final fun callables (Larrow/meta/plugins/proofs/phases/Proof;Lkotlin/jvm/functions/Function1;)Ljava/util/List;
+	public static synthetic fun callables$default (Larrow/meta/plugins/proofs/phases/Proof;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/util/List;
+	public static final fun getArrowCompileTime ()Lorg/jetbrains/kotlin/name/FqName;
+	public static final fun givenProof (Larrow/meta/phases/CompilerContext;Lorg/jetbrains/kotlin/name/FqName;Lorg/jetbrains/kotlin/types/KotlinType;)Larrow/meta/plugins/proofs/phases/GivenProofResolution;
+	public static final fun givenProofs (Larrow/meta/phases/CompilerContext;)Ljava/util/Map;
+	public static final fun hasAnnotation (Lorg/jetbrains/kotlin/psi/KtAnnotated;Lorg/jetbrains/kotlin/resolve/BindingContext;Lorg/jetbrains/kotlin/name/FqName;)Z
+	public static final fun hasAnnotation (Lorg/jetbrains/kotlin/psi/KtAnnotated;Lorg/jetbrains/kotlin/resolve/BindingTrace;Lorg/jetbrains/kotlin/name/FqName;)Z
+	public static final fun isProof (Lorg/jetbrains/kotlin/descriptors/annotations/Annotated;)Z
+	public static final fun isProof (Lorg/jetbrains/kotlin/psi/KtAnnotated;Lorg/jetbrains/kotlin/resolve/BindingContext;)Z
+	public static final fun proofs (Lorg/jetbrains/kotlin/descriptors/ModuleDescriptor;Larrow/meta/phases/CompilerContext;)Ljava/util/List;
+}
+
+public final class arrow/meta/plugins/proofs/phases/config/EnableProofsKt {
+	public static final fun enableProofCallResolver (Larrow/meta/Meta;)Larrow/meta/phases/ExtensionPhase;
+}
+
+public final class arrow/meta/plugins/proofs/phases/ir/ProofCandidate {
+	public fun <init> (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/types/UnwrappedType;Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;)V
+	public final fun component1 ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public final fun component2 ()Lorg/jetbrains/kotlin/types/UnwrappedType;
+	public final fun component3 ()Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;
+	public final fun copy (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/types/UnwrappedType;Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;)Larrow/meta/plugins/proofs/phases/ir/ProofCandidate;
+	public static synthetic fun copy$default (Larrow/meta/plugins/proofs/phases/ir/ProofCandidate;Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/types/UnwrappedType;Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;ILjava/lang/Object;)Larrow/meta/plugins/proofs/phases/ir/ProofCandidate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOtherType ()Lorg/jetbrains/kotlin/types/UnwrappedType;
+	public final fun getProofType ()Lorg/jetbrains/kotlin/types/KotlinType;
+	public final fun getThrough ()Lorg/jetbrains/kotlin/descriptors/DeclarationDescriptor;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class arrow/meta/plugins/proofs/phases/ir/ProofsIrCodegen {
+	public static final field Companion Larrow/meta/plugins/proofs/phases/ir/ProofsIrCodegen$Companion;
+	public fun <init> (Larrow/meta/phases/codegen/ir/IrUtils;)V
+	public final fun getIrUtils ()Larrow/meta/phases/codegen/ir/IrUtils;
+	public final fun givenProofCall (Larrow/meta/phases/CompilerContext;Lorg/jetbrains/kotlin/name/FqName;Lorg/jetbrains/kotlin/types/KotlinType;)Lorg/jetbrains/kotlin/ir/expressions/IrExpression;
+	public final fun matchedCandidateProofCall (Larrow/meta/phases/codegen/ir/IrUtils;Lorg/jetbrains/kotlin/descriptors/CallableDescriptor;Lorg/jetbrains/kotlin/resolve/calls/inference/components/NewTypeSubstitutorByConstructorMap;)Lorg/jetbrains/kotlin/ir/expressions/IrExpression;
+	public final fun proveNestedCalls (Larrow/meta/phases/CompilerContext;Lorg/jetbrains/kotlin/ir/expressions/IrCall;)Lorg/jetbrains/kotlin/ir/expressions/IrMemberAccessExpression;
+	public final fun substitutor (Larrow/meta/plugins/proofs/phases/GivenProof;Lorg/jetbrains/kotlin/types/KotlinType;)Lorg/jetbrains/kotlin/resolve/calls/inference/components/NewTypeSubstitutorByConstructorMap;
+}
+
+public final class arrow/meta/plugins/proofs/phases/ir/ProofsIrCodegen$Companion {
+	public final fun invoke (Larrow/meta/phases/codegen/ir/IrUtils;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+}
+
+public final class arrow/meta/plugins/proofs/phases/ir/ProofsIrCodegenKt {
+	public static final fun getTypeSubstitutor (Larrow/meta/plugins/proofs/phases/ir/ProofCandidate;)Lorg/jetbrains/kotlin/resolve/calls/inference/components/NewTypeSubstitutorByConstructorMap;
+}
+
+public final class arrow/meta/plugins/proofs/phases/quotes/GenerateGivenSupportingFunctionsKt {
+	public static final fun generateGivenPreludeFile (Larrow/meta/Meta;)Larrow/meta/phases/ExtensionPhase;
+}
+
+public final class arrow/meta/plugins/proofs/phases/resolve/ProofResolutionKt {
+	public static final fun containsErrorsOrNothing ([Lorg/jetbrains/kotlin/types/KotlinType;)Z
+	public static final fun includeInCandidates (Lorg/jetbrains/kotlin/types/KotlinType;Lorg/jetbrains/kotlin/types/KotlinType;)Z
+	public static final fun kotlinCall (Lorg/jetbrains/kotlin/types/KotlinType;)Lorg/jetbrains/kotlin/resolve/calls/model/KotlinCall;
+	public static final fun matchingCandidates (Ljava/util/List;Larrow/meta/phases/CompilerContext;Lorg/jetbrains/kotlin/types/KotlinType;)Ljava/util/List;
+	public static final fun resolveGivenProofs (Ljava/util/List;Lorg/jetbrains/kotlin/types/KotlinType;Larrow/meta/phases/CompilerContext;Larrow/meta/plugins/proofs/phases/resolve/ProofsCallResolver;Lorg/jetbrains/kotlin/descriptors/ModuleDescriptor;)Ljava/util/List;
+}
+
+public final class arrow/meta/plugins/proofs/phases/resolve/ProofResolutionRulesKt {
+	public static final fun disallowedAmbiguities (Ljava/util/Map;)Ljava/util/List;
+	public static final fun disallowedUserDefinedAmbiguities (Ljava/util/Map;)Ljava/util/List;
+	public static final fun getInlinedType (Lorg/jetbrains/kotlin/descriptors/ClassDescriptor;)Lorg/jetbrains/kotlin/types/KotlinType;
+	public static final fun hasUserSource (Lorg/jetbrains/kotlin/types/KotlinType;)Z
+	public static final fun isPublishedInternalOrphan (Lorg/jetbrains/kotlin/psi/KtDeclaration;Lorg/jetbrains/kotlin/resolve/BindingContext;)Lorg/jetbrains/kotlin/psi/KtDeclaration;
+	public static final fun isResolved (Larrow/meta/plugins/proofs/phases/CallableMemberProof;Ljava/util/Map;Ljava/util/Set;)Lkotlin/Pair;
+	public static final fun isResolved (Larrow/meta/plugins/proofs/phases/ClassProof;Ljava/util/Map;Ljava/util/Set;)Lkotlin/Pair;
+	public static final fun isResolved (Larrow/meta/plugins/proofs/phases/GivenProof;Ljava/util/Map;Ljava/util/Set;)Lkotlin/Pair;
+	public static final fun isUserOwned (Lorg/jetbrains/kotlin/types/KotlinType;)Z
+	public static final fun isViolatingOwnershipRule (Lorg/jetbrains/kotlin/psi/KtDeclaration;Lorg/jetbrains/kotlin/resolve/BindingContext;Larrow/meta/phases/CompilerContext;)Lkotlin/Pair;
+	public static final fun ownershipViolations (Larrow/meta/phases/CompilerContext;Lorg/jetbrains/kotlin/resolve/BindingContext;Lorg/jetbrains/kotlin/psi/KtFile;)Ljava/util/List;
+	public static final fun prohibitedPublishedInternalOrphans (Lorg/jetbrains/kotlin/resolve/BindingContext;Lorg/jetbrains/kotlin/psi/KtFile;)Ljava/util/List;
+	public static final fun reportUnresolvedGivenProofs (Ljava/util/Map;Lorg/jetbrains/kotlin/resolve/BindingTrace;Lorg/jetbrains/kotlin/cli/common/messages/MessageCollector;)V
+	public static final fun skippedProofsDueToAmbiguities (Ljava/util/Map;)Ljava/util/List;
+	public static final fun unresolvedGivenCallSite (Larrow/meta/phases/CompilerContext;Lorg/jetbrains/kotlin/resolve/calls/model/ResolvedCall;)Ljava/util/List;
+	public static final fun unresolvedGivenProofs (Ljava/util/Map;)Ljava/util/Map;
+}
+
+public final class arrow/meta/plugins/proofs/phases/resolve/ProofsCallResolver {
+	public fun <init> (Lorg/jetbrains/kotlin/resolve/calls/tower/TowerResolver;Lorg/jetbrains/kotlin/resolve/calls/components/KotlinCallCompleter;Lorg/jetbrains/kotlin/resolve/calls/components/NewOverloadingConflictResolver;Lorg/jetbrains/kotlin/resolve/calls/components/CallableReferenceResolver;Lorg/jetbrains/kotlin/resolve/calls/model/KotlinCallComponents;Lorg/jetbrains/kotlin/resolve/calls/tower/PSICallResolver;)V
+	public final fun resolveCandidates (Ljava/util/List;Lorg/jetbrains/kotlin/resolve/calls/tower/ImplicitScopeTower;Lorg/jetbrains/kotlin/resolve/calls/model/KotlinCall;Lorg/jetbrains/kotlin/types/UnwrappedType;ZLorg/jetbrains/kotlin/resolve/scopes/receivers/ReceiverValueWithSmartCastInfo;)Lorg/jetbrains/kotlin/resolve/calls/model/CallResolutionResult;
+}
+
+public final class arrow/meta/plugins/proofs/phases/resolve/cache/ProofsCacheKt {
+	public static final fun cachedModule (Larrow/meta/phases/CompilerContext;Lorg/jetbrains/kotlin/name/Name;)Lorg/jetbrains/kotlin/descriptors/ModuleDescriptor;
+	public static final fun computeProofs (Lorg/jetbrains/kotlin/descriptors/ModuleDescriptor;Ljava/util/List;Ljava/util/List;Ljava/util/Set;)Ljava/util/List;
+	public static final fun getProofCache ()Ljava/util/concurrent/ConcurrentHashMap;
+	public static final fun getSkipPackages ()Ljava/util/Set;
+	public static final fun initializeProofCache (Lorg/jetbrains/kotlin/descriptors/ModuleDescriptor;Larrow/meta/phases/CompilerContext;)Ljava/util/List;
+}
+
+public final class arrow/meta/plugins/proofs/phases/resolve/scopes/ProofsMemberScopeKt {
+	public static final fun memberScope (Lkotlin/jvm/functions/Function0;)Lorg/jetbrains/kotlin/resolve/scopes/MemberScope;
+}
+
+public final class arrow/meta/plugins/proofs/phases/resolve/scopes/ProofsScopeTower : org/jetbrains/kotlin/resolve/calls/tower/ImplicitScopeTower {
+	public fun <init> (Lorg/jetbrains/kotlin/descriptors/ModuleDescriptor;Ljava/util/List;Larrow/meta/phases/CompilerContext;)V
+	public fun allScopesWithImplicitsResolutionInfo ()Lkotlin/sequences/Sequence;
+	public fun getDynamicScope ()Lorg/jetbrains/kotlin/resolve/scopes/MemberScope;
+	public fun getImplicitReceiver (Lorg/jetbrains/kotlin/resolve/scopes/LexicalScope;)Lorg/jetbrains/kotlin/resolve/scopes/receivers/ReceiverValueWithSmartCastInfo;
+	public fun getImplicitsResolutionFilter ()Lorg/jetbrains/kotlin/resolve/calls/tower/ImplicitsExtensionsResolutionFilter;
+	public final fun getImportingScope ()Lorg/jetbrains/kotlin/resolve/scopes/LexicalScopeImpl;
+	public fun getLexicalScope ()Lorg/jetbrains/kotlin/resolve/scopes/LexicalScope;
+	public fun getLocation ()Lorg/jetbrains/kotlin/incremental/components/LookupLocation;
+	public final fun getProofs ()Ljava/util/List;
+	public final fun getScopeOwner ()Lorg/jetbrains/kotlin/descriptors/ModuleDescriptor;
+	public fun getSyntheticScopes ()Lorg/jetbrains/kotlin/resolve/scopes/SyntheticScopes;
+	public fun getTypeApproximator ()Lorg/jetbrains/kotlin/types/TypeApproximator;
+	public fun interceptFunctionCandidates (Lorg/jetbrains/kotlin/resolve/scopes/ResolutionScope;Lorg/jetbrains/kotlin/name/Name;Ljava/util/Collection;Lorg/jetbrains/kotlin/incremental/components/LookupLocation;Lorg/jetbrains/kotlin/resolve/scopes/receivers/ReceiverValueWithSmartCastInfo;Lorg/jetbrains/kotlin/resolve/scopes/receivers/ReceiverValueWithSmartCastInfo;)Ljava/util/Collection;
+	public fun interceptVariableCandidates (Lorg/jetbrains/kotlin/resolve/scopes/ResolutionScope;Lorg/jetbrains/kotlin/name/Name;Ljava/util/Collection;Lorg/jetbrains/kotlin/incremental/components/LookupLocation;Lorg/jetbrains/kotlin/resolve/scopes/receivers/ReceiverValueWithSmartCastInfo;Lorg/jetbrains/kotlin/resolve/scopes/receivers/ReceiverValueWithSmartCastInfo;)Ljava/util/Collection;
+	public fun isDebuggerContext ()Z
+	public fun isNewInferenceEnabled ()Z
+}
+

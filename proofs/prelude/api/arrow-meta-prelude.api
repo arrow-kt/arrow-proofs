@@ -1,0 +1,9 @@
+public abstract interface annotation class arrow/CompileTime : java/lang/annotation/Annotation {
+}
+
+public abstract interface annotation class arrow/Context : java/lang/annotation/Annotation {
+}
+
+public abstract interface annotation class arrow/Optics : java/lang/annotation/Annotation {
+}
+
