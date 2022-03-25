@@ -29,7 +29,7 @@ jobs:
         jvm_target: [ '1.8', '11', '15' ]
 
     outputs:
-      analysis-version: ${{ steps.get-proofs-version.outputs.proofs-version }}
+      proofs-version: ${{ steps.get-proofs-version.outputs.proofs-version }}
 
     steps:
       - uses: actions/checkout@v3.0.0
@@ -47,7 +47,7 @@ jobs:
           arguments: -PkotlinVersion=${{ matrix.kotlin }} -PjvmTargetVersion=${{ matrix.jvm_target }} build --scan --stacktrace
 
       - id: get-proofs-version
-        name: Get Analysis version
+        name: Get Proofs version
         run: |
           ./gradlew
           echo "::set-output name=proofs-version::$(head -n 1 build/semver/version.txt)"
