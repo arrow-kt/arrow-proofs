@@ -11,7 +11,7 @@ public class ProofsGradlePlugin : ArrowMetaGradlePlugin {
   override val artifactId: String = "arrow-proofs-plugin"
   override val version: String = properties.getProperty("proofsPluginVersion")
   override val pluginId: String = "proofs"
-  override val dependencies: List<Triple<String, String, String>> = 
+  override val dependencies: List<Triple<String, String, String>> =
     listOf(
       Triple(groupId, "arrow-meta-prelude", properties.getProperty("metaVersion")),
     )
