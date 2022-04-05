@@ -3,6 +3,7 @@ package arrow.meta.plugins.proofs.phases.resolve.scopes
 import arrow.meta.phases.CompilerContext
 import arrow.meta.plugins.proofs.phases.Proof
 import org.jetbrains.kotlin.backend.common.SimpleMemberScope
+import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
@@ -18,7 +19,6 @@ import org.jetbrains.kotlin.resolve.scopes.LexicalChainedScope
 import org.jetbrains.kotlin.resolve.scopes.LexicalScope
 import org.jetbrains.kotlin.resolve.scopes.LexicalScopeImpl
 import org.jetbrains.kotlin.resolve.scopes.LexicalScopeKind
-import org.jetbrains.kotlin.resolve.scopes.LocalRedeclarationChecker
 import org.jetbrains.kotlin.resolve.scopes.MemberScope
 import org.jetbrains.kotlin.resolve.scopes.ResolutionScope
 import org.jetbrains.kotlin.resolve.scopes.SyntheticScopes
@@ -33,12 +33,12 @@ class ProofsScopeTower(
   val scopeOwner = module
   val importingScope =
     LexicalScopeImpl(
-      ImportingScope.Empty,
-      scopeOwner,
-      false,
-      null,
-      LexicalScopeKind.SYNTHETIC,
-      LocalRedeclarationChecker.DO_NOTHING
+      parent = ImportingScope.Empty,
+      ownerDescriptor = scopeOwner,
+      isOwnerDescriptorAccessibleByLabel = false,
+      implicitReceiver = null,
+      contextReceiversGroup = emptyList(),
+      kind = LexicalScopeKind.SYNTHETIC,
     ) {}
   override val dynamicScope: MemberScope = SimpleMemberScope(proofs.map { it.through })
   override val implicitsResolutionFilter: ImplicitsExtensionsResolutionFilter =
@@ -52,7 +52,9 @@ class ProofsScopeTower(
       isOwnerDescriptorAccessibleByLabel = false,
       implicitReceiver = null,
       kind = LexicalScopeKind.SYNTHETIC,
-      memberScopes = arrayOf({ proofs }.memberScope())
+      memberScopes = arrayOf({ proofs }.memberScope()),
+      contextReceiversGroup =
+        emptyList() // TODO: check if this or `importingScope.contextReceiversGroup`
     ) // .addImportingScope(memberScope.memberScopeAsImportingScope())
   override val location: LookupLocation = NoLookupLocation.FROM_BACKEND
   override val syntheticScopes: SyntheticScopes = SyntheticScopes.Empty
@@ -79,4 +81,14 @@ class ProofsScopeTower(
     dispatchReceiver: ReceiverValueWithSmartCastInfo?,
     extensionReceiver: ReceiverValueWithSmartCastInfo?
   ): Collection<VariableDescriptor> = emptyList()
+
+  override val areContextReceiversEnabled: Boolean = true
+  override val languageVersionSettings: LanguageVersionSettings =
+    LanguageVersionSettingsImpl.DEFAULT
+
+  override fun getContextReceivers(scope: LexicalScope): List<ReceiverValueWithSmartCastInfo> {
+    return emptyList() // TODO: check if this should be empty
+  }
+
+  override fun getNameForGivenImportAlias(name: Name): Name? = name
 }

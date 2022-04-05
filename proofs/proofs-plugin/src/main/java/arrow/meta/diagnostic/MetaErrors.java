@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.types.KotlinType;
 
 import java.util.Collection;
 
-import static arrow.meta.phases.analysis.diagnostic.PositionStrategiesKt.onPublishedInternalOrphan;
+import static arrow.meta.phases.analysis.diagnostic.RenderersKt.onPublishedInternalOrphan;
 import static org.jetbrains.kotlin.diagnostics.Severity.ERROR;
 
 public interface MetaErrors {

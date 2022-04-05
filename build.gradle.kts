@@ -10,15 +10,6 @@ plugins {
   java
 }
 
-buildscript {
-  repositories {
-    mavenLocal()
-  }
-  dependencies {
-    classpath("io.arrow-kt:arrow-proofs-gradle-plugin:2.0.0-alpha.6")
-  }
-}
-
 allprojects {
   repositories {
     mavenCentral()

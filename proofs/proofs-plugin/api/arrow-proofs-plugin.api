@@ -139,7 +139,12 @@ public final class arrow/meta/phases/analysis/diagnostic/RenderersKt {
 	public static final field RenderProof Lorg/jetbrains/kotlin/diagnostics/rendering/DiagnosticParameterRenderer;
 	public static final field RenderProofs Lorg/jetbrains/kotlin/diagnostics/rendering/DiagnosticParameterRenderer;
 	public static final field RenderTypes Lorg/jetbrains/kotlin/diagnostics/rendering/DiagnosticParameterRenderer;
+	public static final field onPublishedInternalOrphan Lorg/jetbrains/kotlin/diagnostics/PositioningStrategy;
 	public static final fun getProofRenderer ()Lorg/jetbrains/kotlin/renderer/DescriptorRenderer;
+	public static final fun onPublishedApi (Lorg/jetbrains/kotlin/psi/KtDeclaration;Lorg/jetbrains/kotlin/resolve/BindingContext;)Lkotlin/Pair;
+	public static final fun position (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)Lorg/jetbrains/kotlin/diagnostics/PositioningStrategy;
+	public static synthetic fun position$default (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lorg/jetbrains/kotlin/diagnostics/PositioningStrategy;
+	public static final fun publishedApiAnnotation (Lorg/jetbrains/kotlin/psi/KtDeclaration;)Lorg/jetbrains/kotlin/psi/KtAnnotationEntry;
 }
 
 public final class arrow/meta/plugins/proofs/ProofsPluginKt {
@@ -329,7 +334,7 @@ public final class arrow/meta/plugins/proofs/phases/resolve/ProofResolutionRules
 }
 
 public final class arrow/meta/plugins/proofs/phases/resolve/ProofsCallResolver {
-	public fun <init> (Lorg/jetbrains/kotlin/resolve/calls/tower/TowerResolver;Lorg/jetbrains/kotlin/resolve/calls/components/KotlinCallCompleter;Lorg/jetbrains/kotlin/resolve/calls/components/NewOverloadingConflictResolver;Lorg/jetbrains/kotlin/resolve/calls/components/CallableReferenceResolver;Lorg/jetbrains/kotlin/resolve/calls/model/KotlinCallComponents;Lorg/jetbrains/kotlin/resolve/calls/tower/PSICallResolver;)V
+	public fun <init> (Lorg/jetbrains/kotlin/resolve/calls/tower/TowerResolver;Lorg/jetbrains/kotlin/resolve/calls/components/KotlinCallCompleter;Lorg/jetbrains/kotlin/resolve/calls/components/NewOverloadingConflictResolver;Lorg/jetbrains/kotlin/resolve/calls/model/KotlinCallComponents;Lorg/jetbrains/kotlin/resolve/calls/tower/PSICallResolver;)V
 	public final fun resolveCandidates (Ljava/util/List;Lorg/jetbrains/kotlin/resolve/calls/tower/ImplicitScopeTower;Lorg/jetbrains/kotlin/resolve/calls/model/KotlinCall;Lorg/jetbrains/kotlin/types/UnwrappedType;ZLorg/jetbrains/kotlin/resolve/scopes/receivers/ReceiverValueWithSmartCastInfo;)Lorg/jetbrains/kotlin/resolve/calls/model/CallResolutionResult;
 }
 
@@ -348,12 +353,16 @@ public final class arrow/meta/plugins/proofs/phases/resolve/scopes/ProofsMemberS
 public final class arrow/meta/plugins/proofs/phases/resolve/scopes/ProofsScopeTower : org/jetbrains/kotlin/resolve/calls/tower/ImplicitScopeTower {
 	public fun <init> (Lorg/jetbrains/kotlin/descriptors/ModuleDescriptor;Ljava/util/List;Larrow/meta/phases/CompilerContext;)V
 	public fun allScopesWithImplicitsResolutionInfo ()Lkotlin/sequences/Sequence;
+	public fun getAreContextReceiversEnabled ()Z
+	public fun getContextReceivers (Lorg/jetbrains/kotlin/resolve/scopes/LexicalScope;)Ljava/util/List;
 	public fun getDynamicScope ()Lorg/jetbrains/kotlin/resolve/scopes/MemberScope;
 	public fun getImplicitReceiver (Lorg/jetbrains/kotlin/resolve/scopes/LexicalScope;)Lorg/jetbrains/kotlin/resolve/scopes/receivers/ReceiverValueWithSmartCastInfo;
 	public fun getImplicitsResolutionFilter ()Lorg/jetbrains/kotlin/resolve/calls/tower/ImplicitsExtensionsResolutionFilter;
 	public final fun getImportingScope ()Lorg/jetbrains/kotlin/resolve/scopes/LexicalScopeImpl;
+	public fun getLanguageVersionSettings ()Lorg/jetbrains/kotlin/config/LanguageVersionSettings;
 	public fun getLexicalScope ()Lorg/jetbrains/kotlin/resolve/scopes/LexicalScope;
 	public fun getLocation ()Lorg/jetbrains/kotlin/incremental/components/LookupLocation;
+	public fun getNameForGivenImportAlias (Lorg/jetbrains/kotlin/name/Name;)Lorg/jetbrains/kotlin/name/Name;
 	public final fun getProofs ()Ljava/util/List;
 	public final fun getScopeOwner ()Lorg/jetbrains/kotlin/descriptors/ModuleDescriptor;
 	public fun getSyntheticScopes ()Lorg/jetbrains/kotlin/resolve/scopes/SyntheticScopes;
