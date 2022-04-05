@@ -5,6 +5,7 @@ pluginManagement {
   repositories {
     gradlePluginPortal()
     mavenCentral()
+    mavenLocal()
   }
 }
 
@@ -29,3 +30,6 @@ project(":arrow-proofs-gradle-plugin").projectDir = File("proofs/proofs-gradle-p
 
 include(":arrow-meta-prelude")
 project(":arrow-meta-prelude").projectDir = File("proofs/prelude")
+
+//include(":samples:sample-android")
+//include(":samples:sample-jvm")

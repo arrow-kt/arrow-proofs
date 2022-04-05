@@ -3,7 +3,6 @@ plugins {
   `java-gradle-plugin`
   alias(libs.plugins.arrowGradleConfig.kotlin)
   alias(libs.plugins.arrowGradleConfig.publish)
-  alias(libs.plugins.arrowGradleConfig.versioning)
 }
 
 tasks.processResources {
