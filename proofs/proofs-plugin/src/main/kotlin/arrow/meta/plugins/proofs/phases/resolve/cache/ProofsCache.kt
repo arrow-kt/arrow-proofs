@@ -7,6 +7,7 @@ import arrow.meta.plugins.proofs.phases.ProofsCache
 import arrow.meta.plugins.proofs.phases.asProof
 import arrow.meta.plugins.proofs.phases.isProof
 import java.util.concurrent.ConcurrentHashMap
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -15,7 +16,7 @@ import org.jetbrains.kotlin.types.KotlinType
 val proofCache: ConcurrentHashMap<ModuleDescriptor, ProofsCache> = ConcurrentHashMap()
 
 fun CompilerContext.cachedModule(name: Name): ModuleDescriptor? =
-  proofCache.keys.firstOrNull { it.name == name }
+  proofCache.keys.firstOrNull { it.name == name }.also { messageCollector?.report(CompilerMessageSeverity.WARNING,"CACHE MODULE: $name") }
 
 fun ModuleDescriptor.initializeProofCache(ctx: CompilerContext): List<Proof> =
   try {

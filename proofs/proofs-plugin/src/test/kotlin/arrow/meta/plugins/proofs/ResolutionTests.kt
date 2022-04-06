@@ -514,6 +514,25 @@ class ResolutionTests {
     ) { "result".source.evalsTo(1) }
   }
 
+  @Test
+  fun `regression - invalid resolution on internal class candidate`() {
+    givenResolutionTest(
+      source =
+      """
+        ${regressionFullExample()}
+        
+        @Given
+        internal class GetUserFake : GetUser {
+
+          override operator fun invoke(id: UserId): User = User(id, "Fake")
+        }
+        
+        val viewModel: UserViewModel = given()
+        val result = viewModel.loadUser(UserId(1)).name
+      """
+    ) { "result".source.evalsTo("Fake") }
+  }
+
   private fun givenResolutionTest(source: String, assert: CompilerTest.Companion.() -> Assert) {
     val arrowVersion = System.getProperty("arrowVersion")
     val arrowCoreData = Dependency("arrow-core:$arrowVersion")
