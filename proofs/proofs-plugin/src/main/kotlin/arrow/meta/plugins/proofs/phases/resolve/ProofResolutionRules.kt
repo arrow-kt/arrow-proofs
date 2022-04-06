@@ -126,11 +126,11 @@ fun prohibitedPublishedInternalOrphans(
   }
 
 fun KtDeclaration.isPublishedInternalOrphan(bindingContext: BindingContext): KtDeclaration? =
-    takeIf {
-  it.isProof(bindingContext) &&
-    it.hasAnnotation(bindingContext, StandardNames.FqNames.publishedApi) &&
-    it.hasModifier(KtTokens.INTERNAL_KEYWORD)
-}
+  takeIf {
+    it.isProof(bindingContext) &&
+      it.hasAnnotation(bindingContext, StandardNames.FqNames.publishedApi) &&
+      it.hasModifier(KtTokens.INTERNAL_KEYWORD)
+  }
 
 fun CompilerContext.ownershipViolations(
   trace: BindingContext,
@@ -262,15 +262,16 @@ fun ClassProof.isResolved(
   else
     through.unsubstitutedPrimaryConstructor?.valueParameters
       ?.all { param ->
-        if (param.annotations.any { it.isGivenContextProof() })
-          others.getOrDefault(param.type, emptyList()).any {
-            previousProofs.add(this)
-            it.isResolved(others, previousProofs).first
-          }
-        else param.declaresDefaultValue()
+        if (isContextProof(param)) {
+          mappedProofs(others, param).any { it.isResolved(others, previousProofs).first }
+          previousProofs.add(this)
+        } else param.declaresDefaultValue()
       }
       ?.let { it to previousProofs }
-      ?: false to previousProofs
+      ?: (false to previousProofs)
+
+private fun isContextProof(valueParameterDescriptor: ValueParameterDescriptor) =
+  valueParameterDescriptor.annotations.any { it.isGivenContextProof() }
 
 /** TODO: Check if the defaultValue is resolved */
 fun CallableMemberProof.isResolved(
@@ -280,13 +281,18 @@ fun CallableMemberProof.isResolved(
   if (this in previousProofs) false to previousProofs
   else
     through.valueParameters.all { param ->
-      if (!param.type.isTypeParameter() && param.annotations.any { it.isGivenContextProof() })
-        others.getOrDefault(param.type, emptyList()).any {
+      if (!param.type.isTypeParameter() && isContextProof(param))
+        mappedProofs(others, param).any {
           previousProofs.add(this)
           it.isResolved(others, previousProofs).first
         }
       else true
     } to previousProofs
+
+private fun mappedProofs(
+  others: Map<KotlinType, List<GivenProof>>,
+  valueParameterDescriptor: ValueParameterDescriptor
+) = others.getOrDefault(valueParameterDescriptor.type, emptyList())
 
 fun Map<KotlinType, List<GivenProof>>.reportUnresolvedGivenProofs(
   trace: BindingTrace,
