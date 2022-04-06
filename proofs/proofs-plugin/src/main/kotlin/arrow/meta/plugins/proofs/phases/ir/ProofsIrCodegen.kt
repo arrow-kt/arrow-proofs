@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedDescriptor
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
 import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
 import org.jetbrains.kotlin.ir.types.IrType
@@ -113,6 +114,11 @@ class ProofsIrCodegen(val irUtils: IrUtils) {
     if (contextFqName != null && type != null) {
       givenProofCall(contextFqName, type)?.apply {
         if (this is IrCall) {
+          symbol.owner.valueParameters.forEachIndexed { n, param ->
+            processValueParameter(param, param.type, this, n)
+          }
+        }
+        if (this is IrConstructorCall) {
           symbol.owner.valueParameters.forEachIndexed { n, param ->
             processValueParameter(param, param.type, this, n)
           }
