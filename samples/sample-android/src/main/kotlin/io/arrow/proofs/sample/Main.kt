@@ -1,6 +1,7 @@
 package io.arrow.proofs.sample
 
-suspend fun main() {
-  val viewModel: UserViewModel = inject()
-  viewModel.loadUser(UserId(2))
+val viewModel: UserViewModel = UserViewModel()
+
+fun main() {
+  println(viewModel.loadUser(UserId(2)))
 }

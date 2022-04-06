@@ -483,6 +483,25 @@ class ResolutionTests {
     ) { "result".source.evalsTo("5") }
   }
 
+  @Test
+  fun `regression - invalid codegen on inductive resolution`() {
+    givenResolutionTest(
+      source =
+      """
+        @Given
+        object Juan {
+          val age: Int = 20
+        }
+        
+        @Given
+        class Pepe(@Given val juan: Juan)
+        
+        val pepe: Pepe = given()
+        val result = pepe.juan.age
+      """
+    ) { "result".source.evalsTo(20) }
+  }
+
   private fun givenResolutionTest(source: String, assert: CompilerTest.Companion.() -> Assert) {
     val arrowVersion = System.getProperty("arrowVersion")
     val arrowCoreData = Dependency("arrow-core:$arrowVersion")
