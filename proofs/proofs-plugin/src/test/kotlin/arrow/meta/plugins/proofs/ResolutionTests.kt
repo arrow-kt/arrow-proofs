@@ -487,7 +487,7 @@ class ResolutionTests {
   fun `regression - invalid codegen on inductive resolution`() {
     givenResolutionTest(
       source =
-      """
+        """
         @Given
         object Juan {
           val age: Int = 20
@@ -500,6 +500,18 @@ class ResolutionTests {
         val result = pepe.juan.age
       """
     ) { "result".source.evalsTo(20) }
+  }
+
+  @Test
+  fun `regression - invalid codegen on inductive resolution full example`() {
+    givenResolutionTest(
+      source =
+      """
+        ${regressionFullExample()}
+        val viewModel: UserViewModel = given()
+        val result = viewModel.loadUserId(UserId(1))
+      """
+    ) { "result".source.evalsTo(1) }
   }
 
   private fun givenResolutionTest(source: String, assert: CompilerTest.Companion.() -> Assert) {
@@ -561,3 +573,36 @@ class ResolutionTests {
     )
   }
 }
+
+fun regressionFullExample() =
+  """
+    @JvmInline
+    value class UserId(val value: Int)
+
+    data class User(val id: UserId, val name: String)
+
+    @Given
+    object Database {
+
+      fun getUser(id: UserId): User = User(id, "Javi")
+    }
+    
+    interface GetUser {
+      operator fun invoke(id: UserId): User
+    }
+    
+    @Given
+    class GetUserImpl(@Given private val database: Database) : GetUser {
+
+      override operator fun invoke(id: UserId): User = database.getUser(id)
+    }
+
+    @Given
+    class UserViewModel(@Given private val getUser: GetUser) {
+
+      fun loadUser(id: UserId): User = getUser(id)
+      
+      fun loadUserId(id: UserId): Int = getUser(id).id.value
+    }
+    
+  """.trimIndent()
