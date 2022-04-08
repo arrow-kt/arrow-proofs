@@ -533,6 +533,44 @@ class ResolutionTests {
     ) { "result".source.evalsTo("Fake") }
   }
 
+  @Test
+  fun `scope local override`() {
+    givenResolutionTest(
+      source =
+      """        
+        @Given internal val yes: String = "yes!"
+        
+        fun foo(): String {
+          @Given val no: String = "no!"
+          return given<String>()
+        }
+        
+        val result = foo()
+      """
+    ) { "result".source.evalsTo("no!") }
+  }
+
+  @Test
+  fun `member providers`() {
+    givenResolutionTest(
+      source =
+      """   
+        @Given internal val yes: String = "yes!"
+
+        class Foo {
+          @Given internal val no: String = "no!"
+           
+          fun foo(): String {
+            @Given val ble: String = "ble!"
+            return given<String>()
+          }
+        }
+        
+        val result = Foo().foo()
+      """
+    ) { "result".source.evalsTo("no!") }
+  }
+
   private fun givenResolutionTest(source: String, assert: CompilerTest.Companion.() -> Assert) {
     val arrowVersion = System.getProperty("arrowVersion")
     val arrowCoreData = Dependency("arrow-core:$arrowVersion")
@@ -568,13 +606,6 @@ class ResolutionTests {
           |import arrow.Context
           |
           |@Context
-          |@Retention(AnnotationRetention.RUNTIME)
-          |@Target(
-          |  AnnotationTarget.CLASS,
-          |  AnnotationTarget.FUNCTION,
-          |  AnnotationTarget.PROPERTY,
-          |  AnnotationTarget.VALUE_PARAMETER
-          |)
           |@MustBeDocumented
           |annotation class Given
           |

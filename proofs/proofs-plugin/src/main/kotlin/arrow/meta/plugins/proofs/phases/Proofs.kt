@@ -2,6 +2,7 @@ package arrow.meta.plugins.proofs.phases
 
 import arrow.meta.phases.CompilerContext
 import arrow.meta.phases.analysis.diagnostic.ProofRenderer
+import arrow.meta.plugins.proofs.localProofsCache
 import arrow.meta.plugins.proofs.phases.resolve.cache.initializeProofCache
 import arrow.meta.plugins.proofs.phases.resolve.cache.proofCache
 import arrow.meta.plugins.proofs.phases.resolve.isResolved
@@ -21,6 +22,7 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.BindingTrace
 import org.jetbrains.kotlin.resolve.descriptorUtil.builtIns
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
+import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValueWithSmartCastInfo
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.isSubtypeOf
 import org.jetbrains.kotlin.utils.addToStdlib.safeAs
@@ -67,17 +69,64 @@ data class GivenProofResolution(
   val ambiguousProofs: List<GivenProof>
 )
 
-fun CompilerContext.givenProof(context: FqName, superType: KotlinType): GivenProofResolution =
-  givenProofCandidate(superType, givenProofs(context, superType))
+fun CompilerContext.givenProof(
+  context: FqName,
+  superType: KotlinType,
+  dispatchReceiver: ReceiverValueWithSmartCastInfo?,
+  extensionReceiver: ReceiverValueWithSmartCastInfo?,
+): GivenProofResolution =
+  givenProofCandidate(
+    superType,
+    givenProofs(context, superType, dispatchReceiver, extensionReceiver),
+    dispatchReceiver,
+    extensionReceiver,
+  )
 
-private fun CompilerContext.givenProofs(context: FqName, superType: KotlinType): List<GivenProof> =
-  proof<GivenProof>().filter { context in it.contexts }.matchingCandidates(this, superType)
+fun CompilerContext.givenLocalProof(
+  context: FqName,
+  superType: KotlinType,
+  dispatchReceiver: ReceiverValueWithSmartCastInfo?,
+  extensionReceiver: ReceiverValueWithSmartCastInfo?,
+): GivenProofResolution =
+  givenProofCandidate(
+    superType,
+    givenLocalProofs(context, superType, dispatchReceiver, extensionReceiver),
+    dispatchReceiver,
+    extensionReceiver,
+  )
+
+private fun CompilerContext.givenProofs(
+  context: FqName,
+  superType: KotlinType,
+  dispatchReceiver: ReceiverValueWithSmartCastInfo?,
+  extensionReceiver: ReceiverValueWithSmartCastInfo?,
+): List<GivenProof> =
+  proof<GivenProof>()
+    .filter { context in it.contexts }
+    .matchingCandidates(this, superType, dispatchReceiver, extensionReceiver)
+
+private fun CompilerContext.givenLocalProofs(
+  context: FqName,
+  superType: KotlinType,
+  dispatchReceiver: ReceiverValueWithSmartCastInfo?,
+  extensionReceiver: ReceiverValueWithSmartCastInfo?,
+): List<GivenProof> =
+  localProof<GivenProof>()
+    .filter { context in it.contexts }
+    .matchingCandidates(
+      this,
+      superType,
+      dispatchReceiver,
+      extensionReceiver,
+    )
 
 private fun CompilerContext.givenProofCandidate(
   targetType: KotlinType,
-  candidates: List<GivenProof>
+  candidates: List<GivenProof>,
+  dispatchReceiver: ReceiverValueWithSmartCastInfo?,
+  extensionReceiver: ReceiverValueWithSmartCastInfo?,
 ): GivenProofResolution {
-  val proofs = givenProofs()
+  val proofs = givenProofs(dispatchReceiver, extensionReceiver)
   val c =
     candidates.filter {
       it.isResolved(proofs, mutableSetOf()).first &&
@@ -95,7 +144,10 @@ private fun CompilerContext.givenProofCandidate(
 }
 
 inline fun <reified P : Proof> CompilerContext.proof(): List<P> =
-  module?.proofs(this)?.filterIsInstance<P>()!!
+  module?.proofs(this)?.filterIsInstance<P>().orEmpty()
+
+inline fun <reified P : Proof> CompilerContext.localProof(): List<P> =
+  localProofsCache.flatMap { (parent, proofs) -> proofs }.filterIsInstance<P>()
 
 /**
  * returns a Map, where the keys are [KotlinType] and the values are all corresponding proofs
@@ -113,9 +165,14 @@ fun CompilerContext.allGivenProofs(): Map<KotlinType, List<GivenProof>> =
     .toMap()
 
 /** contrary to [allGivenProofs] it refines the List as it is done in [givenProofs] */
-fun CompilerContext.givenProofs(): Map<KotlinType, List<GivenProof>> =
+fun CompilerContext.givenProofs(
+  dispatchReceiver: ReceiverValueWithSmartCastInfo?,
+  extensionReceiver: ReceiverValueWithSmartCastInfo?,
+): Map<KotlinType, List<GivenProof>> =
   allGivenProofs()
-    .mapValues { (type, proofs) -> proofs.matchingCandidates(this, type) }
+    .mapValues { (type, proofs) ->
+      proofs.matchingCandidates(this, type, dispatchReceiver, extensionReceiver)
+    }
     .filterValues { it.isNotEmpty() }
 
 @Synchronized

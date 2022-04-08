@@ -8,6 +8,7 @@ import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.FunctionDescriptor
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
+import org.jetbrains.kotlin.descriptors.VariableDescriptor
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationDescriptor
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.resolve.calls.util.FakeCallableDescriptorForObject
@@ -54,6 +55,14 @@ data class CallableMemberProof(
     get() = through
 }
 
+data class CallableProof(
+  override val to: KotlinType,
+  override val through: CallableDescriptor
+) : GivenProof(to, through) {
+  override val callableDescriptor: CallableDescriptor
+    get() = through
+}
+
 fun DeclarationDescriptor.contextualAnnotations(): Set<FqName> =
   annotations.mapNotNull { if (it.isGivenContextProof()) it.fqName else null }.toSet()
 
@@ -64,7 +73,8 @@ fun DeclarationDescriptor.asProof(): Sequence<Proof> =
     is FunctionDescriptor -> asProof()
     is ClassDescriptor -> asProof()
     is FakeCallableDescriptorForObject -> classDescriptor.asProof()
-    else -> emptySequence()
+    is VariableDescriptor -> asProof()
+    else -> emptySequence() // TODO: maybe change to `error()` to find missing cases
   }
 
 fun AnnotationDescriptor.isGivenContextProof(): Boolean =
@@ -75,6 +85,14 @@ fun ClassDescriptor.asProof(): Sequence<Proof> =
   annotations.asSequence().mapNotNull {
     when {
       it.isGivenContextProof() -> asGivenProof()
+      else -> TODO("asProof: Unsupported proof declaration type: $this")
+    }
+  }
+
+fun CallableDescriptor.asProof(): Sequence<Proof> =
+  annotations.asSequence().mapNotNull {
+    when {
+      it.isGivenContextProof() -> if (!isExtension) asGivenProof() else null
       else -> TODO("asProof: Unsupported proof declaration type: $this")
     }
   }
@@ -97,6 +115,9 @@ fun FunctionDescriptor.asProof(): Sequence<Proof> =
 
 internal fun ClassDescriptor.asGivenProof(): GivenProof =
   if (kind == ClassKind.OBJECT) ObjectProof(defaultType, this) else ClassProof(defaultType, this)
+
+internal fun CallableDescriptor.asGivenProof(): GivenProof? =
+  returnType?.let { CallableProof(it, this) }
 
 internal fun CallableMemberDescriptor.asGivenProof(): GivenProof? =
   returnType?.let { CallableMemberProof(it, this) }

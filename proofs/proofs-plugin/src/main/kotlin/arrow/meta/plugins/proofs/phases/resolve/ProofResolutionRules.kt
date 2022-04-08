@@ -16,6 +16,7 @@ import arrow.meta.phases.analysis.exists
 import arrow.meta.phases.analysis.traverseFilter
 import arrow.meta.plugins.proofs.phases.ArrowCompileTime
 import arrow.meta.plugins.proofs.phases.CallableMemberProof
+import arrow.meta.plugins.proofs.phases.CallableProof
 import arrow.meta.plugins.proofs.phases.ClassProof
 import arrow.meta.plugins.proofs.phases.GivenProof
 import arrow.meta.plugins.proofs.phases.GivenProofResolution
@@ -49,6 +50,7 @@ import org.jetbrains.kotlin.resolve.calls.checkers.CallCheckerContext
 import org.jetbrains.kotlin.resolve.calls.model.DefaultValueArgument
 import org.jetbrains.kotlin.resolve.calls.model.ResolvedCall
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
+import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValueWithSmartCastInfo
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedContainerSource
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
@@ -112,7 +114,16 @@ fun CompilerContext.unresolvedGivenCallSite(
     .mapNotNull { v ->
       val contextFqName = v.contextualAnnotations().firstOrNull()
       if (contextFqName != null) {
-        val givenProofResolution = givenProof(contextFqName, v.type)
+        val dispatchReceiver =
+          v.dispatchReceiverParameter?.let {
+            ReceiverValueWithSmartCastInfo(it.value, emptySet(), true)
+          }
+        val extensionReceiver =
+          v.extensionReceiverParameter?.let {
+            ReceiverValueWithSmartCastInfo(it.value, emptySet(), true)
+          }
+        val givenProofResolution =
+          givenProof(contextFqName, v.type, dispatchReceiver, extensionReceiver)
         if (givenProofResolution.givenProof == null) null to v else givenProofResolution to v
       } else null
     }
@@ -247,6 +258,7 @@ fun GivenProof.isResolved(
         emptySet() // object proofs are resolved automatically, as they do not have constructors
     is ClassProof -> isResolved(others, previousProofs)
     is CallableMemberProof -> isResolved(others, previousProofs)
+    is CallableProof -> isResolved(others, previousProofs)
   }
 
 /**
@@ -275,6 +287,21 @@ private fun isContextProof(valueParameterDescriptor: ValueParameterDescriptor) =
 
 /** TODO: Check if the defaultValue is resolved */
 fun CallableMemberProof.isResolved(
+  others: Map<KotlinType, List<GivenProof>>,
+  previousProofs: MutableSet<GivenProof>
+): ResolutionResult =
+  if (this in previousProofs) false to previousProofs
+  else
+    through.valueParameters.all { param ->
+      if (!param.type.isTypeParameter() && isContextProof(param))
+        mappedProofs(others, param).any {
+          previousProofs.add(this)
+          it.isResolved(others, previousProofs).first
+        }
+      else true
+    } to previousProofs
+
+fun CallableProof.isResolved(
   others: Map<KotlinType, List<GivenProof>>,
   previousProofs: MutableSet<GivenProof>
 ): ResolutionResult =
@@ -358,7 +385,7 @@ private fun <K, A : Proof> Map<K, List<A>>.reportSkippedProofsDueToAmbiguities(
 private fun CompilerContext.reportUnresolvedGivenCallSite(
   call: ResolvedCall<*>,
   element: KtExpression,
-  trace: BindingTrace
+  trace: BindingTrace,
 ): Unit =
   unresolvedGivenCallSite(call).let { values ->
     values.forEach { (resolution, v) ->
@@ -383,19 +410,32 @@ private fun CompilerContext.reportUnresolvedGivenCallSite(
   }
 
 private fun CompilerContext.reportMissingInductiveDependencies(
-  it: ValueParameterDescriptor,
+  valueParameterDescriptor: ValueParameterDescriptor,
   trace: BindingTrace,
   element: KtExpression,
-  call: ResolvedCall<*>
+  call: ResolvedCall<*>,
 ) {
-  if (it.type.constructor.declarationDescriptor?.annotations?.any { it.isGivenContextProof() } ==
-      true
+  if (valueParameterDescriptor.type.constructor.declarationDescriptor?.annotations?.any {
+      it.isGivenContextProof()
+    } == true
   ) {
-    val dcl = it.type.constructor.declarationDescriptor
+    val dcl = valueParameterDescriptor.type.constructor.declarationDescriptor
     if (dcl is ClassDescriptor) {
+
       dcl.constructors.firstOrNull { it.isPrimary }?.valueParameters?.forEach { valueParam ->
         val contextFqName = valueParam.contextualAnnotations().firstOrNull()
-        val parameterProof = contextFqName?.let { givenProof(it, valueParam.type) }
+        val parameterProof =
+          contextFqName?.let {
+            val dispatchReceiver =
+              valueParameterDescriptor.dispatchReceiverParameter?.let {
+                ReceiverValueWithSmartCastInfo(it.value, emptySet(), true)
+              }
+            val extensionReceiver =
+              valueParameterDescriptor.extensionReceiverParameter?.let {
+                ReceiverValueWithSmartCastInfo(it.value, emptySet(), true)
+              }
+            givenProof(it, valueParam.type, dispatchReceiver, extensionReceiver)
+          }
         if (parameterProof?.givenProof == null)
           trace.report(UnresolvedGivenCallSite.on(element, call, valueParam.type))
       }

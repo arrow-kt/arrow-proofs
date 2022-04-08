@@ -57,7 +57,8 @@ class ProofsCallResolver(
     kotlinCall: KotlinCall,
     expectedType: UnwrappedType,
     collectAllCandidates: Boolean,
-    extensionReceiver: ReceiverValueWithSmartCastInfo?
+    dispatchReceiver: ReceiverValueWithSmartCastInfo?,
+    extensionReceiver: ReceiverValueWithSmartCastInfo?,
   ): CallResolutionResult {
     kotlinCall.checkCallInvariants()
     val trace = BindingTraceContext.createTraceableBindingTrace()
@@ -73,8 +74,8 @@ class ProofsCallResolver(
     val fakeCall =
       object : Call {
         override fun getCallOperationNode(): ASTNode? = null
-        override fun getExplicitReceiver(): Receiver? = null
-        override fun getDispatchReceiver(): ReceiverValue? = null
+        override fun getExplicitReceiver(): Receiver? = extensionReceiver?.receiverValue
+        override fun getDispatchReceiver(): ReceiverValue? = dispatchReceiver?.receiverValue
         override fun getCalleeExpression(): KtExpression? = null
         override fun getValueArgumentList(): KtValueArgumentList? = null
         override fun getValueArguments(): List<ValueArgument> = emptyList()
@@ -103,7 +104,7 @@ class ProofsCallResolver(
 
     val resolutionCandidates = map {
       it.fold(
-          given = { givenCandidate(candidateFactory) },
+          given = { givenCandidate(candidateFactory, dispatchReceiver, extensionReceiver) },
         )
         .forceResolution()
     }
@@ -131,13 +132,31 @@ class ProofsCallResolver(
   }
 
   private fun GivenProof.givenCandidate(
-    candidateFactory: SimpleCandidateFactory
-  ): ResolutionCandidate =
-    candidateFactory.createCandidate(
-      towerCandidate = CandidateWithBoundDispatchReceiver(null, callableDescriptor, emptyList()),
-      explicitReceiverKind = ExplicitReceiverKind.NO_EXPLICIT_RECEIVER,
-      extensionReceiver = null
-    )
+    candidateFactory: SimpleCandidateFactory,
+    dispatchReceiver: ReceiverValueWithSmartCastInfo?,
+    extensionReceiver: ReceiverValueWithSmartCastInfo?,
+  ): ResolutionCandidate {
+    return if (through.containingDeclaration != null) {
+      val kind = when {
+        dispatchReceiver != null && extensionReceiver != null -> ExplicitReceiverKind.BOTH_RECEIVERS
+        dispatchReceiver != null -> ExplicitReceiverKind.DISPATCH_RECEIVER
+        extensionReceiver != null -> ExplicitReceiverKind.EXTENSION_RECEIVER
+        else -> ExplicitReceiverKind.NO_EXPLICIT_RECEIVER
+      }
+
+      candidateFactory.createCandidate(
+        towerCandidate = CandidateWithBoundDispatchReceiver(dispatchReceiver, callableDescriptor, emptyList()),
+        explicitReceiverKind = kind,
+        extensionReceiver = extensionReceiver
+      )
+    } else {
+      candidateFactory.createCandidate(
+        towerCandidate = CandidateWithBoundDispatchReceiver(null, callableDescriptor, emptyList()),
+        explicitReceiverKind = ExplicitReceiverKind.NO_EXPLICIT_RECEIVER,
+        extensionReceiver = null
+      )
+    }
+  }
 
   private fun choseMostSpecific(
     candidateFactory: SimpleCandidateFactory,

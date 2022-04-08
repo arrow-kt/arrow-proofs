@@ -16,8 +16,10 @@ import org.jetbrains.kotlin.resolve.calls.model.KotlinCall
 import org.jetbrains.kotlin.resolve.calls.model.KotlinCallArgument
 import org.jetbrains.kotlin.resolve.calls.model.KotlinCallKind
 import org.jetbrains.kotlin.resolve.calls.model.NoValueForParameter
+import org.jetbrains.kotlin.resolve.calls.model.ReceiverExpressionKotlinCallArgument
 import org.jetbrains.kotlin.resolve.calls.model.ReceiverKotlinCallArgument
 import org.jetbrains.kotlin.resolve.calls.model.TypeArgument
+import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValueWithSmartCastInfo
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.isError
 import org.jetbrains.kotlin.types.typeUtil.isNothing
@@ -26,7 +28,9 @@ import org.jetbrains.kotlin.types.typeUtil.replaceArgumentsWithStarProjections
 
 fun List<GivenProof>.matchingCandidates(
   compilerContext: CompilerContext,
-  superType: KotlinType
+  superType: KotlinType,
+  dispatchReceiver: ReceiverValueWithSmartCastInfo?,
+  extensionReceiver: ReceiverValueWithSmartCastInfo?,
 ): List<GivenProof> {
   val proofs =
     if (containsErrorsOrNothing(superType)) emptyList<GivenProof>()
@@ -40,7 +44,9 @@ fun List<GivenProof>.matchingCandidates(
                   superType,
                   compilerContext,
                   proofsCallResolver,
-                  this
+                  this,
+                  dispatchReceiver,
+                  extensionReceiver,
                 )
               proofs
             }
@@ -58,10 +64,16 @@ fun List<GivenProof>.resolveGivenProofs(
   superType: KotlinType,
   compilerContext: CompilerContext,
   proofsCallResolver: ProofsCallResolver,
-  moduleDescriptor: ModuleDescriptor
+  moduleDescriptor: ModuleDescriptor,
+  dispatchReceiver: ReceiverValueWithSmartCastInfo?,
+  extensionReceiver: ReceiverValueWithSmartCastInfo?,
 ): List<GivenProof> {
   val scopeTower = ProofsScopeTower(moduleDescriptor, this, compilerContext)
-  val kotlinCall: KotlinCall = kotlinCall(superType)
+  val kotlinCall: KotlinCall =
+    kotlinCall(
+      extensionReceiver?.let { ReceiverExpressionKotlinCallArgument(extensionReceiver) },
+      dispatchReceiver?.let { ReceiverExpressionKotlinCallArgument(dispatchReceiver) },
+    )
   val callResolutionResult =
     proofsCallResolver.run {
       resolveCandidates(
@@ -69,7 +81,8 @@ fun List<GivenProof>.resolveGivenProofs(
         kotlinCall = kotlinCall,
         expectedType = superType.unwrap(),
         collectAllCandidates = true,
-        extensionReceiver = null
+        dispatchReceiver = dispatchReceiver,
+        extensionReceiver = extensionReceiver
       )
     }
   return callResolutionResult.matchingGivenProofs(superType)
@@ -107,14 +120,18 @@ fun includeInCandidates(a: KotlinType, b: KotlinType): Boolean =
       b.replaceArgumentsWithStarProjections()
     ))
 
-fun kotlinCall(superType: KotlinType): KotlinCall =
+fun kotlinCall(
+  extensionReceiver: ReceiverKotlinCallArgument?,
+  dispatchReceiver: ReceiverKotlinCallArgument?,
+): KotlinCall =
   object : KotlinCall {
     override val argumentsInParenthesis: List<KotlinCallArgument>
       get() {
         return emptyList()
       }
     override val callKind: KotlinCallKind = KotlinCallKind.FUNCTION
-    override val explicitReceiver: ReceiverKotlinCallArgument? = null
+    override val explicitReceiver: ReceiverKotlinCallArgument? =
+      extensionReceiver ?: dispatchReceiver
     override val externalArgument: KotlinCallArgument? = null
     override val isForImplicitInvoke: Boolean = false
     override val name: Name = Name.identifier("Proof type-checking and resolution")
