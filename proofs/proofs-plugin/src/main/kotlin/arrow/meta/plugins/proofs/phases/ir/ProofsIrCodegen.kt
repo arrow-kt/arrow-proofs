@@ -16,6 +16,7 @@ import arrow.meta.plugins.proofs.phases.givenLocalProof
 import arrow.meta.plugins.proofs.phases.givenProof
 import arrow.meta.plugins.proofs.phases.resolve.ProofReceiverValue
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
+import org.jetbrains.kotlin.descriptors.CallableMemberDescriptor
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedDescriptor
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
@@ -42,9 +43,7 @@ class ProofsIrCodegen(val irUtils: IrUtils) {
 
   fun IrUtils.matchedCandidateProofCall(
     fn: CallableDescriptor,
-    typeSubstitutor: NewTypeSubstitutorByConstructorMap,
-    dispatchReceiver: ReceiverValueWithSmartCastInfo?,
-    extensionReceiver: ReceiverValueWithSmartCastInfo?,
+    typeSubstitutor: NewTypeSubstitutorByConstructorMap
   ): IrExpression {
     val irTypes = fn.substitutedIrTypes(typeSubstitutor).filterNotNull()
     return fn.irCall().apply {
@@ -58,9 +57,7 @@ class ProofsIrCodegen(val irUtils: IrUtils) {
             val argProof =
               this@matchedCandidateProofCall.compilerContext.givenProofCall(
                 contextFqName,
-                irTypes.getOrElse(n) { pluginContext.irBuiltIns.nothingType }.toIrBasedKotlinType(),
-                dispatchReceiver = dispatchReceiver,
-                extensionReceiver = extensionReceiver,
+                irTypes.getOrElse(n) { pluginContext.irBuiltIns.nothingType }.toIrBasedKotlinType()
               )
             if (argProof != null) putValueArgument(n, argProof)
           }
@@ -71,41 +68,33 @@ class ProofsIrCodegen(val irUtils: IrUtils) {
 
   fun CompilerContext.givenLocalProofCall(
     context: FqName,
-    superType: KotlinType,
-    dispatchReceiver: ReceiverValueWithSmartCastInfo?,
-    extensionReceiver: ReceiverValueWithSmartCastInfo?,
+    superType: KotlinType
   ): IrExpression? =
     irUtils.run {
-      val localCandidate = givenLocalProof(context, superType, dispatchReceiver, extensionReceiver)
+      val localCandidate = givenLocalProof(context, superType)
       localCandidate.givenProof?.let { proof ->
-        substitutedProofCall(proof, superType, dispatchReceiver, extensionReceiver)
+        substitutedProofCall(proof, superType)
       }
     }
 
   fun CompilerContext.givenProofCall(
     context: FqName,
     superType: KotlinType,
-    dispatchReceiver: ReceiverValueWithSmartCastInfo?,
-    extensionReceiver: ReceiverValueWithSmartCastInfo?,
   ): IrExpression? =
     irUtils.run {
-      val globalCandidate = givenProof(context, superType, dispatchReceiver, extensionReceiver)
+      val globalCandidate = givenProof(context, superType)
       globalCandidate.givenProof?.let { proof ->
-        substitutedProofCall(proof, superType, dispatchReceiver, extensionReceiver)
+        substitutedProofCall(proof, superType)
       }
     }
 
   private fun IrUtils.substitutedProofCall(
     proof: GivenProof,
-    superType: KotlinType,
-    dispatchReceiver: ReceiverValueWithSmartCastInfo?,
-    extensionReceiver: ReceiverValueWithSmartCastInfo?,
+    superType: KotlinType
   ): IrExpression =
     matchedCandidateProofCall(
       fn = proof.callableDescriptor,
-      typeSubstitutor = proof.substitutor(superType),
-      dispatchReceiver = dispatchReceiver,
-      extensionReceiver = extensionReceiver,
+      typeSubstitutor = proof.substitutor(superType)
     )
 
   fun GivenProof.substitutor(superType: KotlinType): NewTypeSubstitutorByConstructorMap =
@@ -121,40 +110,21 @@ class ProofsIrCodegen(val irUtils: IrUtils) {
 
   private fun CompilerContext.proveCall(expression: IrCall): IrMemberAccessExpression<*> =
     if (expression.symbol.owner.annotations.hasAnnotation(ArrowCompileTime)) {
-      val dispatchReceiver =
-        expression.dispatchReceiver?.let {
-          ReceiverValueWithSmartCastInfo(
-            ProofReceiverValue(it.type.toIrBasedKotlinType()),
-            emptySet(),
-            true
-          )
-        }
-      val extensionReceiver =
-        expression.extensionReceiver?.let {
-          ReceiverValueWithSmartCastInfo(
-            ProofReceiverValue(it.type.toIrBasedKotlinType()),
-            emptySet(),
-            true
-          )
-        }
-      insertGivenCall(expression, dispatchReceiver, extensionReceiver)
+      insertGivenCall(expression)
     } else expression
 
   private fun CompilerContext.insertGivenCall(
-    expression: IrCall,
-    dispatchReceiver: ReceiverValueWithSmartCastInfo?,
-    extensionReceiver: ReceiverValueWithSmartCastInfo?,
+    expression: IrCall
   ): IrMemberAccessExpression<*> {
     val replacement: IrMemberAccessExpression<*>? = expression.replacementCall()
     return if (replacement != null) {
       expression.substitutedValueParameters.forEachIndexed { index, (param, superType) ->
         processValueParameter(
+          expression,
           param,
           superType,
           replacement,
           index,
-          dispatchReceiver,
-          extensionReceiver,
         )
       }
       replacement
@@ -162,28 +132,43 @@ class ProofsIrCodegen(val irUtils: IrUtils) {
   }
 
   private fun CompilerContext.processValueParameter(
+    call: IrCall,
     param: IrValueParameter,
     superType: IrType?,
     replacement: IrMemberAccessExpression<*>?,
-    index: Int,
-    dispatchReceiver: ReceiverValueWithSmartCastInfo?,
-    extensionReceiver: ReceiverValueWithSmartCastInfo?,
+    index: Int
   ) {
     val contextFqName = param.toIrBasedDescriptor().contextualAnnotations().firstOrNull()
     val type = superType?.originalKotlinType
     if (contextFqName != null && type != null) {
+      val dispatchReceiver =
+        param.toIrBasedDescriptor().dispatchReceiverParameter?.let {
+          ReceiverValueWithSmartCastInfo(
+            ProofReceiverValue(it.type),
+            emptySet(),
+            true
+          )
+        }
+      val extensionReceiver =
+        param.toIrBasedDescriptor().extensionReceiverParameter?.let {
+          ReceiverValueWithSmartCastInfo(
+            ProofReceiverValue(it.type),
+            emptySet(),
+            true
+          )
+        }
       val proofCall =
-        givenLocalProofCall(contextFqName, type, dispatchReceiver, extensionReceiver)
-          ?: givenProofCall(contextFqName, type, dispatchReceiver, extensionReceiver)
+        givenLocalProofCall(contextFqName, type)
+          ?: givenProofCall(contextFqName, type)
       proofCall?.apply {
         if (this is IrCall) {
           symbol.owner.valueParameters.forEachIndexed { n, param ->
-            processValueParameter(param, param.type, this, n, dispatchReceiver, extensionReceiver)
+            processValueParameter(call, param, param.type, this, n)
           }
         }
         if (this is IrConstructorCall) {
           symbol.owner.valueParameters.forEachIndexed { n, param ->
-            processValueParameter(param, param.type, this, n, dispatchReceiver, extensionReceiver)
+            processValueParameter(call, param, param.type, this, n)
           }
         }
         // todo we need to recursively place over this expression inductive steps

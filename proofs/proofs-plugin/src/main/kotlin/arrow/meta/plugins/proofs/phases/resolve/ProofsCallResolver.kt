@@ -6,6 +6,9 @@ import arrow.meta.plugins.proofs.phases.Proof
 import org.jetbrains.kotlin.com.intellij.lang.ASTNode
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
+import org.jetbrains.kotlin.descriptors.CallableDescriptor
+import org.jetbrains.kotlin.descriptors.ReceiverParameterDescriptor
+import org.jetbrains.kotlin.descriptors.SimpleFunctionDescriptor
 import org.jetbrains.kotlin.psi.Call
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtExpression
@@ -20,6 +23,7 @@ import org.jetbrains.kotlin.resolve.calls.components.KotlinCallCompleter
 import org.jetbrains.kotlin.resolve.calls.components.KotlinResolutionCallbacks
 import org.jetbrains.kotlin.resolve.calls.components.NewOverloadingConflictResolver
 import org.jetbrains.kotlin.resolve.calls.components.candidate.ResolutionCandidate
+import org.jetbrains.kotlin.resolve.calls.components.candidate.SimpleResolutionCandidate
 import org.jetbrains.kotlin.resolve.calls.context.BasicCallResolutionContext
 import org.jetbrains.kotlin.resolve.calls.context.CheckArgumentTypesMode
 import org.jetbrains.kotlin.resolve.calls.model.CallResolutionResult
@@ -31,6 +35,7 @@ import org.jetbrains.kotlin.resolve.calls.model.freshReturnType
 import org.jetbrains.kotlin.resolve.calls.smartcasts.DataFlowInfo
 import org.jetbrains.kotlin.resolve.calls.smartcasts.DataFlowValueFactoryImpl
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
+import org.jetbrains.kotlin.resolve.calls.tower.CandidateFactory
 import org.jetbrains.kotlin.resolve.calls.tower.CandidateWithBoundDispatchReceiver
 import org.jetbrains.kotlin.resolve.calls.tower.ImplicitScopeTower
 import org.jetbrains.kotlin.resolve.calls.tower.KnownResultProcessor
@@ -56,9 +61,7 @@ class ProofsCallResolver(
     scopeTower: ImplicitScopeTower,
     kotlinCall: KotlinCall,
     expectedType: UnwrappedType,
-    collectAllCandidates: Boolean,
-    dispatchReceiver: ReceiverValueWithSmartCastInfo?,
-    extensionReceiver: ReceiverValueWithSmartCastInfo?,
+    collectAllCandidates: Boolean
   ): CallResolutionResult {
     kotlinCall.checkCallInvariants()
     val trace = BindingTraceContext.createTraceableBindingTrace()
@@ -74,8 +77,8 @@ class ProofsCallResolver(
     val fakeCall =
       object : Call {
         override fun getCallOperationNode(): ASTNode? = null
-        override fun getExplicitReceiver(): Receiver? = extensionReceiver?.receiverValue
-        override fun getDispatchReceiver(): ReceiverValue? = dispatchReceiver?.receiverValue
+        override fun getExplicitReceiver(): Receiver? = null //extensionReceiver?.receiverValue
+        override fun getDispatchReceiver(): ReceiverValue? = null // dispatchReceiver?.receiverValue
         override fun getCalleeExpression(): KtExpression? = null
         override fun getValueArgumentList(): KtValueArgumentList? = null
         override fun getValueArguments(): List<ValueArgument> = emptyList()
@@ -104,8 +107,8 @@ class ProofsCallResolver(
 
     val resolutionCandidates = map {
       it.fold(
-          given = { givenCandidate(candidateFactory, dispatchReceiver, extensionReceiver) },
-        )
+        given = { givenCandidate(candidateFactory) },
+      )
         .forceResolution()
     }
 
@@ -133,9 +136,11 @@ class ProofsCallResolver(
 
   private fun GivenProof.givenCandidate(
     candidateFactory: SimpleCandidateFactory,
-    dispatchReceiver: ReceiverValueWithSmartCastInfo?,
-    extensionReceiver: ReceiverValueWithSmartCastInfo?,
   ): ResolutionCandidate {
+    // TODO this looks the ok part, still flacky in the IR passing these extension and receiver
+    val dispatchReceiver = (through.containingDeclaration as? CallableDescriptor)?.dispatchReceiverParameter
+    val extensionReceiver = (through.containingDeclaration as? CallableDescriptor)?.extensionReceiverParameter
+
     return if (through.containingDeclaration != null) {
       val kind = when {
         dispatchReceiver != null && extensionReceiver != null -> ExplicitReceiverKind.BOTH_RECEIVERS
@@ -145,9 +150,9 @@ class ProofsCallResolver(
       }
 
       candidateFactory.createCandidate(
-        towerCandidate = CandidateWithBoundDispatchReceiver(dispatchReceiver, callableDescriptor, emptyList()),
+        towerCandidate = CandidateWithBoundDispatchReceiver(dispatchReceiver?.let { ReceiverValueWithSmartCastInfo(it.value, emptySet(), false) }, callableDescriptor, emptyList()),
         explicitReceiverKind = kind,
-        extensionReceiver = extensionReceiver
+        extensionReceiver = extensionReceiver?.let { ReceiverValueWithSmartCastInfo(it.value, emptySet(), true) },
       )
     } else {
       candidateFactory.createCandidate(

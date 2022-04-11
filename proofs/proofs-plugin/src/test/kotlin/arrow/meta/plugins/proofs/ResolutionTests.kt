@@ -558,10 +558,10 @@ class ResolutionTests {
         @Given internal val yes: String = "yes!"
 
         class Foo {
-          @Given internal val no: String = "no!"
+          @Given internal fun no(): String = "no!"
            
           fun foo(): String {
-            @Given val ble: String = "ble!"
+            @Given fun ble(): String = "ble!"
             return given<String>()
           }
         }

@@ -13,12 +13,7 @@ import arrow.meta.plugins.proofs.phases.isProof
 import arrow.meta.plugins.proofs.phases.quotes.generateGivenPreludeFile
 import arrow.meta.plugins.proofs.phases.resolve.proofResolutionRules
 import org.jetbrains.kotlin.cfg.getElementParentDeclaration
-import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
-import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationParent
-import org.jetbrains.kotlin.ir.descriptors.toIrBasedDescriptor
-import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 
@@ -43,7 +38,11 @@ val Meta.typeProofs: CliPlugin
         println(renderLocalProofs())
         it
       },
-      irCall { ProofsIrCodegen(this) { proveNestedCalls(it) } },
+      irCall {
+        ProofsIrCodegen(this) {
+          proveNestedCalls(it)
+        }
+      },
       removeCompileTimeDeclarations(),
       irDumpKotlinLike()
     )

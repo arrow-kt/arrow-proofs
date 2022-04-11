@@ -123,7 +123,7 @@ fun CompilerContext.unresolvedGivenCallSite(
             ReceiverValueWithSmartCastInfo(it.value, emptySet(), true)
           }
         val givenProofResolution =
-          givenProof(contextFqName, v.type, dispatchReceiver, extensionReceiver)
+          givenProof(contextFqName, v.type)
         if (givenProofResolution.givenProof == null) null to v else givenProofResolution to v
       } else null
     }
@@ -434,7 +434,7 @@ private fun CompilerContext.reportMissingInductiveDependencies(
               valueParameterDescriptor.extensionReceiverParameter?.let {
                 ReceiverValueWithSmartCastInfo(it.value, emptySet(), true)
               }
-            givenProof(it, valueParam.type, dispatchReceiver, extensionReceiver)
+            givenProof(it, valueParam.type)
           }
         if (parameterProof?.givenProof == null)
           trace.report(UnresolvedGivenCallSite.on(element, call, valueParam.type))
