@@ -18,8 +18,9 @@ dependencies {
   testRuntimeOnly(libs.kotlin.scriptRuntime)
   testRuntimeOnly(libs.kotlin.annotationsJvm)
 
-  testImplementation(libs.kotlin.reflect)
   testImplementation(libs.kotlin.compilerInternalTestFramework)
+  testImplementation(libs.kotlin.reflect)
+  testImplementation(libs.kotlin.stdlib)
   testImplementation("junit:junit:4.13.2")
 
   testImplementation(platform("org.junit:junit-bom:5.8.0"))
@@ -28,9 +29,6 @@ dependencies {
   testImplementation("org.junit.platform:junit-platform-launcher")
   testImplementation("org.junit.platform:junit-platform-runner")
   testImplementation("org.junit.platform:junit-platform-suite-api")
-}
-repositories {
-  mavenCentral()
 }
 
 tasks.withType<KotlinCompile>().configureEach {

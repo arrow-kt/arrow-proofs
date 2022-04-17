@@ -4,7 +4,7 @@ import arrow.inject.annotations.Context
 import arrow.inject.annotations.Inject
 import arrow.inject.annotations.Resolve
 
-class ResolveException : Exception()
+class ResolveException : Throwable()
 
 @Resolve
 inline fun resolve(): Nothing = throw ResolveException()
