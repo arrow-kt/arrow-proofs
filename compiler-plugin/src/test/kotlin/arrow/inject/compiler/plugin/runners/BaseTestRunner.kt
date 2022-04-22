@@ -2,10 +2,12 @@ package arrow.inject.compiler.plugin.runners
 
 import arrow.inject.compiler.plugin.services.ExtensionRegistrarConfigurator
 import arrow.inject.compiler.plugin.services.PluginAnnotationsProvider
+import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
+import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
-import org.jetbrains.kotlin.test.directives.ConfigurationDirectives
 import org.jetbrains.kotlin.test.directives.FirDiagnosticsDirectives
 import org.jetbrains.kotlin.test.initIdeaConfiguration
+import org.jetbrains.kotlin.test.model.DependencyKind
 import org.jetbrains.kotlin.test.runners.AbstractKotlinCompilerTest
 import org.jetbrains.kotlin.test.runners.baseFirDiagnosticTestConfiguration
 import org.jetbrains.kotlin.test.services.EnvironmentBasedStandardLibrariesPathProvider
@@ -30,10 +32,15 @@ fun TestConfigurationBuilder.commonFirWithPluginFrontendConfiguration() {
   baseFirDiagnosticTestConfiguration()
 
   defaultDirectives {
-    +ConfigurationDirectives.WITH_STDLIB
     +FirDiagnosticsDirectives.ENABLE_PLUGIN_PHASES
     +FirDiagnosticsDirectives.FIR_DUMP
   }
+
+//  globalDefaults {
+//    targetBackend = TargetBackend.JVM_IR
+//    targetPlatform = JvmPlatforms.defaultJvmPlatform
+//    dependencyKind = DependencyKind.Binary
+//  }
 
   useConfigurators(::PluginAnnotationsProvider, ::ExtensionRegistrarConfigurator)
 }

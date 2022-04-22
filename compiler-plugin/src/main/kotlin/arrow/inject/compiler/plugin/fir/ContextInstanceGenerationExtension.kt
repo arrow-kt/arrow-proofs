@@ -1,24 +1,29 @@
 package arrow.inject.compiler.plugin.fir
 
 import arrow.inject.compiler.plugin.fir.utils.FirUtils
-import arrow.inject.compiler.plugin.fir.utils.FirUtils.Companion.ContextAnnotation
-import arrow.inject.compiler.plugin.fir.utils.FirUtils.Companion.InjectAnnotation
-import arrow.inject.compiler.plugin.fir.utils.FirUtils.Companion.ResolveAnnotation
+import arrow.inject.compiler.plugin.fir.utils.Predicate
+import java.util.concurrent.atomic.AtomicInteger
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.declarations.FirPluginKey
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
-import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
-import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameterCopy
+import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
+import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
+import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotation
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
+import org.jetbrains.kotlin.fir.expressions.impl.FirEmptyAnnotationArgumentMapping
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationGenerationExtension
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
 import org.jetbrains.kotlin.fir.extensions.predicate.has
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
-import org.jetbrains.kotlin.fir.references.builder.buildSimpleNamedReference
+import org.jetbrains.kotlin.fir.moduleData
+import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
+import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
@@ -29,20 +34,17 @@ class ContextInstanceGenerationExtension(
 ) : FirDeclarationGenerationExtension(session), FirUtils {
 
   override fun getTopLevelClassIds(): Set<ClassId> {
-    renderHasContextAnnotation()
     return super.getTopLevelClassIds()
   }
 
   override fun generateClassLikeDeclaration(classId: ClassId): FirClassLikeSymbol<*>? {
-    renderHasContextAnnotation()
     return super.generateClassLikeDeclaration(classId)
   }
 
   override fun FirDeclarationPredicateRegistrar.registerPredicates() {
-    println("EXTENSION: ContextInstanceGenerationExtension")
-    register(CONTEXT_PREDICATE)
-    register(INJECT_PREDICATE)
-    register(RESOLVE_PREDICATE)
+    register(Predicate.CONTEXT_PREDICATE)
+    register(Predicate.INJECT_PREDICATE)
+    register(Predicate.RESOLVE_PREDICATE)
   }
 
   @OptIn(SymbolInternals::class)
@@ -50,17 +52,9 @@ class ContextInstanceGenerationExtension(
     callableId: CallableId,
     owner: FirClassSymbol<*>?
   ): List<FirNamedFunctionSymbol> {
-    val resolve: FirSimpleFunction =
-      session
-        .predicateBasedProvider
-        .getSymbolsByPredicate(RESOLVE_PREDICATE)
-        .filterIsInstance<FirNamedFunctionSymbol>()
-        .first()
-        .fir
-
     return session
       .predicateBasedProvider
-      .getSymbolsByPredicate(INJECT_PREDICATE)
+      .getSymbolsByPredicate(Predicate.INJECT_PREDICATE)
       .filterIsInstance<FirNamedFunctionSymbol>()
       .filter { it.callableId == callableId }
       .map { firNamedFunctionSymbol ->
@@ -73,19 +67,45 @@ class ContextInstanceGenerationExtension(
             name = callableId.callableName
             symbol = FirNamedFunctionSymbol(callableId)
             dispatchReceiverType = firNamedFunctionSymbol.dispatchReceiverType
-
-//            valueParameters +=
-//              firNamedFunctionSymbol.valueParameterSymbols.map { valueParameter ->
-//                buildValueParameterCopy(valueParameter.fir) {
-//                  defaultValue = buildFunctionCall {
-//                    source = valueParameter.source
-//                    calleeReference = buildSimpleNamedReference {
-//                      source = resolve.source
-//                      name = resolve.name
-//                    }
-//                  }
-//                }
-//              }
+            annotations += buildAnnotation {
+              annotationTypeRef = buildResolvedTypeRef { type = compileTimeAnnotationType }
+              argumentMapping = FirEmptyAnnotationArgumentMapping
+            }
+            valueParameters +=
+              firNamedFunctionSymbol.valueParameterSymbols.map { valueParameter ->
+                buildValueParameter {
+                  moduleData = session.moduleData
+                  resolvePhase = FirResolvePhase.BODY_RESOLVE
+                  origin = Key.origin
+                  attributes = valueParameter.fir.attributes
+                  returnTypeRef = valueParameter.fir.returnTypeRef
+                  deprecation = valueParameter.fir.deprecation
+                  containerSource = valueParameter.fir.containerSource
+                  dispatchReceiverType = valueParameter.fir.dispatchReceiverType
+                  contextReceivers += valueParameter.fir.contextReceivers
+                  name = valueParameter.fir.name
+                  backingField = valueParameter.fir.backingField
+                  symbol = FirValueParameterSymbol(valueParameter.fir.name)
+                  annotations += valueParameter.fir.annotations
+                  defaultValue =
+                    if (valueParameter.hasMetaContextAnnotation) {
+                      buildFunctionCall {
+                        typeRef = session.builtinTypes.nothingType
+                        argumentList = buildResolvedArgumentList(LinkedHashMap())
+                        calleeReference = buildResolvedNamedReference {
+                          name = resolve.name
+                          resolvedSymbol = resolve.symbol
+                        }
+                      }
+                    } else {
+                      valueParameter.fir.defaultValue
+                    }
+                  isCrossinline = valueParameter.fir.isCrossinline
+                  isNoinline = valueParameter.fir.isNoinline
+                  isVararg = valueParameter.fir.isVararg
+                }
+              }
+            valueParameters += unambiguousValueParameter("unit")
           }
           .symbol
       }
@@ -102,7 +122,7 @@ class ContextInstanceGenerationExtension(
   override fun getTopLevelCallableIds(): Set<CallableId> =
     session
       .predicateBasedProvider
-      .getSymbolsByPredicate(has(InjectAnnotation))
+      .getSymbolsByPredicate(Predicate.INJECT_PREDICATE)
       .mapNotNull { (it as? FirNamedFunctionSymbol)?.callableId }
       .toSet()
 
@@ -110,9 +130,5 @@ class ContextInstanceGenerationExtension(
     return true
   }
 
-  companion object {
-    val CONTEXT_PREDICATE = has(ContextAnnotation)
-    val INJECT_PREDICATE = has(InjectAnnotation)
-    val RESOLVE_PREDICATE = has(ResolveAnnotation)
-  }
+  override val counter: AtomicInteger = AtomicInteger(0)
 }

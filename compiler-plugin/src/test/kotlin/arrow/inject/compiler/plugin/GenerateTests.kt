@@ -7,13 +7,13 @@ import arrow.inject.compiler.plugin.runners.AbstractDiagnosticTest
 fun main() {
     generateTestGroupSuiteWithJUnit5 {
         testGroup(testDataRoot = "src/testData", testsRoot = "src/testGenerated") {
-//            testClass<AbstractDiagnosticTest> {
-//                model("diagnostics")
-//            }
-//
-//            testClass<AbstractBoxTest> {
-//                model("box")
-//            }
+            testClass<AbstractDiagnosticTest> {
+                model("diagnostics")
+            }
+
+            testClass<AbstractBoxTest> {
+                model("box")
+            }
         }
     }
 }

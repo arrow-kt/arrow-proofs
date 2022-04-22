@@ -11,6 +11,10 @@ sourceSets {
 }
 
 dependencies {
+  implementation(project(":annotations"))
+  implementation(libs.classgraph)
+  implementation(libs.reflections)
+  implementation("org.apache.commons:commons-vfs2:2.9.0")
   compileOnly(libs.kotlin.compiler)
   testImplementation(libs.kotlin.compiler)
 

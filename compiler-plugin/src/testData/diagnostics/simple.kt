@@ -7,7 +7,7 @@ import arrow.inject.annotations.Resolve
 class ResolveException : Throwable()
 
 @Resolve
-inline fun resolve(): Nothing = throw ResolveException()
+<!NOTHING_TO_INLINE!>inline<!> fun resolve(): Nothing = throw ResolveException()
 
 @Context
 @Retention(AnnotationRetention.RUNTIME)
@@ -40,6 +40,6 @@ annotation class Config
 }
 
 @Inject
-fun foo(@Given x: X, @Config y: Y): String = "${x.value} to ${y.value}"
+fun foo(id: Int, @Given x: X, @Config y: Y): String = "$id: ${x.value} to ${y.value}"
 
-val result = foo()
+val result = foo(1)
