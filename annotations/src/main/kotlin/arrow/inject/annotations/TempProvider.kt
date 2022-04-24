@@ -22,3 +22,8 @@ annotation class Temp
 class Bar {
   @Temp val hello: String = "hello"
 }
+
+@Temp
+class Barrrrr {
+
+}

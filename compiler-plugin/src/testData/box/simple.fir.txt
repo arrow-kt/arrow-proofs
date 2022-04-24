@@ -7,7 +7,7 @@ FILE: simple.kt
         }
 
     }
-    @R|arrow/inject/annotations/Resolve|() public final inline fun resolve(): R|kotlin/Nothing| {
+    @R|arrow/inject/annotations/Resolve|() public final inline fun <A> resolve(): R|A| {
         ^resolve throw R|foo/bar/ResolveException.ResolveException|()
     }
     @R|arrow/inject/annotations/Context|() @R|kotlin/annotation/Retention|(value = Q|kotlin/annotation/AnnotationRetention|.R|kotlin/annotation/AnnotationRetention.RUNTIME|) @R|kotlin/annotation/Target|(allowedTargets = vararg(Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.CLASS|, Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.FUNCTION|, Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.PROPERTY|, Q|kotlin/annotation/AnnotationTarget|.R|kotlin/annotation/AnnotationTarget.VALUE_PARAMETER|)) @R|kotlin/annotation/MustBeDocumented|() public final annotation class Given : R|kotlin/Annotation| {
@@ -58,4 +58,4 @@ FILE: simple.kt
 FILE: __GENERATED DECLARATIONS__.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/CompileTime|() public final fun foo(id: R|kotlin/Int|, @R|foo/bar/Given|() x: R|foo/bar/X| = R|foo/bar/resolve|(), @R|foo/bar/Config|() y: R|foo/bar/Y| = R|foo/bar/resolve|(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|kotlin/String|
+    @R|arrow/inject/annotations/CompileTime|() public final fun foo(id: R|kotlin/Int|, @R|foo/bar/Given|() x: R|foo/bar/X| = R|foo/bar/resolve|<out R|foo/bar/X|>(), @R|foo/bar/Config|() y: R|foo/bar/Y| = R|foo/bar/resolve|<out R|foo/bar/Y|>(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|kotlin/String|

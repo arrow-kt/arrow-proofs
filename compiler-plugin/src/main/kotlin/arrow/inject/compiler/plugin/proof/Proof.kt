@@ -3,12 +3,18 @@ package arrow.inject.compiler.plugin.proof
 import arrow.inject.compiler.plugin.fir.utils.isContextAnnotation
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
+import org.jetbrains.kotlin.fir.renderWithType
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.name.FqName
 
 sealed class Proof {
 
   abstract val declaration: FirDeclaration
+
+  fun asString(): String =
+    when (this) {
+      is Implication -> "Proof.Implication: ${declaration.renderWithType()}}"
+    }
 
   fun contexts(session: FirSession): Set<FqName> =
     declaration

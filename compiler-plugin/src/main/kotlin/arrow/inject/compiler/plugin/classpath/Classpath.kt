@@ -1,4 +1,4 @@
-package arrow.inject.compiler.plugin
+package arrow.inject.compiler.plugin.classpath
 
 import arrow.inject.annotations.Context
 import io.github.classgraph.ClassGraph
@@ -10,8 +10,8 @@ import org.jetbrains.kotlin.descriptors.runtime.structure.classId
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.resolve.providers.getClassDeclaredPropertySymbols
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
-import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol
 import org.jetbrains.kotlin.name.CallableId
@@ -20,9 +20,22 @@ import org.jetbrains.kotlin.name.Name
 
 class Classpath(private val session: FirSession) {
 
-  val classpathProviderResults: List<ClasspathProviderResult>
-    get() {
-      return ClassGraph()
+  val firClasspathProviderResult: List<FirClasspathProviderResult>
+    get() =
+      classpathProviderResults.map { result ->
+        FirClasspathProviderResult(
+          annotation = FqName(result.annotation),
+          functions = result.functions.flatMap(session::topLevelFunctionSymbolProviders),
+          classes = result.classes.mapNotNull(session::classLikeSymbolProviders),
+          properties = result.functions.flatMap(session::topLevelPropertySymbolProviders),
+          classProperties =
+            result.functions.flatMap { session.classDeclaredPropertySymbolProviders(it) }
+        )
+      }
+
+  private val classpathProviderResults: List<ClasspathProviderResult>
+    get() =
+      ClassGraph()
         .enableAnnotationInfo()
         .enableClassInfo()
         .enableMethodInfo()
@@ -34,16 +47,13 @@ class Classpath(private val session: FirSession) {
           with(scanResult) {
             contextAnnotations.map { contextAnnotationClassInfo ->
               ClasspathProviderResult(
-                contextAnnotationClassInfo.packageName,
                 contextAnnotationClassInfo.name,
                 functionProviders(contextAnnotationClassInfo),
                 classProviders(contextAnnotationClassInfo),
-                propertyProviders(contextAnnotationClassInfo),
               )
             }
           }
         }
-    }
 
   internal val skipPackages =
     setOf(
@@ -61,12 +71,18 @@ class Classpath(private val session: FirSession) {
     )
 }
 
+data class FirClasspathProviderResult(
+  val annotation: FqName,
+  val functions: List<FirNamedFunctionSymbol>,
+  val classes: List<FirClassLikeSymbol<*>>,
+  val properties: List<FirVariableSymbol<*>>,
+  val classProperties: List<FirVariableSymbol<*>>,
+)
+
 data class ClasspathProviderResult(
-  val packageName: String,
   val annotation: String,
   val functions: List<Method>,
   val classes: List<Class<*>>,
-  val properties: List<Field>,
 )
 
 internal val ScanResult.contextAnnotations: List<ClassInfo>
@@ -96,7 +112,7 @@ internal val Class<*>.callableId: CallableId
 
 internal fun FirSession.topLevelFunctionSymbolProviders(
   method: Method
-): List<FirCallableSymbol<*>> =
+): List<FirNamedFunctionSymbol> =
   symbolProvider.getTopLevelFunctionSymbols(
     FqName(method.declaringClass.packageName),
     Name.identifier(method.namedSanitized)
@@ -121,9 +137,6 @@ internal fun FirSession.classLikeSymbolProviders(clazz: Class<*>): FirClassLikeS
 
 internal val Method.namedSanitized: String
   get() =
-    if (name.startsWith("get") && name.contains("\$annotations")) {
-      name
-        .substringAfter("get")
-        .substringBefore("\$annotations")
-        .replaceFirstChar(Char::lowercaseChar)
+    if (name.startsWith("get") && name.contains("\$")) {
+      name.substringAfter("get").substringBefore("\$").replaceFirstChar(Char::lowercaseChar)
     } else name

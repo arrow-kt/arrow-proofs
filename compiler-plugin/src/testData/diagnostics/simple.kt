@@ -7,7 +7,7 @@ import arrow.inject.annotations.Resolve
 class ResolveException : Throwable()
 
 @Resolve
-<!NOTHING_TO_INLINE!>inline<!> fun resolve(): Nothing = throw ResolveException()
+<!NOTHING_TO_INLINE!>inline<!> fun <A> resolve(): A = throw ResolveException()
 
 @Context
 @Retention(AnnotationRetention.RUNTIME)

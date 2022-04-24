@@ -2,22 +2,25 @@
 
 package arrow.inject.compiler.plugin.fir.utils
 
-import arrow.inject.compiler.plugin.fir.ContextInstanceGenerationExtension
 import arrow.inject.compiler.plugin.fir.Key
 import arrow.inject.compiler.plugin.proof.COMPILE_TIME_ANNOTATION
 import arrow.inject.compiler.plugin.proof.CONTEXT_ANNOTATION
 import arrow.inject.compiler.plugin.proof.INJECT_ANNOTATION
 import arrow.inject.compiler.plugin.proof.RESOLVE_ANNOTATION
 import java.util.concurrent.atomic.AtomicInteger
+import org.jetbrains.kotlin.fir.FirAnnotationContainer
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
+import org.jetbrains.kotlin.fir.builder.buildPackageDirective
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
+import org.jetbrains.kotlin.fir.declarations.FirFile
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
 import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
+import org.jetbrains.kotlin.fir.declarations.builder.buildFile
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
@@ -32,28 +35,28 @@ import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
 interface FirUtils {
 
   val session: FirSession
 
-  fun FirClassSymbol<*>.hasContextAnnotation() =
-    annotations.any { it.fqName(session) == ContextAnnotation }
-
-  val FirValueParameterSymbol.hasMetaContextAnnotation: Boolean
+  val FirAnnotationContainer.metaContextAnnotations: List<FirAnnotation>
     get() =
-      annotations
-        .flatMap { firAnnotation ->
-          firAnnotation.typeRef.toClassLikeSymbol(session)?.annotations.orEmpty()
+      annotations.filter { firAnnotation ->
+        firAnnotation.typeRef.toClassLikeSymbol(session)?.annotations.orEmpty().any {
+          it.fqName(session) == ContextAnnotation
         }
-        .any { it.fqName(session) == ContextAnnotation }
+      }
+
+  val FirAnnotationContainer.hasMetaContextAnnotation: Boolean
+    get() = metaContextAnnotations.isNotEmpty()
 
   fun generateFreshName(name: String) = "_$name${counter.getAndIncrement()}_"
   fun unambiguousValueParameter(name: String) = buildValueParameter {
@@ -93,12 +96,21 @@ interface FirUtils {
         .first()
         .fir
 
+  @OptIn(SymbolInternals::class)
   val compileTimeAnnotationType
     get() =
       session.symbolProvider.getClassLikeSymbolByClassId(
           ClassId.fromString(COMPILE_TIME_ANNOTATION.replace(".", "/"))
         )!!
         .fir.symbol.constructType(emptyArray(), false)
+
+  val fakeFirFile: FirFile
+    get() = buildFile {
+      moduleData = session.moduleData
+      origin = Key.origin
+      packageDirective = buildPackageDirective { packageFqName = FqName("PROOF_FAKE") }
+      name = "PROOF_FAKE"
+    }
 
   val counter: AtomicInteger
 

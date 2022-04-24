@@ -4,7 +4,6 @@ import arrow.inject.compiler.plugin.fir.utils.FirUtils
 import arrow.inject.compiler.plugin.fir.utils.Predicate
 import java.util.concurrent.atomic.AtomicInteger
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.declarations.FirPluginKey
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
 import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
@@ -14,7 +13,6 @@ import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
 import org.jetbrains.kotlin.fir.expressions.impl.FirEmptyAnnotationArgumentMapping
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationGenerationExtension
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
-import org.jetbrains.kotlin.fir.extensions.predicate.has
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
@@ -24,10 +22,12 @@ import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
+import org.jetbrains.kotlin.fir.types.builder.buildTypeProjectionWithVariance
+import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.types.Variance
 
 class ContextInstanceGenerationExtension(
   session: FirSession,
@@ -51,8 +51,8 @@ class ContextInstanceGenerationExtension(
   override fun generateFunctions(
     callableId: CallableId,
     owner: FirClassSymbol<*>?
-  ): List<FirNamedFunctionSymbol> {
-    return session
+  ): List<FirNamedFunctionSymbol> =
+    session
       .predicateBasedProvider
       .getSymbolsByPredicate(Predicate.INJECT_PREDICATE)
       .filterIsInstance<FirNamedFunctionSymbol>()
@@ -86,12 +86,24 @@ class ContextInstanceGenerationExtension(
                   name = valueParameter.fir.name
                   backingField = valueParameter.fir.backingField
                   symbol = FirValueParameterSymbol(valueParameter.fir.name)
-                  annotations += valueParameter.fir.annotations
+                  annotations +=
+                    valueParameter.annotations.map { firAnnotation ->
+                      buildAnnotation {
+                        annotationTypeRef = buildResolvedTypeRef {
+                          type = firAnnotation.annotationTypeRef.coneType
+                        }
+                        argumentMapping = FirEmptyAnnotationArgumentMapping
+                      }
+                    }
                   defaultValue =
-                    if (valueParameter.hasMetaContextAnnotation) {
+                    if (valueParameter.fir.hasMetaContextAnnotation) {
                       buildFunctionCall {
-                        typeRef = session.builtinTypes.nothingType
+                        typeRef = valueParameter.resolvedReturnTypeRef
                         argumentList = buildResolvedArgumentList(LinkedHashMap())
+                        typeArguments += buildTypeProjectionWithVariance {
+                          typeRef = valueParameter.resolvedReturnTypeRef
+                          variance = Variance.OUT_VARIANCE
+                        }
                         calleeReference = buildResolvedNamedReference {
                           name = resolve.name
                           resolvedSymbol = resolve.symbol
@@ -109,15 +121,6 @@ class ContextInstanceGenerationExtension(
           }
           .symbol
       }
-  }
-
-  override fun getCallableNamesForClass(classSymbol: FirClassSymbol<*>): Set<Name> {
-    return super.getCallableNamesForClass(classSymbol)
-  }
-
-  override fun getNestedClassifiersNames(classSymbol: FirClassSymbol<*>): Set<Name> {
-    return super.getNestedClassifiersNames(classSymbol)
-  }
 
   override fun getTopLevelCallableIds(): Set<CallableId> =
     session
@@ -126,9 +129,7 @@ class ContextInstanceGenerationExtension(
       .mapNotNull { (it as? FirNamedFunctionSymbol)?.callableId }
       .toSet()
 
-  override fun hasPackage(packageFqName: FqName): Boolean {
-    return true
-  }
+  override fun hasPackage(packageFqName: FqName): Boolean = true
 
   override val counter: AtomicInteger = AtomicInteger(0)
 }

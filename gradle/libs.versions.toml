@@ -1,6 +1,6 @@
 [versions]
 classgraph = "4.8.146"
-kotlin = "1.7.20-dev-205"
+kotlin = "1.7.20-dev-474"
 reflections = "0.10.2"
 
 [libraries]
