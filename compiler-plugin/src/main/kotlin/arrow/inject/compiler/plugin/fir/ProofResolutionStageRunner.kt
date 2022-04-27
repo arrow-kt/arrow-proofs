@@ -12,9 +12,6 @@ import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
 import org.jetbrains.kotlin.fir.expressions.FirEmptyArgumentList
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCallOrigin
-import org.jetbrains.kotlin.fir.expressions.FirImplicitInvokeCall
-import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
-import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.fir.resolve.calls.CallInfo
@@ -28,6 +25,7 @@ import org.jetbrains.kotlin.fir.resolve.inference.FirCallCompleter
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.FirBodyResolveTransformer
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
+import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.toFirResolvedTypeRef
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
@@ -54,17 +52,15 @@ class ProofResolutionStageRunner(override val session: FirSession) : FirUtils {
 
   private val scopeSession = ScopeSession()
 
-  fun List<Proof>.matchingCandidates(expression: FirQualifiedAccessExpression): Set<Candidate> {
+  fun List<Proof>.matchingCandidates(type: ConeKotlinType): Set<Candidate> {
     val resolveCallInfo =
       CallInfo(
-        callSite = expression,
-        callKind =
-          if (expression is FirFunctionCall) CallKind.Function else CallKind.VariableAccess,
-        name = (expression as? FirFunctionCall)?.calleeReference?.name
-            ?: Name.identifier("Unsupported"),
+        callSite = resolve, // TODO check generics
+        callKind = CallKind.Function,
+        name = resolve.name,
         explicitReceiver = null, // TODO()
-        argumentList = (expression as? FirFunctionCall)?.argumentList ?: FirEmptyArgumentList,
-        isImplicitInvoke = expression is FirImplicitInvokeCall,
+        argumentList = FirEmptyArgumentList,
+        isImplicitInvoke = false,
         typeArguments = emptyList(),
         session = session,
         containingFile = fakeFirFile,
@@ -137,7 +133,7 @@ class ProofResolutionStageRunner(override val session: FirSession) : FirUtils {
         val (_: FirFunctionCall, isCallCompleted: Boolean) =
           firCallCompleter.completeCall(
             call = firFunctionCall,
-            expectedTypeRef = expression.typeRef,
+            expectedTypeRef = type.toFirResolvedTypeRef(),
             expectedTypeMismatchIsReportedInChecker = true
           )
 

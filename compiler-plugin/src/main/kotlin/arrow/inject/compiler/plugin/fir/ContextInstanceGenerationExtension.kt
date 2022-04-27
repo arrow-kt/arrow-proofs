@@ -2,6 +2,7 @@ package arrow.inject.compiler.plugin.fir
 
 import arrow.inject.compiler.plugin.fir.utils.FirUtils
 import arrow.inject.compiler.plugin.fir.utils.Predicate
+import arrow.inject.compiler.plugin.fir.utils.hasMetaContextAnnotation
 import java.util.concurrent.atomic.AtomicInteger
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
@@ -17,7 +18,6 @@ import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
-import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
@@ -25,21 +25,12 @@ import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildTypeProjectionWithVariance
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.name.CallableId
-import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.types.Variance
 
 class ContextInstanceGenerationExtension(
   session: FirSession,
 ) : FirDeclarationGenerationExtension(session), FirUtils {
-
-  override fun getTopLevelClassIds(): Set<ClassId> {
-    return super.getTopLevelClassIds()
-  }
-
-  override fun generateClassLikeDeclaration(classId: ClassId): FirClassLikeSymbol<*>? {
-    return super.generateClassLikeDeclaration(classId)
-  }
 
   override fun FirDeclarationPredicateRegistrar.registerPredicates() {
     register(Predicate.CONTEXT_PREDICATE)
@@ -96,7 +87,7 @@ class ContextInstanceGenerationExtension(
                       }
                     }
                   defaultValue =
-                    if (valueParameter.fir.hasMetaContextAnnotation) {
+                    if (session.hasMetaContextAnnotation(valueParameter.fir)) {
                       buildFunctionCall {
                         typeRef = valueParameter.resolvedReturnTypeRef
                         argumentList = buildResolvedArgumentList(LinkedHashMap())

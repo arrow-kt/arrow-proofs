@@ -47,17 +47,6 @@ interface FirUtils {
 
   val session: FirSession
 
-  val FirAnnotationContainer.metaContextAnnotations: List<FirAnnotation>
-    get() =
-      annotations.filter { firAnnotation ->
-        firAnnotation.typeRef.toClassLikeSymbol(session)?.annotations.orEmpty().any {
-          it.fqName(session) == ContextAnnotation
-        }
-      }
-
-  val FirAnnotationContainer.hasMetaContextAnnotation: Boolean
-    get() = metaContextAnnotations.isNotEmpty()
-
   fun generateFreshName(name: String) = "_$name${counter.getAndIncrement()}_"
   fun unambiguousValueParameter(name: String) = buildValueParameter {
     val newName = Name.identifier(generateFreshName(name))
@@ -136,3 +125,13 @@ val FirDeclaration.coneType: ConeKotlinType?
       is FirRegularClass -> symbol.defaultType()
       else -> null
     }
+
+fun FirSession.metaContextAnnotations(container: FirAnnotationContainer): List<FirAnnotation> =
+  container.annotations.filter { firAnnotation ->
+    firAnnotation.typeRef.toClassLikeSymbol(this)?.annotations.orEmpty().any {
+      it.fqName(this) == FirUtils.ContextAnnotation
+    }
+  }
+
+fun FirSession.hasMetaContextAnnotation(container: FirAnnotationContainer): Boolean =
+  metaContextAnnotations(container).isNotEmpty()

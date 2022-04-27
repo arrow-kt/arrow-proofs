@@ -36,11 +36,11 @@ fun TestConfigurationBuilder.commonFirWithPluginFrontendConfiguration() {
     +FirDiagnosticsDirectives.FIR_DUMP
   }
 
-//  globalDefaults {
-//    targetBackend = TargetBackend.JVM_IR
-//    targetPlatform = JvmPlatforms.defaultJvmPlatform
-//    dependencyKind = DependencyKind.Binary
-//  }
+  globalDefaults {
+    targetBackend = TargetBackend.JVM_IR
+    targetPlatform = JvmPlatforms.defaultJvmPlatform
+    dependencyKind = DependencyKind.Binary
+  }
 
   useConfigurators(::PluginAnnotationsProvider, ::ExtensionRegistrarConfigurator)
 }

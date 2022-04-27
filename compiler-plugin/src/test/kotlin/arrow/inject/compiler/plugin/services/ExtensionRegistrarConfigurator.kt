@@ -1,7 +1,9 @@
 package arrow.inject.compiler.plugin.services
 
-import arrow.inject.compiler.plugin.ArrowInjectExtensionRegistrar
+import arrow.inject.compiler.plugin.fir.FirArrowInjectExtensionRegistrar
+import arrow.inject.compiler.plugin.ir.IrArrowInjectExtensionRegistrar
 import com.intellij.openapi.project.Project
+import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
 import org.jetbrains.kotlin.test.model.TestModule
@@ -16,7 +18,7 @@ class ExtensionRegistrarConfigurator(
     module: TestModule,
     configuration: CompilerConfiguration
   ) {
-    FirExtensionRegistrar.registerExtension(project, ArrowInjectExtensionRegistrar())
-    //        IrGenerationExtension.registerExtension(project, SimpleIrGenerationExtension())
+    FirExtensionRegistrar.registerExtension(project, FirArrowInjectExtensionRegistrar())
+    IrGenerationExtension.registerExtension(project, IrArrowInjectExtensionRegistrar())
   }
 }

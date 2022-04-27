@@ -4,6 +4,9 @@
   PrivateForInline::class,
   SessionConfiguration::class,
   InternalDiagnosticFactoryMethod::class,
+  InternalDiagnosticFactoryMethod::class,
+  InternalDiagnosticFactoryMethod::class,
+  InternalDiagnosticFactoryMethod::class,
 )
 
 package arrow.inject.compiler.plugin.fir
@@ -12,9 +15,15 @@ import arrow.inject.compiler.plugin.classpath.Classpath
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE
 import arrow.inject.compiler.plugin.fir.utils.FirUtils
+import arrow.inject.compiler.plugin.fir.utils.hasMetaContextAnnotation
 import arrow.inject.compiler.plugin.fir.utils.isContextAnnotation
+import arrow.inject.compiler.plugin.fir.utils.metaContextAnnotations
+import arrow.inject.compiler.plugin.ir.utils.toIrType
 import arrow.inject.compiler.plugin.proof.Proof
+import arrow.inject.compiler.plugin.proof.ProofCacheKey
 import arrow.inject.compiler.plugin.proof.ProofResolution
+import arrow.inject.compiler.plugin.proof.asProofCacheKey
+import arrow.inject.compiler.plugin.proof.putProofIntoCache
 import java.util.concurrent.atomic.AtomicInteger
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
@@ -28,6 +37,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirCallChecker
 import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
+import org.jetbrains.kotlin.fir.backend.jvm.FirJvmKotlinMangler
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirClassLikeDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
@@ -42,21 +52,32 @@ import org.jetbrains.kotlin.fir.resolve.calls.Candidate
 import org.jetbrains.kotlin.fir.resolve.dfa.DfaInternals
 import org.jetbrains.kotlin.fir.resolve.firClassLike
 import org.jetbrains.kotlin.fir.resolve.fqName
+import org.jetbrains.kotlin.fir.resolve.inference.ConeConstraintSystemUtilContext.unCapture
 import org.jetbrains.kotlin.fir.resolve.providers.impl.FirProviderImpl
 import org.jetbrains.kotlin.fir.resolvedSymbol
+import org.jetbrains.kotlin.fir.signaturer.FirBasedSignatureComposer
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.fir.types.toTypeProjection
 import org.jetbrains.kotlin.fir.visitors.FirVisitorVoid
+import org.jetbrains.kotlin.ir.util.IdSignature
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.types.Variance
+import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.asTypeArgument
+import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.getType
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstance
 
 class ProofResolutionCallCheckerExtension(
   session: FirSession,
 ) : FirAdditionalCheckersExtension(session), FirUtils {
 
-  val allProofs: List<Proof> by lazy { collectLocalProofs() + collectRemoteProofs() }
+  private val allProofs: List<Proof> by lazy { collectLocalProofs() + collectRemoteProofs() }
+
+  private val firBasedSignatureComposer: FirBasedSignatureComposer by lazy {
+    FirBasedSignatureComposer(FirJvmKotlinMangler(session))
+  }
 
   override val expressionCheckers: ExpressionCheckers =
     object : ExpressionCheckers() {
@@ -144,8 +165,7 @@ class ProofResolutionCallCheckerExtension(
         val defaultValue = valueParameter.defaultValue
 
         if (contextFqName != null && defaultValue is FirQualifiedAccessExpression) {
-          val proofResolution =
-            resolveProof(contextFqName, defaultValue, valueParameter.returnTypeRef.coneType)
+          val proofResolution = resolveProof(contextFqName, valueParameter.returnTypeRef.coneType)
           if (proofResolution.proof == null) null to valueParameter
           else proofResolution to valueParameter
         } else {
@@ -154,29 +174,28 @@ class ProofResolutionCallCheckerExtension(
       }
       .toMap()
 
-  private fun resolveProof(
-    contextFqName: FqName,
-    expression: FirQualifiedAccessExpression,
-    type: ConeKotlinType
-  ): ProofResolution =
-    proofCandidate(candidates = candidates(contextFqName, expression), type = type)
+  private fun resolveProof(contextFqName: FqName, type: ConeKotlinType): ProofResolution =
+    proofCandidate(candidates = candidates(contextFqName, type), type = type).apply {
+      putProofIntoCache(type.asProofCacheKey(contextFqName), this)
+      // TODO: IMPORTANT CHECK TYPE IN PROOF_CACHE_KEY
+    }
 
-  private fun candidates(
-    contextFqName: FqName,
-    expression: FirQualifiedAccessExpression
-  ): Set<Candidate> =
+  private fun candidates(contextFqName: FqName, type: ConeKotlinType): Set<Candidate> =
     proofResolutionStageRunner.run {
-      allProofs.filter { contextFqName in it.contexts(session) }.matchingCandidates(expression)
+      allProofs.filter { contextFqName in it.contexts(session) }.matchingCandidates(type)
     }
 
   private fun proofCandidate(candidates: Set<Candidate>, type: ConeKotlinType): ProofResolution {
-    val candidate: Candidate? = candidates.firstOrNull(/*TODO()*/ )
+    val candidate: Candidate = candidates.first(/*TODO() can be null?*/ )
     return ProofResolution(
-      proof = candidate?.let { Proof.Implication(it.symbol.fir) },
+      proof = Proof.Implication(candidate.symbol.fir.idSignature, candidate.symbol.fir),
       targetType = type,
       ambiguousProofs =
-        (candidates - candidate).mapNotNull {
-          if (it != null) Proof.Implication(it.symbol.fir) else null
+        (candidates - candidate).map { ambiguousCandidate ->
+          Proof.Implication(
+            ambiguousCandidate.symbol.fir.idSignature,
+            ambiguousCandidate.symbol.fir
+          )
         }
     )
   }
@@ -191,8 +210,8 @@ class ProofResolutionCallCheckerExtension(
           object : FirVisitorVoid() {
             override fun visitElement(element: FirElement) {
               val declaration = element as? FirDeclaration
-              if (declaration != null && declaration.hasMetaContextAnnotation) {
-                localProofs.add(Proof.Implication(declaration))
+              if (declaration != null && session.hasMetaContextAnnotation(declaration)) {
+                localProofs.add(Proof.Implication(declaration.idSignature, declaration))
               }
             }
           }
@@ -203,7 +222,7 @@ class ProofResolutionCallCheckerExtension(
   private fun collectRemoteProofs(): List<Proof> =
     classpath.firClasspathProviderResult.flatMap { result ->
       (result.functions + result.classes + result.properties + result.classProperties).map {
-        Proof.Implication(it.fir)
+        Proof.Implication(it.fir.idSignature, it.fir)
       }
     }
 
@@ -217,7 +236,7 @@ class ProofResolutionCallCheckerExtension(
     context: CheckerContext,
     reporter: DiagnosticReporter,
   ) {
-    if (valueParameter.hasMetaContextAnnotation) {
+    if (session.hasMetaContextAnnotation(valueParameter)) {
       val classLikeDeclaration: FirClassLikeDeclaration? =
         valueParameter.returnTypeRef.firClassLike(session)
 
@@ -228,7 +247,10 @@ class ProofResolutionCallCheckerExtension(
           ?.valueParameterSymbols
           ?.forEach { valueParameterSymbol ->
             val contextAnnotationFqName =
-              valueParameterSymbol.fir.metaContextAnnotations.firstOrNull()?.fqName(session)
+              session
+                .metaContextAnnotations(valueParameterSymbol.fir)
+                .firstOrNull()
+                ?.fqName(session)
 
             val defaultValue =
               (valueParameterSymbol.fir.defaultValue as? FirQualifiedAccessExpression)
@@ -237,7 +259,6 @@ class ProofResolutionCallCheckerExtension(
               if (contextAnnotationFqName != null && defaultValue != null) {
                 resolveProof(
                   contextAnnotationFqName,
-                  defaultValue,
                   valueParameterSymbol.resolvedReturnType,
                 )
               } else {
@@ -258,4 +279,7 @@ class ProofResolutionCallCheckerExtension(
       }
     }
   }
+
+  val FirDeclaration.idSignature: IdSignature
+    get() = checkNotNull(firBasedSignatureComposer.composeSignature(this))
 }

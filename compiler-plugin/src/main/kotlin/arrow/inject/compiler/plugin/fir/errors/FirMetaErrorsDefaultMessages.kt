@@ -7,7 +7,8 @@ import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.PUBLISHED_INTERNAL_
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactoryToRendererMap
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
-import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticRenderers.RENDER_TYPE
+import org.jetbrains.kotlin.diagnostics.rendering.Renderer
+import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 
 object FirMetaErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
 
@@ -30,7 +31,7 @@ object FirMetaErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
       map.put(
         AMBIGUOUS_PROOF_FOR_SUPERTYPE,
         "Found ambiguous proofs for type {0}. Proofs : {2}",
-        RENDER_TYPE,
+        RENDER_KOTLIN_TYPE_MARKER,
         RenderProof,
         RenderProofs
       )
@@ -46,13 +47,13 @@ object FirMetaErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         "This GivenProof on the type {0} can't be semi-inductively resolved. Please" +
           " verify that all parameters have default value or that other injected given values" +
           " have a corresponding proof.",
-        RENDER_TYPE
+        RENDER_KOTLIN_TYPE_MARKER
       )
       map.put(
         CYCLE_ON_GIVEN_PROOF,
         "This GivenProof on the type {0} has cyclic dependencies: {1}. Please verify" +
           " that proofs don't depend on each other for resolution.",
-        RENDER_TYPE,
+        RENDER_KOTLIN_TYPE_MARKER,
         RenderProofs
       )
       map.put(
@@ -60,7 +61,9 @@ object FirMetaErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         "There is no Proof for this type {1} to resolve this call. Either define" +
           " a corresponding GivenProof or provide an evidence explicitly at this call-site.",
         null,
-        RENDER_TYPE
+        RENDER_KOTLIN_TYPE_MARKER
       )
     }
 }
+
+private val RENDER_KOTLIN_TYPE_MARKER = Renderer { t: KotlinTypeMarker -> t.toString() }
