@@ -260,13 +260,13 @@ class ProofsIrCodegen(
       "Expected mirror function for fake call ${irCall.render()} is null"
     }
 
-    val fakeFunction: IrCall = irCall.symbol.owner.irCall() as IrCall
-    val rep: IrCall = irCall.deepCopyWithSymbols(fakeFunction.symbol.owner)
+    val rep: IrCall = mirrorFunction.symbol.owner.irCall() as IrCall
+    //val rep: IrCall = irCall.deepCopyWithSymbols(mirrorFunction.symbol.owner)
 
-    fakeFunction.typeArguments.forEach { (n, arg) ->
+    irCall.typeArguments.forEach { (n, arg) ->
       if (rep.typeArgumentsCount > n && arg != null) rep.putTypeArgument(n, arg)
     }
-    fakeFunction.valueArguments.forEach { (n, arg) ->
+    irCall.valueArguments.forEach { (n, arg) ->
       if (rep.valueArgumentsCount > n && arg != null) rep.putValueArgument(n, arg)
     }
 
