@@ -177,8 +177,10 @@ FILE fqName:foo.bar fileName:/simple.kt
   FUN name:box visibility:public modality:FINAL <> () returnType:kotlin.String
     BLOCK_BODY
       VAR name:result type:kotlin.String [val]
-        CALL 'public final fun foo (id: kotlin.Int, x: foo.bar.X, y: foo.bar.Y, _unit0_: kotlin.Unit): kotlin.String declared in foo.bar' type=kotlin.String origin=null
+        CALL 'public final fun foo (id: kotlin.Int, x: foo.bar.X, y: foo.bar.Y): kotlin.String declared in foo.bar' type=kotlin.String origin=null
           id: CONST Int type=kotlin.Int value=1
+          x: GET_OBJECT 'CLASS OBJECT name:X modality:FINAL visibility:public superTypes:[kotlin.Any]' type=foo.bar.X
+          y: GET_OBJECT 'CLASS OBJECT name:Y modality:FINAL visibility:public superTypes:[kotlin.Any]' type=foo.bar.Y
       RETURN type=kotlin.Nothing from='public final fun box (): kotlin.String declared in foo.bar'
         WHEN type=kotlin.String origin=IF
           BRANCH
