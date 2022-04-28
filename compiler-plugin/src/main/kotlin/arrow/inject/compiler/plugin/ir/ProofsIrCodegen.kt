@@ -12,7 +12,6 @@ import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirVariable
-import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
@@ -46,10 +45,8 @@ import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isTypeParameter
 import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.ir.util.render
-import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.TypeUtils
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 import org.jetbrains.kotlin.types.model.TypeArgumentMarker
 import org.jetbrains.kotlin.types.model.TypeSystemContext
@@ -104,15 +101,15 @@ class ProofsIrCodegen(
   private fun substitutedProofCall(proof: Proof, kotlinType: KotlinType): IrExpression =
     matchedCandidateProofCall(
       declaration = proof.irDeclaration(),
-      typeSubstitutor = proof.substitutor(kotlinType)
+      proofSubstitutors = proof.substitutor(kotlinType)
     )
 
   private fun matchedCandidateProofCall(
     declaration: IrDeclaration,
-    typeSubstitutor: List<TypeArgumentMarker>
+    proofSubstitutors: List<TypeArgumentMarker>
   ): IrExpression {
 
-    val irTypes = declaration.substitutedIrTypes(typeSubstitutor).filterNotNull()
+    val irTypes = declaration.substitutedIrTypes(proofSubstitutors).filterNotNull()
     return declaration.irCall().apply {
       if (this is IrMemberAccessExpression<*>) {
         if (declaration is IrTypeParametersContainer) {
@@ -131,7 +128,8 @@ class ProofsIrCodegen(
                   contextFqName,
                   irTypes.getOrElse(index) { irBuiltIns.nothingType }.toIrBasedKotlinType()
                 )
-              if (argumentProvedExpression != null) putValueArgument(index, argumentProvedExpression)
+              if (argumentProvedExpression != null)
+                putValueArgument(index, argumentProvedExpression)
             }
           }
         }
@@ -140,13 +138,13 @@ class ProofsIrCodegen(
   }
 
   private fun IrDeclaration.substitutedIrTypes(
-    typeSubstitutor: List<TypeArgumentMarker>
+    proofSubstitutors: List<TypeArgumentMarker>
   ): List<IrType?> =
     when (this) {
       is IrTypeParametersContainer -> {
-        typeParameters.mapIndexed { _, typeParamDescriptor ->
-          typeSubstitutor
-            .find { key -> key.toString() == typeParamDescriptor.defaultType.toString() }
+        typeParameters.map { irTypeParameter ->
+          proofSubstitutors
+            .find { key -> key.toString() == irTypeParameter.defaultType.toString() }
             ?.getType()
             ?.toIrType()
         }
@@ -155,14 +153,8 @@ class ProofsIrCodegen(
     }
 
   private fun Proof.substitutor(otherType: KotlinType): List<TypeArgumentMarker> {
-    val allArgsMap =
-      irDeclaration().type().typeArgumentsMap(otherType) +
-        // ?.filter { it.key.type.isTypeParameter() } // TODO()
-        mapOf(
-          irBuiltIns.nothingType.toIrBasedKotlinType().asTypeProjection() to
-            TypeUtils.DONT_CARE.asTypeProjection()
-        )
-    return allArgsMap.keys.toList()
+    return irDeclaration().type().typeArguments(otherType) +
+      irBuiltIns.nothingType.toIrBasedKotlinType().asTypeProjection()
 
     // TODO why this was using a map if we only use keys later?
     // return (typeSystemContext as TypeSystemInferenceExtensionContext)
@@ -173,17 +165,16 @@ class ProofsIrCodegen(
     //   )
   }
 
-  private fun KotlinTypeMarker.typeArgumentsMap(
-    other: KotlinType
-  ): Map<TypeArgumentMarker, TypeArgumentMarker> =
-    if (isTypeVariableType()) mapOf(this.asTypeArgument() to other.asTypeArgument())
-    else
+  private fun KotlinTypeMarker.typeArguments(other: KotlinType): List<TypeArgumentMarker> =
+    if (isTypeVariableType()) {
+      listOf(asTypeArgument())
+    } else {
       getArguments()
-        .mapIndexed { n, typeProjection ->
-          other.arguments.getOrNull(n)?.let { typeProjection to it }
+        .mapIndexed { index, typeArgumentMarker ->
+          other.arguments.getOrNull(index)?.let { typeArgumentMarker }
         }
         .filterNotNull()
-        .toMap()
+    }
 
   private fun IrDeclaration.irCall(): IrExpression =
     when (this) {
@@ -254,21 +245,19 @@ class ProofsIrCodegen(
     }
 
     val rep: IrCall = mirrorFunction.symbol.owner.irCall() as IrCall
-    // val rep: IrCall = irCall.deepCopyWithSymbols(mirrorFunction.symbol.owner)
 
-    irCall.typeArguments.forEach { (n, arg) ->
-      if (rep.typeArgumentsCount > n && arg != null) rep.putTypeArgument(n, arg)
+    irCall.typeArguments.forEach { (index, irType) ->
+      if (rep.typeArgumentsCount > index && irType != null) rep.putTypeArgument(index, irType)
     }
-    irCall.valueArguments.forEach { (n, arg) ->
-      if (rep.valueArgumentsCount > n && arg != null) rep.putValueArgument(n, arg)
+    irCall.valueArguments.forEach { (index, irType) ->
+      if (rep.valueArgumentsCount > index && irType != null) rep.putValueArgument(index, irType)
     }
 
-    // rep.extensionReceiver = this@replacementCall.extensionReceiver
     rep.dispatchReceiver = irCall.extensionReceiver
     return rep
   }
 
-  fun Proof.irDeclaration(): IrDeclaration =
+  private fun Proof.irDeclaration(): IrDeclaration =
     when (declaration) {
       is FirClass -> symbolTable.referenceClass(idSignature).owner
       is FirConstructor -> symbolTable.referenceConstructor(idSignature).owner
@@ -277,7 +266,7 @@ class ProofsIrCodegen(
       else -> error("Unsupported FirDeclaration: $this")
     }
 
-  fun IrDeclaration.type(): IrType =
+  private fun IrDeclaration.type(): IrType =
     when (this) {
       is IrClass -> defaultType
       is IrFunction -> returnType
@@ -286,40 +275,22 @@ class ProofsIrCodegen(
     }
 }
 
-private inline fun <reified E, B> IrElement.filterMap(
-  crossinline filter: (E) -> Boolean,
-  crossinline map: (E) -> B
-): List<B> {
-  val els = arrayListOf<B>()
-  val visitor =
-    object : IrElementVisitor<Unit, Unit> {
-      override fun visitElement(element: IrElement, data: Unit) {
-        if (element is E && filter(element)) {
-          els.add(map(element))
-        }
-        element.acceptChildren(this, Unit)
-      }
-    }
-  acceptChildren(visitor, Unit)
-  return els
-}
-
 private val IrCall.typeArguments: List<Pair<Int, IrType?>>
   get() {
-    val args = arrayListOf<Pair<Int, IrType?>>()
-    for (i in 0 until typeArgumentsCount) {
-      args.add(i to getTypeArgument(i))
+    val arguments = arrayListOf<Pair<Int, IrType?>>()
+    for (index in 0 until typeArgumentsCount) {
+      arguments.add(index to getTypeArgument(index))
     }
-    return args.toList()
+    return arguments.toList()
   }
 
 private val IrCall.valueArguments: List<Pair<Int, IrExpression?>>
   get() {
-    val args = arrayListOf<Pair<Int, IrExpression?>>()
-    for (i in 0 until valueArgumentsCount) {
-      args.add(i to getValueArgument(i))
+    val arguments = arrayListOf<Pair<Int, IrExpression?>>()
+    for (index in 0 until valueArgumentsCount) {
+      arguments.add(index to getValueArgument(index))
     }
-    return args.toList()
+    return arguments.toList()
   }
 
 private val IrCall.substitutedValueParameters: List<Pair<IrValueParameter, IrType?>>
