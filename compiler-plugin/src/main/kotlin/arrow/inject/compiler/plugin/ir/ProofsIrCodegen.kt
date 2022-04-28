@@ -2,12 +2,11 @@
 
 package arrow.inject.compiler.plugin.ir
 
-import arrow.inject.compiler.plugin.fir.utils.FirUtils
-import arrow.inject.compiler.plugin.ir.utils.metaContextAnnotations
-import arrow.inject.compiler.plugin.ir.utils.toIrType
-import arrow.inject.compiler.plugin.proof.Proof
-import arrow.inject.compiler.plugin.proof.asProofCacheKey
-import arrow.inject.compiler.plugin.proof.getProofFromCache
+import arrow.inject.compiler.plugin.model.Proof
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.CompileTimeAnnotation
+import arrow.inject.compiler.plugin.model.asProofCacheKey
+import arrow.inject.compiler.plugin.model.getProofFromCache
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
@@ -16,6 +15,7 @@ import org.jetbrains.kotlin.fir.declarations.FirVariable
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
@@ -28,6 +28,7 @@ import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
 import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
@@ -39,7 +40,6 @@ import org.jetbrains.kotlin.ir.types.IrTypeSystemContextImpl
 import org.jetbrains.kotlin.ir.types.classFqName
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.util.IdSignature
-import org.jetbrains.kotlin.ir.util.deepCopyWithSymbols
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.getPackageFragment
 import org.jetbrains.kotlin.ir.util.hasAnnotation
@@ -62,83 +62,76 @@ class ProofsIrCodegen(
   IrPluginContext by irPluginContext,
   TypeSystemContext by IrTypeSystemContextImpl(irPluginContext.irBuiltIns) {
 
-  fun proveNestedCalls(expression: IrCall): IrMemberAccessExpression<*> = proveCall(expression)
+  fun proveCall(call: IrCall): IrMemberAccessExpression<*> =
+    if (call.symbol.owner.annotations.hasAnnotation(CompileTimeAnnotation)) insertGivenCall(call)
+    else call
 
-  private fun proveCall(expression: IrCall): IrMemberAccessExpression<*> =
-    if (expression.symbol.owner.annotations.hasAnnotation(FirUtils.CompileTimeAnnotation)) {
-      insertGivenCall(expression)
-    } else {
-      expression
+  private fun insertGivenCall(call: IrCall): IrMemberAccessExpression<*> {
+    val replacementCall: IrMemberAccessExpression<*> = replacementCall(call)
+    call.substitutedValueParameters.forEachIndexed { index, (valueParameter, irType) ->
+      processValueParameter(index, valueParameter, irType, replacementCall)
     }
-
-  private fun insertGivenCall(expression: IrCall): IrMemberAccessExpression<*> {
-    val replacement: IrMemberAccessExpression<*>? = replacementCall(expression)
-    return if (replacement != null) {
-      expression.substitutedValueParameters.forEachIndexed { index, (param, superType) ->
-        processValueParameter(param, superType, replacement, index)
-      }
-      replacement
-    } else expression
+    return replacementCall
   }
 
   private fun processValueParameter(
-    param: IrValueParameter,
-    superType: IrType?,
-    replacement: IrMemberAccessExpression<*>?,
-    index: Int
+    index: Int,
+    valueParameter: IrValueParameter,
+    irType: IrType?,
+    replacementCall: IrMemberAccessExpression<*>?
   ) {
-    val contextFqName: FqName? = param.metaContextAnnotations.firstOrNull()?.type?.classFqName
-    val type = superType?.toIrBasedKotlinType()
+    val contextFqName: FqName? =
+      valueParameter.metaContextAnnotations.firstOrNull()?.type?.classFqName
+    val type = irType?.toIrBasedKotlinType()
     if (contextFqName != null && type != null) {
       givenProofCall(contextFqName, type)?.apply {
         if (this is IrCall) {
           symbol.owner.valueParameters.forEachIndexed { n, param ->
-            processValueParameter(param, param.type, this, n)
+            processValueParameter(n, param, param.type, this)
           }
         }
-        // todo we need to recursively place over this expression inductive steps
-        if (replacement != null && replacement.valueArgumentsCount > index)
-          replacement.putValueArgument(index, this)
+        if (replacementCall != null && replacementCall.valueArgumentsCount > index)
+          replacementCall.putValueArgument(index, this)
       }
     }
   }
 
-  private fun givenProofCall(context: FqName, superType: KotlinType): IrExpression? =
-    getProofFromCache(superType.asProofCacheKey(context))?.proof?.let { proof ->
-      substitutedProofCall(proof, superType)
+  private fun givenProofCall(contextFqName: FqName, kotlinType: KotlinType): IrExpression? =
+    getProofFromCache(kotlinType.asProofCacheKey(contextFqName))?.proof?.let { proof ->
+      substitutedProofCall(proof, kotlinType)
     }
 
-  private fun substitutedProofCall(proof: Proof, superType: KotlinType): IrExpression =
+  private fun substitutedProofCall(proof: Proof, kotlinType: KotlinType): IrExpression =
     matchedCandidateProofCall(
-      fn = proof.irDeclaration(),
-      typeSubstitutor = proof.substitutor(superType)
+      declaration = proof.irDeclaration(),
+      typeSubstitutor = proof.substitutor(kotlinType)
     )
 
   private fun matchedCandidateProofCall(
-    fn: IrDeclaration,
+    declaration: IrDeclaration,
     typeSubstitutor: List<TypeArgumentMarker>
   ): IrExpression {
 
-    val irTypes = fn.substitutedIrTypes(typeSubstitutor).filterNotNull()
-    return fn.irCall().apply {
+    val irTypes = declaration.substitutedIrTypes(typeSubstitutor).filterNotNull()
+    return declaration.irCall().apply {
       if (this is IrMemberAccessExpression<*>) {
-        if (fn is IrTypeParametersContainer) {
-          fn.typeParameters.forEachIndexed { n, descriptor ->
-            putTypeArgument(n, irTypes.getOrElse(n) { irBuiltIns.nothingType })
+        if (declaration is IrTypeParametersContainer) {
+          declaration.typeParameters.forEachIndexed { index, _ ->
+            putTypeArgument(index, irTypes.getOrElse(index) { irBuiltIns.nothingType })
           }
         }
 
-        if (fn is IrFunction) {
-          fn.valueParameters.forEachIndexed { n, descriptor ->
+        if (declaration is IrFunction) {
+          declaration.valueParameters.forEachIndexed { index, valueParameter ->
             val contextFqName: FqName? =
-              descriptor.metaContextAnnotations.firstOrNull()?.type?.classFqName
+              valueParameter.metaContextAnnotations.firstOrNull()?.type?.classFqName
             if (contextFqName != null) {
-              val argProof =
+              val argumentProvedExpression =
                 givenProofCall(
                   contextFqName,
-                  irTypes.getOrElse(n) { irBuiltIns.nothingType }.toIrBasedKotlinType()
+                  irTypes.getOrElse(index) { irBuiltIns.nothingType }.toIrBasedKotlinType()
                 )
-              if (argProof != null) putValueArgument(n, argProof)
+              if (argumentProvedExpression != null) putValueArgument(index, argumentProvedExpression)
             }
           }
         }
@@ -253,7 +246,7 @@ class ProofsIrCodegen(
     val mirrorFunction: IrFunction? =
       moduleFragment.files.flatMap { it.declarations }.filterIsInstance<IrFunction>().firstOrNull {
         it.kotlinFqName.asString() == functionFqName &&
-          !it.annotations.hasAnnotation(FirUtils.CompileTimeAnnotation)
+          !it.annotations.hasAnnotation(CompileTimeAnnotation)
       }
 
     checkNotNull(mirrorFunction) {
@@ -261,7 +254,7 @@ class ProofsIrCodegen(
     }
 
     val rep: IrCall = mirrorFunction.symbol.owner.irCall() as IrCall
-    //val rep: IrCall = irCall.deepCopyWithSymbols(mirrorFunction.symbol.owner)
+    // val rep: IrCall = irCall.deepCopyWithSymbols(mirrorFunction.symbol.owner)
 
     irCall.typeArguments.forEach { (n, arg) ->
       if (rep.typeArgumentsCount > n && arg != null) rep.putTypeArgument(n, arg)
@@ -346,3 +339,21 @@ private fun IrSimpleFunction.substitutedValueParameters(
           ?: type // Could not resolve the substituted KotlinType
       )
   }
+
+private val IrAnnotationContainer.metaContextAnnotations: List<IrConstructorCall>
+  get() =
+    annotations.filter { irConstructorCall: IrConstructorCall ->
+      irConstructorCall
+        .type
+        .toIrBasedKotlinType()
+        .constructor
+        .declarationDescriptor
+        ?.annotations
+        ?.toList()
+        .orEmpty()
+        .any { annotationDescriptor ->
+          annotationDescriptor.fqName == ProofAnnotationsFqName.ContextAnnotation
+        }
+    }
+
+private fun KotlinTypeMarker.toIrType(): IrType = this as IrType

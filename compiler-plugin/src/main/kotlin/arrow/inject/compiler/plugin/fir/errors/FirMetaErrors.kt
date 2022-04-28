@@ -1,6 +1,6 @@
 package arrow.inject.compiler.plugin.fir.errors
 
-import arrow.inject.compiler.plugin.proof.Proof
+import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.diagnostics.SourceElementPositioningStrategies.SELECTOR_BY_QUALIFIED
 import org.jetbrains.kotlin.diagnostics.error0
 import org.jetbrains.kotlin.diagnostics.error1

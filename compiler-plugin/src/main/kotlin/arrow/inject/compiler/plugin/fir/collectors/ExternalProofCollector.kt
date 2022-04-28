@@ -1,6 +1,10 @@
-package arrow.inject.compiler.plugin.classpath
+@file:OptIn(SymbolInternals::class, SymbolInternals::class)
+
+package arrow.inject.compiler.plugin.fir.collectors
 
 import arrow.inject.annotations.Context
+import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
+import arrow.inject.compiler.plugin.model.Proof
 import io.github.classgraph.ClassGraph
 import io.github.classgraph.ClassInfo
 import io.github.classgraph.ScanResult
@@ -10,6 +14,7 @@ import org.jetbrains.kotlin.descriptors.runtime.structure.classId
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.resolve.providers.getClassDeclaredPropertySymbols
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
+import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
@@ -18,9 +23,16 @@ import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
-class Classpath(private val session: FirSession) {
+internal class ExternalProofCollector(override val session: FirSession) : FirAbstractProofComponent {
 
-  val firClasspathProviderResult: List<FirClasspathProviderResult>
+  fun collectExternalProofs(): List<Proof> =
+    firClasspathProviderResult.flatMap { result ->
+      (result.functions + result.classes + result.properties + result.classProperties).map {
+        Proof.Implication(it.fir.idSignature, it.fir)
+      }
+    }
+
+  private val firClasspathProviderResult: List<FirClasspathProviderResult>
     get() =
       classpathProviderResults.map { result ->
         FirClasspathProviderResult(
@@ -55,7 +67,7 @@ class Classpath(private val session: FirSession) {
           }
         }
 
-  internal val skipPackages =
+  private val skipPackages =
     setOf(
       FqName("com.apple"),
       FqName("com.oracle"),
@@ -71,7 +83,7 @@ class Classpath(private val session: FirSession) {
     )
 }
 
-data class FirClasspathProviderResult(
+private data class FirClasspathProviderResult(
   val annotation: FqName,
   val functions: List<FirNamedFunctionSymbol>,
   val classes: List<FirClassLikeSymbol<*>>,
@@ -79,38 +91,38 @@ data class FirClasspathProviderResult(
   val classProperties: List<FirVariableSymbol<*>>,
 )
 
-data class ClasspathProviderResult(
+private data class ClasspathProviderResult(
   val annotation: String,
   val functions: List<Method>,
   val classes: List<Class<*>>,
 )
 
-internal val ScanResult.contextAnnotations: List<ClassInfo>
+private val ScanResult.contextAnnotations: List<ClassInfo>
   get() = allAnnotations.filter { classInfo -> classInfo.hasAnnotation(Context::class.java) }
 
-internal fun ScanResult.functionProviders(annotationClassInfo: ClassInfo): List<Method> =
+private fun ScanResult.functionProviders(annotationClassInfo: ClassInfo): List<Method> =
   getClassesWithMethodAnnotation(annotationClassInfo.name).flatMap { classWithContextMethodInfo ->
     classWithContextMethodInfo.methodInfo
       .filter { function -> function.hasAnnotation(annotationClassInfo.name) }
       .mapNotNull { method -> method.loadClassAndGetMethod() }
   }
 
-internal fun ScanResult.classProviders(annotationClassInfo: ClassInfo): List<Class<*>> =
+private fun ScanResult.classProviders(annotationClassInfo: ClassInfo): List<Class<*>> =
   getClassesWithAnnotation(annotationClassInfo.name).map { contextClassInfo ->
     contextClassInfo.loadClass()
   }
 
-internal fun ScanResult.propertyProviders(annotationClassInfo: ClassInfo): List<Field> =
+private fun ScanResult.propertyProviders(annotationClassInfo: ClassInfo): List<Field> =
   getClassesWithFieldAnnotation(annotationClassInfo.name).flatMap { classWithContextFieldInfo ->
     classWithContextFieldInfo.fieldInfo
       .filter { fieldInfo -> fieldInfo.hasAnnotation(annotationClassInfo.name) }
       .mapNotNull { field -> field.loadClassAndGetField() }
   }
 
-internal val Class<*>.callableId: CallableId
+private val Class<*>.callableId: CallableId
   get() = CallableId(classId, Name.identifier(name))
 
-internal fun FirSession.topLevelFunctionSymbolProviders(
+private fun FirSession.topLevelFunctionSymbolProviders(
   method: Method
 ): List<FirNamedFunctionSymbol> =
   symbolProvider.getTopLevelFunctionSymbols(
@@ -118,7 +130,7 @@ internal fun FirSession.topLevelFunctionSymbolProviders(
     Name.identifier(method.namedSanitized)
   )
 
-internal fun FirSession.classDeclaredPropertySymbolProviders(
+private fun FirSession.classDeclaredPropertySymbolProviders(
   method: Method
 ): List<FirVariableSymbol<*>> =
   symbolProvider.getClassDeclaredPropertySymbols(
@@ -126,16 +138,16 @@ internal fun FirSession.classDeclaredPropertySymbolProviders(
     Name.identifier(method.namedSanitized)
   )
 
-internal fun FirSession.topLevelPropertySymbolProviders(method: Method): List<FirPropertySymbol> =
+private fun FirSession.topLevelPropertySymbolProviders(method: Method): List<FirPropertySymbol> =
   symbolProvider.getTopLevelPropertySymbols(
     FqName(method.declaringClass.packageName),
     Name.identifier(method.namedSanitized)
   )
 
-internal fun FirSession.classLikeSymbolProviders(clazz: Class<*>): FirClassLikeSymbol<*>? =
+private fun FirSession.classLikeSymbolProviders(clazz: Class<*>): FirClassLikeSymbol<*>? =
   symbolProvider.getClassLikeSymbolByClassId(clazz.classId)
 
-internal val Method.namedSanitized: String
+private val Method.namedSanitized: String
   get() =
     if (name.startsWith("get") && name.contains("\$")) {
       name.substringAfter("get").substringBefore("\$").replaceFirstChar(Char::lowercaseChar)

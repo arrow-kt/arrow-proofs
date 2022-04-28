@@ -1,10 +1,13 @@
-package arrow.inject.compiler.plugin.fir
+@file:OptIn(SymbolInternals::class)
 
-import arrow.inject.compiler.plugin.fir.utils.FirUtils
-import arrow.inject.compiler.plugin.fir.utils.Predicate
-import arrow.inject.compiler.plugin.fir.utils.hasMetaContextAnnotation
+package arrow.inject.compiler.plugin.fir.codegen
+
+import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
+import arrow.inject.compiler.plugin.fir.ProofKey
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import java.util.concurrent.atomic.AtomicInteger
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
 import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
@@ -17,35 +20,54 @@ import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
+import org.jetbrains.kotlin.fir.resolve.constructType
+import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
+import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
+import org.jetbrains.kotlin.fir.types.ConeLookupTagBasedType
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildTypeProjectionWithVariance
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.name.CallableId
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.types.Variance
 
-class ContextInstanceGenerationExtension(
+internal class ResolvedFunctionGenerationExtension(
   session: FirSession,
-) : FirDeclarationGenerationExtension(session), FirUtils {
+) : FirDeclarationGenerationExtension(session), FirAbstractProofComponent {
+
+  private val counter: AtomicInteger = AtomicInteger(0)
+
+  private val unitSymbol: FirClassLikeSymbol<*>
+    get() = session.builtinTypes.unitType.toClassLikeSymbol(session)!!
+
+  private val compileTimeAnnotationType: ConeLookupTagBasedType
+    get() =
+      session.symbolProvider.getClassLikeSymbolByClassId(
+          ClassId.fromString(
+            ProofAnnotationsFqName.CompileTimeAnnotation.asString().replace(".", "/")
+          )
+        )!!
+        .fir.symbol.constructType(emptyArray(), false)
 
   override fun FirDeclarationPredicateRegistrar.registerPredicates() {
-    register(Predicate.CONTEXT_PREDICATE)
-    register(Predicate.INJECT_PREDICATE)
-    register(Predicate.RESOLVE_PREDICATE)
+    register(contextPredicate)
+    register(injectPredicate)
+    register(resolvePredicate)
   }
 
-  @OptIn(SymbolInternals::class)
   override fun generateFunctions(
     callableId: CallableId,
     owner: FirClassSymbol<*>?
   ): List<FirNamedFunctionSymbol> =
     session
       .predicateBasedProvider
-      .getSymbolsByPredicate(Predicate.INJECT_PREDICATE)
+      .getSymbolsByPredicate(injectPredicate)
       .filterIsInstance<FirNamedFunctionSymbol>()
       .filter { it.callableId == callableId }
       .map { firNamedFunctionSymbol ->
@@ -67,7 +89,7 @@ class ContextInstanceGenerationExtension(
                 buildValueParameter {
                   moduleData = session.moduleData
                   resolvePhase = FirResolvePhase.BODY_RESOLVE
-                  origin = Key.origin
+                  origin = ProofKey.origin
                   attributes = valueParameter.fir.attributes
                   returnTypeRef = valueParameter.fir.returnTypeRef
                   deprecation = valueParameter.fir.deprecation
@@ -87,7 +109,7 @@ class ContextInstanceGenerationExtension(
                       }
                     }
                   defaultValue =
-                    if (session.hasMetaContextAnnotation(valueParameter.fir)) {
+                    if (valueParameter.fir.hasMetaContextAnnotation) {
                       buildFunctionCall {
                         typeRef = valueParameter.resolvedReturnTypeRef
                         argumentList = buildResolvedArgumentList(LinkedHashMap())
@@ -108,7 +130,7 @@ class ContextInstanceGenerationExtension(
                   isVararg = valueParameter.fir.isVararg
                 }
               }
-            valueParameters += unambiguousValueParameter("unit")
+            valueParameters += unambiguousUnitValueParameter()
           }
           .symbol
       }
@@ -116,11 +138,32 @@ class ContextInstanceGenerationExtension(
   override fun getTopLevelCallableIds(): Set<CallableId> =
     session
       .predicateBasedProvider
-      .getSymbolsByPredicate(Predicate.INJECT_PREDICATE)
+      .getSymbolsByPredicate(injectPredicate)
       .mapNotNull { (it as? FirNamedFunctionSymbol)?.callableId }
       .toSet()
 
   override fun hasPackage(packageFqName: FqName): Boolean = true
 
-  override val counter: AtomicInteger = AtomicInteger(0)
+  private fun generateFreshUnitName() = "_unit${counter.getAndIncrement()}_"
+
+  private fun unambiguousUnitValueParameter() = buildValueParameter {
+    val newName = Name.identifier(generateFreshUnitName())
+    moduleData = session.moduleData
+    resolvePhase = FirResolvePhase.BODY_RESOLVE
+    origin = ProofKey.origin
+    returnTypeRef = session.builtinTypes.unitType
+    this.name = newName
+    symbol = FirValueParameterSymbol(newName)
+    isCrossinline = false
+    isNoinline = false
+    isVararg = false
+    defaultValue = buildFunctionCall {
+      typeRef = session.builtinTypes.unitType
+      argumentList = buildResolvedArgumentList(LinkedHashMap())
+      calleeReference = buildResolvedNamedReference {
+        this.name = unitSymbol.name
+        resolvedSymbol = unitSymbol
+      }
+    }
+  }
 }

@@ -1,18 +1,24 @@
-@file:OptIn(DfaInternals::class)
+package arrow.inject.compiler.plugin.fir.resolution
 
-package arrow.inject.compiler.plugin.fir
-
-import arrow.inject.compiler.plugin.fir.utils.FirUtils
-import arrow.inject.compiler.plugin.fir.utils.coneType
-import arrow.inject.compiler.plugin.proof.Proof
-import java.util.concurrent.atomic.AtomicInteger
+import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
+import arrow.inject.compiler.plugin.fir.ProofKey
+import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.builder.buildPackageDirective
+import org.jetbrains.kotlin.fir.declarations.FirConstructor
+import org.jetbrains.kotlin.fir.declarations.FirDeclaration
+import org.jetbrains.kotlin.fir.declarations.FirFile
 import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirProperty
+import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
+import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
+import org.jetbrains.kotlin.fir.declarations.builder.buildFile
 import org.jetbrains.kotlin.fir.expressions.FirEmptyArgumentList
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCallOrigin
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
+import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.fir.resolve.calls.CallInfo
 import org.jetbrains.kotlin.fir.resolve.calls.CallKind
@@ -20,20 +26,32 @@ import org.jetbrains.kotlin.fir.resolve.calls.Candidate
 import org.jetbrains.kotlin.fir.resolve.calls.CandidateFactory
 import org.jetbrains.kotlin.fir.resolve.calls.FirNamedReferenceWithCandidate
 import org.jetbrains.kotlin.fir.resolve.calls.ResolutionStageRunner
-import org.jetbrains.kotlin.fir.resolve.dfa.DfaInternals
+import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.inference.FirCallCompleter
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.FirBodyResolveTransformer
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.toFirResolvedTypeRef
+import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
 import org.jetbrains.kotlin.resolve.calls.tower.CandidateApplicability
 
-class ProofResolutionStageRunner(override val session: FirSession) : FirUtils {
+internal class ProofResolutionStageRunner(
+  override val session: FirSession,
+) : FirAbstractProofComponent {
 
-  override val counter: AtomicInteger = AtomicInteger()
+  private val FirDeclaration.coneType: ConeKotlinType?
+    get() =
+      when (this) {
+        is FirConstructor -> returnTypeRef.coneType
+        is FirSimpleFunction -> returnTypeRef.coneType
+        is FirProperty -> returnTypeRef.coneType
+        is FirRegularClass -> symbol.defaultType()
+        else -> null
+      }
 
   private val resultResolutionStageRunner: ResolutionStageRunner by lazy { ResolutionStageRunner() }
 
@@ -145,4 +163,12 @@ class ProofResolutionStageRunner(override val session: FirSession) : FirUtils {
       }
       .toSet()
   }
+
+  private val fakeFirFile: FirFile
+    get() = buildFile {
+      moduleData = session.moduleData
+      origin = ProofKey.origin
+      packageDirective = buildPackageDirective { packageFqName = FqName("PROOF_FAKE") }
+      name = "PROOF_FAKE"
+    }
 }

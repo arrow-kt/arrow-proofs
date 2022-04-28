@@ -1,43 +1,25 @@
-@file:OptIn(
-  SymbolInternals::class,
-  DfaInternals::class,
-  PrivateForInline::class,
-  SessionConfiguration::class,
-  InternalDiagnosticFactoryMethod::class,
-  InternalDiagnosticFactoryMethod::class,
-  InternalDiagnosticFactoryMethod::class,
-  InternalDiagnosticFactoryMethod::class,
-)
+@file:OptIn(InternalDiagnosticFactoryMethod::class, SymbolInternals::class)
 
-package arrow.inject.compiler.plugin.fir
+package arrow.inject.compiler.plugin.fir.resolution
 
-import arrow.inject.compiler.plugin.classpath.Classpath
+import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
+import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
+import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
-import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE
-import arrow.inject.compiler.plugin.fir.utils.FirUtils
-import arrow.inject.compiler.plugin.fir.utils.hasMetaContextAnnotation
-import arrow.inject.compiler.plugin.fir.utils.isContextAnnotation
-import arrow.inject.compiler.plugin.fir.utils.metaContextAnnotations
-import arrow.inject.compiler.plugin.ir.utils.toIrType
-import arrow.inject.compiler.plugin.proof.Proof
-import arrow.inject.compiler.plugin.proof.ProofCacheKey
-import arrow.inject.compiler.plugin.proof.ProofResolution
-import arrow.inject.compiler.plugin.proof.asProofCacheKey
-import arrow.inject.compiler.plugin.proof.putProofIntoCache
-import java.util.concurrent.atomic.AtomicInteger
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
+import arrow.inject.compiler.plugin.model.Proof
+import arrow.inject.compiler.plugin.model.ProofResolution
+import arrow.inject.compiler.plugin.model.asProofCacheKey
+import arrow.inject.compiler.plugin.model.putProofIntoCache
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
-import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.PrivateForInline
-import org.jetbrains.kotlin.fir.SessionConfiguration
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirCallChecker
 import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
-import org.jetbrains.kotlin.fir.backend.jvm.FirJvmKotlinMangler
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirClassLikeDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
@@ -49,34 +31,25 @@ import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.fir.expressions.FirResolvable
 import org.jetbrains.kotlin.fir.resolve.calls.Candidate
-import org.jetbrains.kotlin.fir.resolve.dfa.DfaInternals
 import org.jetbrains.kotlin.fir.resolve.firClassLike
 import org.jetbrains.kotlin.fir.resolve.fqName
-import org.jetbrains.kotlin.fir.resolve.inference.ConeConstraintSystemUtilContext.unCapture
-import org.jetbrains.kotlin.fir.resolve.providers.impl.FirProviderImpl
 import org.jetbrains.kotlin.fir.resolvedSymbol
-import org.jetbrains.kotlin.fir.signaturer.FirBasedSignatureComposer
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.coneType
-import org.jetbrains.kotlin.fir.types.toTypeProjection
-import org.jetbrains.kotlin.fir.visitors.FirVisitorVoid
-import org.jetbrains.kotlin.ir.util.IdSignature
 import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.types.Variance
-import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.asTypeArgument
-import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.getType
-import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstance
 
-class ProofResolutionCallCheckerExtension(
+internal class ProofResolutionCallCheckerExtension(
   session: FirSession,
-) : FirAdditionalCheckersExtension(session), FirUtils {
+) : FirAdditionalCheckersExtension(session), FirAbstractProofComponent {
 
-  private val allProofs: List<Proof> by lazy { collectLocalProofs() + collectRemoteProofs() }
+  private val localProofCollector = LocalProofCollectors(session)
 
-  private val firBasedSignatureComposer: FirBasedSignatureComposer by lazy {
-    FirBasedSignatureComposer(FirJvmKotlinMangler(session))
+  private val externalProofCollector = ExternalProofCollector(session)
+
+  private val allProofs: List<Proof> by lazy {
+    localProofCollector.collectLocalProofs() + externalProofCollector.collectExternalProofs()
   }
 
   override val expressionCheckers: ExpressionCheckers =
@@ -94,8 +67,6 @@ class ProofResolutionCallCheckerExtension(
           }
         )
     }
-
-  override val counter: AtomicInteger = AtomicInteger(0)
 
   private fun reportUnresolvedGivenCallSite(
     expression: FirCall,
@@ -125,7 +96,7 @@ class ProofResolutionCallCheckerExtension(
         if (proofResolution?.proof == null && valueParameterSource != null) {
           reportMissingInductiveDependencies(expression, valueParameter, context, reporter)
           reporter.report(
-            UNRESOLVED_GIVEN_CALL_SITE.on(
+            FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE.on(
               valueParameterSource,
               expression,
               valueParameter.returnTypeRef.coneType,
@@ -157,10 +128,7 @@ class ProofResolutionCallCheckerExtension(
     unresolvedValueParameters
       .mapNotNull { valueParameter: FirValueParameter ->
         val contextFqName: FqName? =
-          valueParameter
-            .annotations
-            .firstOrNull { it.isContextAnnotation(session) }
-            ?.fqName(session)
+          valueParameter.annotations.firstOrNull { it.isContextAnnotation }?.fqName(session)
 
         val defaultValue = valueParameter.defaultValue
 
@@ -182,7 +150,7 @@ class ProofResolutionCallCheckerExtension(
 
   private fun candidates(contextFqName: FqName, type: ConeKotlinType): Set<Candidate> =
     proofResolutionStageRunner.run {
-      allProofs.filter { contextFqName in it.contexts(session) }.matchingCandidates(type)
+      allProofs.filter { contextFqName in it.declaration.contextFqNames }.matchingCandidates(type)
     }
 
   private fun proofCandidate(candidates: Set<Candidate>, type: ConeKotlinType): ProofResolution {
@@ -200,32 +168,6 @@ class ProofResolutionCallCheckerExtension(
     )
   }
 
-  private val classpath = Classpath(session)
-
-  private fun collectLocalProofs(): List<Proof> =
-    session.firstIsInstance<FirProviderImpl>().getAllFirFiles().flatMap { firFile ->
-      val localProofs: MutableList<Proof> = mutableListOf()
-      firFile.acceptChildren(
-        visitor =
-          object : FirVisitorVoid() {
-            override fun visitElement(element: FirElement) {
-              val declaration = element as? FirDeclaration
-              if (declaration != null && session.hasMetaContextAnnotation(declaration)) {
-                localProofs.add(Proof.Implication(declaration.idSignature, declaration))
-              }
-            }
-          }
-      )
-      localProofs
-    }
-
-  private fun collectRemoteProofs(): List<Proof> =
-    classpath.firClasspathProviderResult.flatMap { result ->
-      (result.functions + result.classes + result.properties + result.classProperties).map {
-        Proof.Implication(it.fir.idSignature, it.fir)
-      }
-    }
-
   private val proofResolutionStageRunner: ProofResolutionStageRunner by lazy {
     ProofResolutionStageRunner(session)
   }
@@ -236,7 +178,7 @@ class ProofResolutionCallCheckerExtension(
     context: CheckerContext,
     reporter: DiagnosticReporter,
   ) {
-    if (session.hasMetaContextAnnotation(valueParameter)) {
+    if (valueParameter.hasMetaContextAnnotation) {
       val classLikeDeclaration: FirClassLikeDeclaration? =
         valueParameter.returnTypeRef.firClassLike(session)
 
@@ -247,10 +189,7 @@ class ProofResolutionCallCheckerExtension(
           ?.valueParameterSymbols
           ?.forEach { valueParameterSymbol ->
             val contextAnnotationFqName =
-              session
-                .metaContextAnnotations(valueParameterSymbol.fir)
-                .firstOrNull()
-                ?.fqName(session)
+              valueParameterSymbol.fir.metaContextAnnotations.firstOrNull()?.fqName(session)
 
             val defaultValue =
               (valueParameterSymbol.fir.defaultValue as? FirQualifiedAccessExpression)
@@ -267,7 +206,7 @@ class ProofResolutionCallCheckerExtension(
             val valueParameterSource: KtSourceElement? = valueParameter.source
             if (parameterResolveProof?.proof == null && valueParameterSource != null)
               reporter.report(
-                UNRESOLVED_GIVEN_CALL_SITE.on(
+                FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE.on(
                   valueParameterSource,
                   expression,
                   valueParameter.returnTypeRef.coneType,
@@ -280,6 +219,12 @@ class ProofResolutionCallCheckerExtension(
     }
   }
 
-  val FirDeclaration.idSignature: IdSignature
-    get() = checkNotNull(firBasedSignatureComposer.composeSignature(this))
+  private val FirFunction.isCompileTimeAnnotated: Boolean
+    get() =
+      annotations.any { firAnnotation ->
+        firAnnotation.fqName(session) == ProofAnnotationsFqName.CompileTimeAnnotation
+      }
+
+  private val FirDeclaration.contextFqNames: Set<FqName>
+    get() = annotations.filter { it.isContextAnnotation }.mapNotNull { it.fqName(session) }.toSet()
 }

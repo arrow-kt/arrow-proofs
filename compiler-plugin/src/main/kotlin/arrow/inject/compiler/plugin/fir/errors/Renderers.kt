@@ -1,6 +1,6 @@
 package arrow.inject.compiler.plugin.fir.errors
 
-import arrow.inject.compiler.plugin.proof.Proof
+import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.diagnostics.rendering.DiagnosticParameterRenderer
 import org.jetbrains.kotlin.diagnostics.rendering.RenderingContext
 import org.jetbrains.kotlin.fir.FirRenderer
