@@ -12,4 +12,13 @@ object PreludeAdditionalFilesDirectives : SimpleDirectivesContainer() {
             See file ./src/testData/prelude/Annotations.kt
         """.trimIndent()
     )
+
+  val IDENTITY_DIRECTIVE by
+  directive(
+    description =
+    """
+            Adds common identity functions
+            See file ./src/testData/prelude/Identity.kt
+        """.trimIndent()
+  )
 }

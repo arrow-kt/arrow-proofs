@@ -4,12 +4,17 @@ package arrow.inject.compiler.plugin.fir.codegen
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.ProofKey
+import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
+import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import java.util.concurrent.atomic.AtomicInteger
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationAttributes
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
 import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
+import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
 import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotation
@@ -19,6 +24,7 @@ import org.jetbrains.kotlin.fir.extensions.FirDeclarationGenerationExtension
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.moduleData
+import org.jetbrains.kotlin.fir.originalForSubstitutionOverrideAttr
 import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.constructType
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
@@ -26,6 +32,7 @@ import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeLookupTagBasedType
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
@@ -42,6 +49,10 @@ internal class ResolvedFunctionGenerationExtension(
 ) : FirDeclarationGenerationExtension(session), FirAbstractProofComponent {
 
   private val counter: AtomicInteger = AtomicInteger(0)
+
+  private val localProofCollector = LocalProofCollectors(session)
+
+  private val externalProofCollector = ExternalProofCollector(session)
 
   private val unitSymbol: FirClassLikeSymbol<*>
     get() = session.builtinTypes.unitType.toClassLikeSymbol(session)!!
@@ -71,19 +82,36 @@ internal class ResolvedFunctionGenerationExtension(
       .filterIsInstance<FirNamedFunctionSymbol>()
       .filter { it.callableId == callableId }
       .map { firNamedFunctionSymbol ->
+        val originalSymbol = FirNamedFunctionSymbol(callableId)
         buildSimpleFunction {
             resolvePhase = FirResolvePhase.BODY_RESOLVE
             moduleData = firNamedFunctionSymbol.moduleData
-            origin = firNamedFunctionSymbol.origin
+            origin = FirDeclarationOrigin.SubstitutionOverride
             status = firNamedFunctionSymbol.resolvedStatus
             returnTypeRef = firNamedFunctionSymbol.resolvedReturnTypeRef
             name = callableId.callableName
-            symbol = FirNamedFunctionSymbol(callableId)
+            symbol = originalSymbol
             dispatchReceiverType = firNamedFunctionSymbol.dispatchReceiverType
             annotations += buildAnnotation {
               annotationTypeRef = buildResolvedTypeRef { type = compileTimeAnnotationType }
               argumentMapping = FirEmptyAnnotationArgumentMapping
             }
+            typeParameters +=
+              firNamedFunctionSymbol.typeParameterSymbols.map { typeParameter ->
+                buildTypeParameter {
+                  moduleData = session.moduleData
+                  resolvePhase = FirResolvePhase.BODY_RESOLVE
+                  origin = ProofKey.origin
+                  attributes = FirDeclarationAttributes() // TODO()
+                  name = typeParameter.name
+                  symbol = FirTypeParameterSymbol()
+                  containingDeclarationSymbol = originalSymbol
+                  variance = typeParameter.variance
+                  isReified = typeParameter.isReified
+                  bounds += typeParameter.resolvedBounds
+                  annotations += typeParameter.annotations
+                }
+              }
             valueParameters +=
               firNamedFunctionSymbol.valueParameterSymbols.map { valueParameter ->
                 buildValueParameter {
@@ -115,7 +143,7 @@ internal class ResolvedFunctionGenerationExtension(
                         argumentList = buildResolvedArgumentList(LinkedHashMap())
                         typeArguments += buildTypeProjectionWithVariance {
                           typeRef = valueParameter.resolvedReturnTypeRef
-                          variance = Variance.OUT_VARIANCE
+                          variance = Variance.OUT_VARIANCE // TODO()
                         }
                         calleeReference = buildResolvedNamedReference {
                           name = resolve.name
@@ -132,15 +160,13 @@ internal class ResolvedFunctionGenerationExtension(
               }
             valueParameters += unambiguousUnitValueParameter()
           }
+          .apply { this.originalForSubstitutionOverrideAttr = firNamedFunctionSymbol.fir }
           .symbol
       }
 
   override fun getTopLevelCallableIds(): Set<CallableId> =
-    session
-      .predicateBasedProvider
-      .getSymbolsByPredicate(injectPredicate)
-      .mapNotNull { (it as? FirNamedFunctionSymbol)?.callableId }
-      .toSet()
+    localProofCollector.collectLocalInjectables() +
+      externalProofCollector.collectExternalInjectables()
 
   override fun hasPackage(packageFqName: FqName): Boolean = true
 

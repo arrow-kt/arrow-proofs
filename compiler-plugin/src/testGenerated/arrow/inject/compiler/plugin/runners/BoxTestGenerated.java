@@ -23,6 +23,12 @@ public class BoxTestGenerated extends AbstractBoxTest {
     }
 
     @Test
+    @TestMetadata("coherent_polymorphic_identity.kt")
+    public void testCoherent_polymorphic_identity() throws Exception {
+        runTest("src/testData/box/context/coherent_polymorphic_identity.kt");
+    }
+
+    @Test
     @TestMetadata("different_context_providers_of_the_same_type_are_not_ambiguous.kt")
     public void testDifferent_context_providers_of_the_same_type_are_not_ambiguous() throws Exception {
         runTest("src/testData/box/context/different_context_providers_of_the_same_type_are_not_ambiguous.kt");
@@ -32,5 +38,11 @@ public class BoxTestGenerated extends AbstractBoxTest {
     @TestMetadata("multiple_context_providers_are_supported.kt")
     public void testMultiple_context_providers_are_supported() throws Exception {
         runTest("src/testData/box/context/multiple_context_providers_are_supported.kt");
+    }
+
+    @Test
+    @TestMetadata("provider_supports_multiple_contexts.kt")
+    public void testProvider_supports_multiple_contexts() throws Exception {
+        runTest("src/testData/box/context/provider_supports_multiple_contexts.kt");
     }
 }

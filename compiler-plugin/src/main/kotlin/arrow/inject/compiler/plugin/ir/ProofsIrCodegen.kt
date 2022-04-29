@@ -5,6 +5,7 @@ package arrow.inject.compiler.plugin.ir
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.CompileTimeAnnotation
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.InjectAnnotation
 import arrow.inject.compiler.plugin.model.asProofCacheKey
 import arrow.inject.compiler.plugin.model.getProofFromCache
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
@@ -12,21 +13,18 @@ import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
-import org.jetbrains.kotlin.fir.declarations.FirVariable
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
-import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrProperty
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrTypeParametersContainer
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
-import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
@@ -62,7 +60,7 @@ class ProofsIrCodegen(
   TypeSystemContext by IrTypeSystemContextImpl(irPluginContext.irBuiltIns) {
 
   fun proveCall(call: IrCall): IrMemberAccessExpression<*> =
-    if (call.symbol.owner.annotations.hasAnnotation(CompileTimeAnnotation)) insertGivenCall(call)
+    if (call.symbol.owner.annotations.hasAnnotation(InjectAnnotation)) insertGivenCall(call)
     else call
 
   private fun insertGivenCall(call: IrCall): IrMemberAccessExpression<*> {
@@ -85,12 +83,13 @@ class ProofsIrCodegen(
     if (contextFqName != null && type != null) {
       givenProofCall(contextFqName, type)?.apply {
         if (this is IrCall) {
-          symbol.owner.valueParameters.forEachIndexed { n, param ->
-            processValueParameter(n, param, param.type, this)
+          symbol.owner.valueParameters.forEachIndexed { index, param ->
+            processValueParameter(index, param, param.type, this)
           }
         }
-        if (replacementCall != null && replacementCall.valueArgumentsCount > index)
+        if (replacementCall != null && replacementCall.valueArgumentsCount > index) {
           replacementCall.putValueArgument(index, this)
+        }
       }
     }
   }
@@ -129,8 +128,9 @@ class ProofsIrCodegen(
                   contextFqName,
                   irTypes.getOrElse(index) { irBuiltIns.nothingType }.toIrBasedKotlinType()
                 )
-              if (argumentProvedExpression != null)
+              if (argumentProvedExpression != null) {
                 putValueArgument(index, argumentProvedExpression)
+              }
             }
           }
         }
@@ -180,8 +180,7 @@ class ProofsIrCodegen(
   private fun IrDeclaration.irCall(): IrExpression =
     when (this) {
       is IrProperty -> {
-        symbol.owner.getter?.symbol?.let {
-          irSimpleFunctionSymbol ->
+        symbol.owner.getter?.symbol?.let { irSimpleFunctionSymbol ->
           IrCallImpl(
             startOffset = UNDEFINED_OFFSET,
             endOffset = UNDEFINED_OFFSET,

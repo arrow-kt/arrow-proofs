@@ -37,6 +37,7 @@ fun TestConfigurationBuilder.commonFirWithPluginFrontendConfiguration() {
     +FirDiagnosticsDirectives.ENABLE_PLUGIN_PHASES
     +FirDiagnosticsDirectives.FIR_DUMP
     +PreludeAdditionalFilesDirectives.ANNOTATION_DIRECTIVE
+    +PreludeAdditionalFilesDirectives.IDENTITY_DIRECTIVE
   }
 
   globalDefaults {

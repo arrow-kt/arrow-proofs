@@ -1,9 +1,12 @@
+@file:OptIn(SymbolInternals::class)
+
 package arrow.inject.compiler.plugin.fir.resolution
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.ProofKey
 import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.analysis.checkers.typeParameterSymbols
 import org.jetbrains.kotlin.fir.builder.buildPackageDirective
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
@@ -30,14 +33,19 @@ import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.inference.FirCallCompleter
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.FirBodyResolveTransformer
+import org.jetbrains.kotlin.fir.scopes.impl.toConeType
+import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
+import org.jetbrains.kotlin.fir.types.builder.buildTypeProjectionWithVariance
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.toFirResolvedTypeRef
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
 import org.jetbrains.kotlin.resolve.calls.tower.CandidateApplicability
+import org.jetbrains.kotlin.types.Variance
 
 internal class ProofResolutionStageRunner(
   override val session: FirSession,
@@ -103,7 +111,15 @@ internal class ProofResolutionStageRunner(
             explicitReceiver = null, // TODO()
             argumentList = FirEmptyArgumentList, // TODO()
             isImplicitInvoke = false,
-            typeArguments = emptyList(),
+            typeArguments =
+              proof.declaration.symbol.typeParameterSymbols.orEmpty().map { typeParameterSymbol ->
+                buildTypeProjectionWithVariance {
+                  typeRef = buildResolvedTypeRef {
+                    this.type = type
+                  }
+                  variance = typeParameterSymbol.variance
+                }
+              },
             session = session,
             containingFile = fakeFirFile,
             containingDeclarations = emptyList(), // TODO()

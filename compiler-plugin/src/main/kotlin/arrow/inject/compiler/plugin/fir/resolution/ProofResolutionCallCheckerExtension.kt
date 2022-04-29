@@ -6,8 +6,8 @@ import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
 import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
-import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.Proof
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofResolution
 import arrow.inject.compiler.plugin.model.asProofCacheKey
 import arrow.inject.compiler.plugin.model.putProofIntoCache
@@ -27,17 +27,24 @@ import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.declarations.constructors
 import org.jetbrains.kotlin.fir.expressions.FirCall
+import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
+import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccess
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.fir.expressions.FirResolvable
 import org.jetbrains.kotlin.fir.resolve.calls.Candidate
 import org.jetbrains.kotlin.fir.resolve.firClassLike
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.resolvedSymbol
+import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.fir.types.render
+import org.jetbrains.kotlin.fir.types.toConeTypeProjection
+import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.name.FqName
 
 internal class ProofResolutionCallCheckerExtension(
@@ -112,28 +119,55 @@ internal class ProofResolutionCallCheckerExtension(
     val originalFunction: FirFunction? =
       ((call as? FirResolvable)?.calleeReference?.resolvedSymbol as? FirFunctionSymbol<*>)?.fir
 
-    return if (originalFunction?.isCompileTimeAnnotated == true) {
+    return if (call is FirQualifiedAccess && originalFunction?.isCompileTimeAnnotated == true) {
       val unresolvedValueParameters: List<FirValueParameter> =
         originalFunction.valueParameters.filter {
           val defaultValue: FirFunctionCall? = (it.defaultValue as? FirFunctionCall)
           defaultValue?.calleeReference?.resolvedSymbol == resolve.symbol
         }
-      resolvedValueParametersMap(unresolvedValueParameters)
+      resolvedValueParametersMap(call, unresolvedValueParameters)
     } else {
       emptyMap()
     }
   }
 
-  private fun resolvedValueParametersMap(unresolvedValueParameters: List<FirValueParameter>) =
+  private fun resolvedValueParametersMap(
+    call: FirQualifiedAccess,
+    unresolvedValueParameters: List<FirValueParameter>,
+  ) =
     unresolvedValueParameters
       .mapNotNull { valueParameter: FirValueParameter ->
         val contextFqName: FqName? =
           valueParameter.annotations.firstOrNull { it.isContextAnnotation }?.fqName(session)
 
-        val defaultValue = valueParameter.defaultValue
+        val defaultValue: FirExpression? = valueParameter.defaultValue
 
         if (contextFqName != null && defaultValue is FirQualifiedAccessExpression) {
-          val proofResolution = resolveProof(contextFqName, valueParameter.returnTypeRef.coneType)
+          val type =
+            when (valueParameter.returnTypeRef.coneType) {
+              is ConeTypeParameterType -> {
+                val originalFunction =
+                  ((call as? FirResolvable)?.calleeReference?.resolvedSymbol as?
+                      FirFunctionSymbol<*>)
+                    ?.fir
+                val originalTypeArgumentIndex =
+                  originalFunction?.typeParameters?.indexOfFirst {
+                    val originalTypeParameter = it.toConeType()
+                    val valueParameterType = valueParameter.returnTypeRef.coneType
+                    originalTypeParameter.render() == valueParameterType.render()
+                  }
+                    ?: error("Found unbound parameter to type argument")
+                if (originalTypeArgumentIndex != -1) {
+                  call.typeArguments[originalTypeArgumentIndex].toConeTypeProjection().type
+                    ?: error("Found call unbound parameter to type argument")
+                } else {
+                  error("Found call unbound parameter to type argument")
+                }
+              }
+              else -> valueParameter.returnTypeRef.coneType
+            }
+
+          val proofResolution = resolveProof(contextFqName, type)
           if (proofResolution.proof == null) null to valueParameter
           else proofResolution to valueParameter
         } else {

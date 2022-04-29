@@ -20,6 +20,7 @@ class PreludeConfigurator(
     mapOf(
       PreludeAdditionalFilesDirectives.ANNOTATION_DIRECTIVE to
         File("$preludePath/Annotations.kt").path,
+      PreludeAdditionalFilesDirectives.IDENTITY_DIRECTIVE to File("$preludePath/Identity.kt").path,
     )
 
   override val directiveContainers: List<DirectivesContainer> =

@@ -23,7 +23,7 @@ FILE: multiple_context_providers_are_supported.kt
         ^foo <strcat>(R|<local>/id|, String(: ), R|<local>/x|.R|foo/bar/X.value|, String( to ), R|<local>/y|.R|foo/bar/Y.value|)
     }
     public final fun box(): R|kotlin/String| {
-        lval result: R|kotlin/String| = R|foo/bar/foo|(Int(1))
+        lval result: R|kotlin/String| = R|SubstitutionOverride<foo/bar/foo: R|kotlin/String|>|(Int(1))
         ^box when () {
             ==(R|<local>/result|, String(1: yes! to nope!)) ->  {
                 String(OK)

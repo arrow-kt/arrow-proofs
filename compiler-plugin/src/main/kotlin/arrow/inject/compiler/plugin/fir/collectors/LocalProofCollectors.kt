@@ -5,8 +5,12 @@ import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
+import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.resolve.providers.impl.FirProviderImpl
+import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.visitors.FirVisitorVoid
+import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstance
 
 internal class LocalProofCollectors(override val session: FirSession) : FirAbstractProofComponent {
@@ -27,4 +31,11 @@ internal class LocalProofCollectors(override val session: FirSession) : FirAbstr
       )
       localProofs
     }
+
+  fun collectLocalInjectables(): Set<CallableId> =
+    session
+      .predicateBasedProvider
+      .getSymbolsByPredicate(injectPredicate)
+      .mapNotNull { (it as? FirCallableSymbol)?.callableId }
+      .toSet()
 }
