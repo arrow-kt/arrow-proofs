@@ -13,12 +13,13 @@ import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.extensions.predicate.DeclarationPredicate
 import org.jetbrains.kotlin.fir.extensions.predicate.has
-import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.resolve.fqName
+import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.signaturer.FirBasedSignatureComposer
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
-import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.ir.util.IdSignature
+import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
 
 internal interface FirAbstractProofComponent {
 
@@ -42,11 +43,11 @@ internal interface FirAbstractProofComponent {
   val resolve: FirSimpleFunction
     get() =
       session
-        .predicateBasedProvider
-        .getSymbolsByPredicate(resolvePredicate)
-        .filterIsInstance<FirNamedFunctionSymbol>()
+        .symbolProvider
+        .getTopLevelCallableSymbols(FqName("arrow.inject.annotations"), Name.identifier("resolve"))
         .first()
-        .fir
+        .fir as
+        FirSimpleFunction
 
   val FirAnnotation.isContextAnnotation: Boolean
     get() {

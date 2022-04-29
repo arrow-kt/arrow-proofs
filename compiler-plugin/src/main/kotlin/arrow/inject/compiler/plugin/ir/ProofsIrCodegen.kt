@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirVariable
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
@@ -21,6 +22,7 @@ import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.declarations.IrProperty
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrTypeParametersContainer
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
@@ -65,7 +67,7 @@ class ProofsIrCodegen(
 
   private fun insertGivenCall(call: IrCall): IrMemberAccessExpression<*> {
     val replacementCall: IrMemberAccessExpression<*> = replacementCall(call)
-    call.substitutedValueParameters.forEachIndexed { index, (valueParameter, irType) ->
+    call.substitutedValueParameters.entries.forEachIndexed { index, (valueParameter, irType) ->
       processValueParameter(index, valueParameter, irType, replacementCall)
     }
     return replacementCall
@@ -101,15 +103,14 @@ class ProofsIrCodegen(
   private fun substitutedProofCall(proof: Proof, kotlinType: KotlinType): IrExpression =
     matchedCandidateProofCall(
       declaration = proof.irDeclaration(),
-      proofSubstitutors = proof.substitutor(kotlinType)
+      typeArguments = proof.typeArgumentSubstitutor(kotlinType)
     )
 
   private fun matchedCandidateProofCall(
     declaration: IrDeclaration,
-    proofSubstitutors: List<TypeArgumentMarker>
+    typeArguments: List<TypeArgumentMarker>
   ): IrExpression {
-
-    val irTypes = declaration.substitutedIrTypes(proofSubstitutors).filterNotNull()
+    val irTypes = declaration.substitutedIrTypes(typeArguments).filterNotNull()
     return declaration.irCall().apply {
       if (this is IrMemberAccessExpression<*>) {
         if (declaration is IrTypeParametersContainer) {
@@ -138,12 +139,12 @@ class ProofsIrCodegen(
   }
 
   private fun IrDeclaration.substitutedIrTypes(
-    proofSubstitutors: List<TypeArgumentMarker>
+    typeArguments: List<TypeArgumentMarker>
   ): List<IrType?> =
     when (this) {
       is IrTypeParametersContainer -> {
         typeParameters.map { irTypeParameter ->
-          proofSubstitutors
+          typeArguments
             .find { key -> key.toString() == irTypeParameter.defaultType.toString() }
             ?.getType()
             ?.toIrType()
@@ -152,7 +153,7 @@ class ProofsIrCodegen(
       else -> emptyList()
     }
 
-  private fun Proof.substitutor(otherType: KotlinType): List<TypeArgumentMarker> {
+  private fun Proof.typeArgumentSubstitutor(otherType: KotlinType): List<TypeArgumentMarker> {
     return irDeclaration().type().typeArguments(otherType) +
       irBuiltIns.nothingType.toIrBasedKotlinType().asTypeProjection()
 
@@ -178,8 +179,8 @@ class ProofsIrCodegen(
 
   private fun IrDeclaration.irCall(): IrExpression =
     when (this) {
-      is IrField -> {
-        symbol.owner.correspondingPropertySymbol?.owner?.getter?.symbol?.let {
+      is IrProperty -> {
+        symbol.owner.getter?.symbol?.let {
           irSimpleFunctionSymbol ->
           IrCallImpl(
             startOffset = UNDEFINED_OFFSET,
@@ -244,17 +245,21 @@ class ProofsIrCodegen(
       "Expected mirror function for fake call ${irCall.render()} is null"
     }
 
-    val rep: IrCall = mirrorFunction.symbol.owner.irCall() as IrCall
+    val replacementCall: IrCall = mirrorFunction.symbol.owner.irCall() as IrCall
 
     irCall.typeArguments.forEach { (index, irType) ->
-      if (rep.typeArgumentsCount > index && irType != null) rep.putTypeArgument(index, irType)
+      if (replacementCall.typeArgumentsCount > index && irType != null) {
+        replacementCall.putTypeArgument(index, irType)
+      }
     }
     irCall.valueArguments.forEach { (index, irType) ->
-      if (rep.valueArgumentsCount > index && irType != null) rep.putValueArgument(index, irType)
+      if (replacementCall.valueArgumentsCount > index && irType != null) {
+        replacementCall.putValueArgument(index, irType)
+      }
     }
 
-    rep.dispatchReceiver = irCall.extensionReceiver
-    return rep
+    replacementCall.dispatchReceiver = irCall.extensionReceiver
+    return replacementCall
   }
 
   private fun Proof.irDeclaration(): IrDeclaration =
@@ -262,7 +267,7 @@ class ProofsIrCodegen(
       is FirClass -> symbolTable.referenceClass(idSignature).owner
       is FirConstructor -> symbolTable.referenceConstructor(idSignature).owner
       is FirFunction -> symbolTable.referenceSimpleFunction(idSignature).owner
-      is FirVariable -> symbolTable.referenceField(idSignature).owner // TODO()
+      is FirProperty -> symbolTable.referenceProperty(idSignature).owner
       else -> error("Unsupported FirDeclaration: $this")
     }
 
@@ -270,31 +275,31 @@ class ProofsIrCodegen(
     when (this) {
       is IrClass -> defaultType
       is IrFunction -> returnType
-      is IrVariable -> type
+      is IrProperty -> checkNotNull(getter?.returnType) { "Expected getter" }
       else -> error("Unsupported IrDeclaration: $this")
     }
 }
 
-private val IrCall.typeArguments: List<Pair<Int, IrType?>>
+private val IrCall.typeArguments: Map<Int, IrType?>
   get() {
     val arguments = arrayListOf<Pair<Int, IrType?>>()
     for (index in 0 until typeArgumentsCount) {
       arguments.add(index to getTypeArgument(index))
     }
-    return arguments.toList()
+    return arguments.toMap()
   }
 
-private val IrCall.valueArguments: List<Pair<Int, IrExpression?>>
+private val IrCall.valueArguments: Map<Int, IrExpression?>
   get() {
     val arguments = arrayListOf<Pair<Int, IrExpression?>>()
     for (index in 0 until valueArgumentsCount) {
       arguments.add(index to getValueArgument(index))
     }
-    return arguments.toList()
+    return arguments.toMap()
   }
 
-private val IrCall.substitutedValueParameters: List<Pair<IrValueParameter, IrType?>>
-  get() = symbol.owner.substitutedValueParameters(this)
+private val IrCall.substitutedValueParameters: Map<IrValueParameter, IrType?>
+  get() = symbol.owner.substitutedValueParameters(this).toMap()
 
 private fun IrSimpleFunction.substitutedValueParameters(
   call: IrCall

@@ -15,4 +15,7 @@ import foo.bar.annotations.Given
 @Inject
 fun foo(id: Int, @Given x: X, @Config y: Y): String = "$id: ${x.value} to ${y.value}"
 
-val result = foo(1)
+fun box(): String {
+  val result = foo(1)
+  return if (result == "1: yes! to nope!") { "OK" } else { "Fail: $result" }
+}

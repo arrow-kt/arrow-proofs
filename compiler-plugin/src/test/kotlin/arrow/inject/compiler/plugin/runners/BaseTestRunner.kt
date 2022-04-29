@@ -2,6 +2,8 @@ package arrow.inject.compiler.plugin.runners
 
 import arrow.inject.compiler.plugin.services.ExtensionRegistrarConfigurator
 import arrow.inject.compiler.plugin.services.PluginAnnotationsProvider
+import arrow.inject.compiler.plugin.services.PreludeAdditionalFilesDirectives
+import arrow.inject.compiler.plugin.services.PreludeConfigurator
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
@@ -34,6 +36,7 @@ fun TestConfigurationBuilder.commonFirWithPluginFrontendConfiguration() {
   defaultDirectives {
     +FirDiagnosticsDirectives.ENABLE_PLUGIN_PHASES
     +FirDiagnosticsDirectives.FIR_DUMP
+    +PreludeAdditionalFilesDirectives.ANNOTATION_DIRECTIVE
   }
 
   globalDefaults {
@@ -43,4 +46,6 @@ fun TestConfigurationBuilder.commonFirWithPluginFrontendConfiguration() {
   }
 
   useConfigurators(::PluginAnnotationsProvider, ::ExtensionRegistrarConfigurator)
+
+  useAdditionalSourceProviders(::PreludeConfigurator)
 }
