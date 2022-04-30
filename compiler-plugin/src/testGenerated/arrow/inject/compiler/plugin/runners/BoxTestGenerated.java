@@ -29,6 +29,12 @@ public class BoxTestGenerated extends AbstractBoxTest {
     }
 
     @Test
+    @TestMetadata("coherent_polymorphic_identity_inference.kt")
+    public void testCoherent_polymorphic_identity_inference() throws Exception {
+        runTest("src/testData/box/context/coherent_polymorphic_identity_inference.kt");
+    }
+
+    @Test
     @TestMetadata("different_context_providers_of_the_same_type_are_not_ambiguous.kt")
     public void testDifferent_context_providers_of_the_same_type_are_not_ambiguous() throws Exception {
         runTest("src/testData/box/context/different_context_providers_of_the_same_type_are_not_ambiguous.kt");
