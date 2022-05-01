@@ -1,0 +1,31 @@
+FILE: member_injection_object_inference.kt
+    package foo.bar
+
+    @R|foo/bar/annotations/Given|() internal final fun n(): R|kotlin/Int| {
+        ^n Int(42)
+    }
+    public final object Foo : R|kotlin/Any| {
+        private constructor(): R|foo/bar/Foo| {
+            super<R|kotlin/Any|>()
+        }
+
+        @R|arrow/inject/annotations/Inject|() public final fun foo(@R|foo/bar/annotations/Given|() x: R|kotlin/Int|): R|kotlin/Int| {
+            ^foo R|<local>/x|
+        }
+
+    }
+    public final fun box(): R|kotlin/String| {
+        lval y: R|foo/bar/Foo| = Q|foo/bar/Foo|
+        lval result: R|kotlin/Int| = R|<local>/y|.R|SubstitutionOverride<foo/bar/Foo.foo: R|kotlin/Int|>|()
+        ^box when () {
+            ==(R|<local>/result|, Int(42)) ->  {
+                String(OK)
+            }
+            else ->  {
+                <strcat>(String(Fail: ), R|<local>/result|)
+            }
+        }
+
+    }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar

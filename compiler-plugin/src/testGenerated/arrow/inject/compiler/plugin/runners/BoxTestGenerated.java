@@ -65,9 +65,21 @@ public class BoxTestGenerated extends AbstractBoxTest {
     }
 
     @Test
+    @TestMetadata("member_injection_class_with_injected_args_and_members.kt")
+    public void testMember_injection_class_with_injected_args_and_members() throws Exception {
+        runTest("src/testData/box/context/member_injection_class_with_injected_args_and_members.kt");
+    }
+
+    @Test
     @TestMetadata("member_injection_object_.kt")
     public void testMember_injection_object_() throws Exception {
         runTest("src/testData/box/context/member_injection_object_.kt");
+    }
+
+    @Test
+    @TestMetadata("member_injection_object_inference.kt")
+    public void testMember_injection_object_inference() throws Exception {
+        runTest("src/testData/box/context/member_injection_object_inference.kt");
     }
 
     @Test

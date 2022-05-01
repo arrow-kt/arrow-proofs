@@ -4,6 +4,7 @@ package arrow.inject.annotations
 @Target(
   AnnotationTarget.CLASS,
   AnnotationTarget.FUNCTION,
+  AnnotationTarget.CONSTRUCTOR,
 )
 @MustBeDocumented
 public annotation class Inject

@@ -29,6 +29,7 @@ import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
@@ -59,11 +60,11 @@ class ProofsIrCodegen(
   IrPluginContext by irPluginContext,
   TypeSystemContext by IrTypeSystemContextImpl(irPluginContext.irBuiltIns) {
 
-  fun proveCall(call: IrCall): IrMemberAccessExpression<*> =
+  fun proveCall(call: IrFunctionAccessExpression): IrMemberAccessExpression<*> =
     if (call.symbol.owner.annotations.hasAnnotation(InjectAnnotation)) insertGivenCall(call)
     else call
 
-  private fun insertGivenCall(call: IrCall): IrMemberAccessExpression<*> {
+  private fun insertGivenCall(call: IrFunctionAccessExpression): IrMemberAccessExpression<*> {
     val replacementCall: IrMemberAccessExpression<*> = replacementCall(call)
     call.substitutedValueParameters.entries.forEachIndexed { index, (valueParameter, irType) ->
       processValueParameter(index, valueParameter, irType, replacementCall)
@@ -226,7 +227,7 @@ class ProofsIrCodegen(
       }
     }
 
-  private fun replacementCall(irCall: IrCall): IrMemberAccessExpression<*> {
+  private fun replacementCall(irCall: IrFunctionAccessExpression): IrMemberAccessExpression<*> {
     val packageFqName = checkNotNull(irCall.symbol.owner.getPackageFragment()).fqName.asString()
     val functionFqName = checkNotNull(irCall.symbol.owner.kotlinFqName).asString()
 
@@ -243,21 +244,26 @@ class ProofsIrCodegen(
       "Expected mirror function for fake call ${irCall.render()} is null"
     }
 
-    val replacementCall: IrCall = mirrorFunction.symbol.owner.irCall() as IrCall
+    val replacementCall: IrExpression = mirrorFunction.symbol.owner.irCall()
 
-    irCall.typeArguments.forEach { (index, irType) ->
-      if (replacementCall.typeArgumentsCount > index && irType != null) {
-        replacementCall.putTypeArgument(index, irType)
+    if (replacementCall is IrFunctionAccessExpression) {
+      irCall.typeArguments.forEach { (index, irType) ->
+        if (replacementCall.typeArgumentsCount > index && irType != null) {
+          replacementCall.putTypeArgument(index, irType)
+        }
       }
-    }
-    irCall.valueArguments.forEach { (index, irType) ->
-      if (replacementCall.valueArgumentsCount > index && irType != null) {
-        replacementCall.putValueArgument(index, irType)
+      irCall.valueArguments.forEach { (index, irType) ->
+        if (replacementCall.valueArgumentsCount > index && irType != null) {
+          replacementCall.putValueArgument(index, irType)
+        }
       }
+
+      replacementCall.dispatchReceiver = irCall.dispatchReceiver
+      replacementCall.extensionReceiver = irCall.extensionReceiver
+    } else {
+      error("Unsupported replacement call: ${replacementCall.render()}")
     }
 
-    replacementCall.dispatchReceiver = irCall.dispatchReceiver
-    replacementCall.extensionReceiver = irCall.extensionReceiver
     return replacementCall
   }
 
@@ -279,7 +285,7 @@ class ProofsIrCodegen(
     }
 }
 
-private val IrCall.typeArguments: Map<Int, IrType?>
+private val IrFunctionAccessExpression.typeArguments: Map<Int, IrType?>
   get() {
     val arguments = arrayListOf<Pair<Int, IrType?>>()
     for (index in 0 until typeArgumentsCount) {
@@ -288,7 +294,7 @@ private val IrCall.typeArguments: Map<Int, IrType?>
     return arguments.toMap()
   }
 
-private val IrCall.valueArguments: Map<Int, IrExpression?>
+private val IrFunctionAccessExpression.valueArguments: Map<Int, IrExpression?>
   get() {
     val arguments = arrayListOf<Pair<Int, IrExpression?>>()
     for (index in 0 until valueArgumentsCount) {
@@ -297,11 +303,11 @@ private val IrCall.valueArguments: Map<Int, IrExpression?>
     return arguments.toMap()
   }
 
-private val IrCall.substitutedValueParameters: Map<IrValueParameter, IrType?>
+private val IrFunctionAccessExpression.substitutedValueParameters: Map<IrValueParameter, IrType?>
   get() = symbol.owner.substitutedValueParameters(this).toMap()
 
-private fun IrSimpleFunction.substitutedValueParameters(
-  call: IrCall
+private fun IrFunction.substitutedValueParameters(
+  call: IrFunctionAccessExpression
 ): List<Pair<IrValueParameter, IrType?>> =
   valueParameters.map {
     val type = it.type

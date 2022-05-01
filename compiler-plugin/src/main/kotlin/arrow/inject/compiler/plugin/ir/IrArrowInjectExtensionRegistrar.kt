@@ -6,28 +6,32 @@ import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
-import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
-import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
 
 class IrArrowInjectExtensionRegistrar : IrGenerationExtension {
 
   override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
-    moduleFragment.irCall { irCall ->
-      ProofsIrCodegen(moduleFragment, pluginContext).proveCall(irCall)
+    moduleFragment.irFunctionAccessExpression { call ->
+      ProofsIrCodegen(moduleFragment, pluginContext).proveCall(call)
     }
 
     moduleFragment.removeCompileTimeDeclarations()
   }
 
-  private fun IrModuleFragment.irCall(function: (IrCall) -> IrElement?): Unit =
+  private fun IrModuleFragment.irFunctionAccessExpression(
+    call: (IrFunctionAccessExpression) -> IrElement?
+  ): Unit =
     transformChildren(
       object : IrElementTransformer<Unit> {
-        override fun visitCall(expression: IrCall, data: Unit): IrElement =
+        override fun visitFunctionAccess(
+          expression: IrFunctionAccessExpression,
+          data: Unit
+        ): IrElement =
           expression.transformChildren(this, Unit).let {
-            function(expression) ?: super.visitCall(expression, data)
+            call(expression) ?: super.visitFunctionAccess(expression, data)
           }
       },
       Unit
@@ -43,8 +47,6 @@ class IrArrowInjectExtensionRegistrar : IrGenerationExtension {
 
   private fun IrDeclarationContainer.removeDeclaration(removeIf: (IrDeclaration) -> Boolean) {
     declarations.removeIf(removeIf)
-    declarations.forEach {
-      if (it is IrDeclarationContainer) it.removeDeclaration(removeIf)
-    }
+    declarations.forEach { if (it is IrDeclarationContainer) it.removeDeclaration(removeIf) }
   }
 }
