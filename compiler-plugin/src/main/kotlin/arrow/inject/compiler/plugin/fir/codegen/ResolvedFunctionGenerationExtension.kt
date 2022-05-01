@@ -6,6 +6,9 @@ import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.ProofKey
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import java.util.concurrent.atomic.AtomicInteger
+import org.jetbrains.kotlin.descriptors.EffectiveVisibility
+import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationAttributes
@@ -14,6 +17,7 @@ import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
 import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
+import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotation
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
@@ -53,7 +57,8 @@ internal class ResolvedFunctionGenerationExtension(
 
   private val compileTimeAnnotationType: ConeLookupTagBasedType
     get() =
-      session.symbolProvider.getClassLikeSymbolByClassId(
+      session.symbolProvider
+        .getClassLikeSymbolByClassId(
           ClassId.fromString(
             ProofAnnotationsFqName.CompileTimeAnnotation.asString().replace(".", "/")
           )
@@ -70,8 +75,7 @@ internal class ResolvedFunctionGenerationExtension(
     callableId: CallableId,
     owner: FirClassSymbol<*>?
   ): List<FirNamedFunctionSymbol> =
-    session
-      .predicateBasedProvider
+    session.predicateBasedProvider
       .getSymbolsByPredicate(injectPredicate)
       .filterIsInstance<FirNamedFunctionSymbol>()
       .filter { it.callableId == callableId }
@@ -81,7 +85,12 @@ internal class ResolvedFunctionGenerationExtension(
           resolvePhase = FirResolvePhase.BODY_RESOLVE
           moduleData = firNamedFunctionSymbol.moduleData
           origin = FirDeclarationOrigin.SubstitutionOverride
-          status = firNamedFunctionSymbol.resolvedStatus
+          status =
+            FirResolvedDeclarationStatusImpl(
+              Visibilities.Public,
+              Modality.FINAL,
+              EffectiveVisibility.Public,
+            )
           returnTypeRef = firNamedFunctionSymbol.resolvedReturnTypeRef
           name = callableId.callableName
           symbol = originalSymbol

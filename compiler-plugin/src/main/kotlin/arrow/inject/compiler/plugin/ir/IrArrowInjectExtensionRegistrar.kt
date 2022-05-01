@@ -4,6 +4,9 @@ import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.declarations.IrDeclaration
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
+import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.util.hasAnnotation
@@ -15,6 +18,7 @@ class IrArrowInjectExtensionRegistrar : IrGenerationExtension {
     moduleFragment.irCall { irCall ->
       ProofsIrCodegen(moduleFragment, pluginContext).proveCall(irCall)
     }
+
     moduleFragment.removeCompileTimeDeclarations()
   }
 
@@ -31,7 +35,16 @@ class IrArrowInjectExtensionRegistrar : IrGenerationExtension {
 
   private fun IrModuleFragment.removeCompileTimeDeclarations() {
     files.forEach { file ->
-      file.declarations.removeIf { it.annotations.hasAnnotation(ProofAnnotationsFqName.CompileTimeAnnotation) }
+      file.removeDeclaration {
+        it.annotations.hasAnnotation(ProofAnnotationsFqName.CompileTimeAnnotation)
+      }
+    }
+  }
+
+  private fun IrDeclarationContainer.removeDeclaration(removeIf: (IrDeclaration) -> Boolean) {
+    declarations.removeIf(removeIf)
+    declarations.forEach {
+      if (it is IrDeclarationContainer) it.removeDeclaration(removeIf)
     }
   }
 }

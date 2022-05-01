@@ -235,10 +235,9 @@ class ProofsIrCodegen(
     symbols.externalSymbolTable.referenceSimpleFunction(signature)
 
     val mirrorFunction: IrFunction? =
-      moduleFragment.files.flatMap { it.declarations }.filterIsInstance<IrFunction>().firstOrNull {
-        it.kotlinFqName.asString() == functionFqName &&
-          !it.annotations.hasAnnotation(CompileTimeAnnotation)
-      }
+      moduleFragment.files
+        .flatMap { it.declarations }
+        .firstNotNullOfOrNull { it.mirrorFunction(functionFqName) }
 
     checkNotNull(mirrorFunction) {
       "Expected mirror function for fake call ${irCall.render()} is null"
@@ -257,7 +256,8 @@ class ProofsIrCodegen(
       }
     }
 
-    replacementCall.dispatchReceiver = irCall.extensionReceiver
+    replacementCall.dispatchReceiver = irCall.dispatchReceiver
+    replacementCall.extensionReceiver = irCall.extensionReceiver
     return replacementCall
   }
 
@@ -307,10 +307,9 @@ private fun IrSimpleFunction.substitutedValueParameters(
     val type = it.type
     it to
       (type.takeIf { t -> !t.isTypeParameter() }
-        ?: typeParameters.firstOrNull { typeParam -> typeParam.defaultType == type }?.let {
-          typeParam ->
-          call.getTypeArgument(typeParam.index)
-        }
+        ?: typeParameters
+          .firstOrNull { typeParam -> typeParam.defaultType == type }
+          ?.let { typeParam -> call.getTypeArgument(typeParam.index) }
           ?: type // Could not resolve the substituted KotlinType
       )
   }
@@ -318,11 +317,9 @@ private fun IrSimpleFunction.substitutedValueParameters(
 private val IrAnnotationContainer.metaContextAnnotations: List<IrConstructorCall>
   get() =
     annotations.filter { irConstructorCall: IrConstructorCall ->
-      irConstructorCall
-        .type
+      irConstructorCall.type
         .toIrBasedKotlinType()
-        .constructor
-        .declarationDescriptor
+        .constructor.declarationDescriptor
         ?.annotations
         ?.toList()
         .orEmpty()
@@ -332,3 +329,22 @@ private val IrAnnotationContainer.metaContextAnnotations: List<IrConstructorCall
     }
 
 private fun KotlinTypeMarker.toIrType(): IrType = this as IrType
+
+private fun IrDeclaration.mirrorFunction(functionFqName: String): IrFunction? {
+  return when (this) {
+    is IrFunction -> {
+      if (kotlinFqName.asString() == functionFqName &&
+          !annotations.hasAnnotation(CompileTimeAnnotation)
+      ) {
+        this
+      } else {
+        null
+      }
+    }
+    is IrClass -> {
+      val mappedDeclarations = declarations.mapNotNull { it.mirrorFunction(functionFqName) }
+      mappedDeclarations.firstOrNull()
+    }
+    else -> null
+  }
+}
