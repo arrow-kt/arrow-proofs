@@ -59,6 +59,12 @@ public class BoxTestGenerated extends AbstractBoxTest {
     }
 
     @Test
+    @TestMetadata("member_injection_class_.kt")
+    public void testMember_injection_class_() throws Exception {
+        runTest("src/testData/box/context/member_injection_class_.kt");
+    }
+
+    @Test
     @TestMetadata("member_injection_object_.kt")
     public void testMember_injection_object_() throws Exception {
         runTest("src/testData/box/context/member_injection_object_.kt");
