@@ -10,7 +10,6 @@ import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofResolution
 import arrow.inject.compiler.plugin.model.asProofCacheKey
 import arrow.inject.compiler.plugin.model.putProofIntoCache
-import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
@@ -165,8 +164,8 @@ internal class ProofResolutionCallCheckerExtension(
             when (valueParameter.returnTypeRef.coneType) {
               is ConeTypeParameterType -> {
                 val originalFunction =
-                  ((call as? FirResolvable)?.calleeReference?.resolvedSymbol as?
-                      FirFunctionSymbol<*>)
+                  ((call as? FirResolvable)?.calleeReference?.resolvedSymbol
+                      as? FirFunctionSymbol<*>)
                     ?.fir
                 val originalTypeArgumentIndex =
                   originalFunction?.typeParameters?.indexOfFirst {
@@ -236,8 +235,7 @@ internal class ProofResolutionCallCheckerExtension(
         classLikeDeclaration
           .constructors(session)
           .firstOrNull { it.isPrimary }
-          ?.valueParameterSymbols
-          ?.forEach { valueParameterSymbol ->
+          ?.valueParameterSymbols?.forEach { valueParameterSymbol ->
             val contextAnnotationFqName =
               valueParameterSymbol.fir.metaContextAnnotations.firstOrNull()?.fqName(session)
 

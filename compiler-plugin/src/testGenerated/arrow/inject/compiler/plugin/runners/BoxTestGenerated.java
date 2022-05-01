@@ -107,6 +107,12 @@ public class BoxTestGenerated extends AbstractBoxTest {
     }
 
     @Test
+    @TestMetadata("type_bounds_based_injection.kt")
+    public void testType_bounds_based_injection() throws Exception {
+        runTest("src/testData/box/context/type_bounds_based_injection.kt");
+    }
+
+    @Test
     @TestMetadata("user_explicit_local_override.kt")
     public void testUser_explicit_local_override() throws Exception {
         runTest("src/testData/box/context/user_explicit_local_override.kt");
