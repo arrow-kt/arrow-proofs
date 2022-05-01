@@ -20,7 +20,7 @@ object FirMetaErrors {
 
   val AMBIGUOUS_PROOF by error2<KtDeclaration, Proof, List<Proof>>()
 
-  val AMBIGUOUS_PROOF_FOR_SUPERTYPE by error3<KtDeclaration, KotlinTypeMarker, Proof, List<Proof>>()
+  val AMBIGUOUS_PROOF_FOR_SUPERTYPE by error3<PsiElement, KotlinTypeMarker, Proof, List<Proof>>()
 
   val OWNERSHIP_VIOLATED_PROOF by error1<KtDeclaration, Proof>()
 

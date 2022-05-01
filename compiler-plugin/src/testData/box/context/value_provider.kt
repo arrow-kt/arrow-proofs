@@ -5,7 +5,7 @@ import foo.bar.annotations.Given
 
 @Inject fun <A> given(@Given a: A): A = a
 
-@Given val x: String = "yes!"
+@Given internal val x: String = "yes!"
 
 fun box(): String {
   val result = given<String>()

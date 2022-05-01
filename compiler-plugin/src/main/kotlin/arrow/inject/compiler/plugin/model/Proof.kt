@@ -37,7 +37,7 @@ data class ProofResolution(
 ) {
 
   val isAmbiguous: Boolean
-    get() = ambiguousProofs.size > 1 && proof != null
+    get() = ambiguousProofs.isNotEmpty() && proof != null
 }
 
 val cache: ConcurrentHashMap<ProofCacheKey, ProofResolution> = ConcurrentHashMap()

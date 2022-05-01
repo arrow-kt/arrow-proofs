@@ -1,12 +1,11 @@
-FILE: fun_provider.kt
+FILE: value_provider.kt
     package foo.bar
 
     @R|arrow/inject/annotations/Inject|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A|): R|A| {
         ^given R|<local>/a|
     }
-    @R|foo/bar/annotations/Given|() internal final fun x(): R|kotlin/String| {
-        ^x String(yes!)
-    }
+    @R|foo/bar/annotations/Given|() internal final val x: R|kotlin/String| = String(yes!)
+        internal get(): R|kotlin/String|
     public final fun box(): R|kotlin/String| {
         lval result: R|A| = R|SubstitutionOverride<foo/bar/given: R|A|>|<R|kotlin/String|>()
         ^box when () {

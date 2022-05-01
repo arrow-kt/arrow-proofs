@@ -9,23 +9,23 @@ FILE fqName:foo.bar fileName:/value_provider.kt
     BLOCK_BODY
       RETURN type=kotlin.Nothing from='public final fun given <A> (a: A of foo.bar.given): A of foo.bar.given declared in foo.bar'
         GET_VAR 'a: A of foo.bar.given declared in foo.bar.given' type=A of foo.bar.given origin=null
-  PROPERTY name:x visibility:public modality:FINAL [val]
+  PROPERTY name:x visibility:internal modality:FINAL [val]
     annotations:
       Given
     FIELD PROPERTY_BACKING_FIELD name:x type:kotlin.String visibility:private [final,static]
       EXPRESSION_BODY
         CONST String type=kotlin.String value="yes!"
-    FUN DEFAULT_PROPERTY_ACCESSOR name:<get-x> visibility:public modality:FINAL <> () returnType:kotlin.String
-      correspondingProperty: PROPERTY name:x visibility:public modality:FINAL [val]
+    FUN DEFAULT_PROPERTY_ACCESSOR name:<get-x> visibility:internal modality:FINAL <> () returnType:kotlin.String
+      correspondingProperty: PROPERTY name:x visibility:internal modality:FINAL [val]
       BLOCK_BODY
-        RETURN type=kotlin.Nothing from='public final fun <get-x> (): kotlin.String declared in foo.bar'
+        RETURN type=kotlin.Nothing from='internal final fun <get-x> (): kotlin.String declared in foo.bar'
           GET_FIELD 'FIELD PROPERTY_BACKING_FIELD name:x type:kotlin.String visibility:private [final,static]' type=kotlin.String origin=null
   FUN name:box visibility:public modality:FINAL <> () returnType:kotlin.String
     BLOCK_BODY
       VAR name:result type:A of foo.bar.given [val]
         CALL 'public final fun given <A> (a: A of foo.bar.given): A of foo.bar.given declared in foo.bar' type=A of foo.bar.given origin=null
           <A>: kotlin.String
-          a: CALL 'public final fun <get-x> (): kotlin.String declared in foo.bar' type=kotlin.String origin=null
+          a: CALL 'internal final fun <get-x> (): kotlin.String declared in foo.bar' type=kotlin.String origin=null
       RETURN type=kotlin.Nothing from='public final fun box (): kotlin.String declared in foo.bar'
         WHEN type=kotlin.String origin=IF
           BRANCH

@@ -21,4 +21,4 @@ FILE: coherent_polymorphic_identity.kt
 FILE: __GENERATED DECLARATIONS__.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/CompileTime|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A| = R|arrow/inject/annotations/resolve|<out R|A|>(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|A|
+    @R|arrow/inject/annotations/CompileTime|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A| = R|arrow/inject/annotations/resolve|(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|A|

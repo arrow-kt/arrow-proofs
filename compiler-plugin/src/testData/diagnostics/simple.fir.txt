@@ -27,4 +27,4 @@ FILE: simple.kt
 FILE: __GENERATED DECLARATIONS__.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/CompileTime|() public final fun foo(id: R|kotlin/Int|, @R|foo/bar/annotations/Given|() x: R|foo/bar/X| = R|arrow/inject/annotations/resolve|<out R|foo/bar/X|>(), @R|foo/bar/annotations/Config|() y: R|foo/bar/Y| = R|arrow/inject/annotations/resolve|<out R|foo/bar/Y|>(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|kotlin/String|
+    @R|arrow/inject/annotations/CompileTime|() public final fun foo(id: R|kotlin/Int|, @R|foo/bar/annotations/Given|() x: R|foo/bar/X| = R|arrow/inject/annotations/resolve|(), @R|foo/bar/annotations/Config|() y: R|foo/bar/Y| = R|arrow/inject/annotations/resolve|(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|kotlin/String|

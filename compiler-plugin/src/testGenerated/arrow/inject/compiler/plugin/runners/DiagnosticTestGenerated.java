@@ -22,6 +22,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     }
 
     @Test
+    @TestMetadata("ambiguous_type_bounds_based_injection.kt")
+    public void testAmbiguous_type_bounds_based_injection() throws Exception {
+        runTest("src/testData/diagnostics/ambiguous_type_bounds_based_injection.kt");
+    }
+
+    @Test
     @TestMetadata("prohibited_public_proof_of_non_user_types.kt")
     public void testProhibited_public_proof_of_non_user_types() throws Exception {
         runTest("src/testData/diagnostics/prohibited_public_proof_of_non_user_types.kt");

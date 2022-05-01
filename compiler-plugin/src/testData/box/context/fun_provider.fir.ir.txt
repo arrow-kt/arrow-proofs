@@ -9,18 +9,18 @@ FILE fqName:foo.bar fileName:/fun_provider.kt
     BLOCK_BODY
       RETURN type=kotlin.Nothing from='public final fun given <A> (a: A of foo.bar.given): A of foo.bar.given declared in foo.bar'
         GET_VAR 'a: A of foo.bar.given declared in foo.bar.given' type=A of foo.bar.given origin=null
-  FUN name:x visibility:public modality:FINAL <> () returnType:kotlin.String
+  FUN name:x visibility:internal modality:FINAL <> () returnType:kotlin.String
     annotations:
       Given
     BLOCK_BODY
-      RETURN type=kotlin.Nothing from='public final fun x (): kotlin.String declared in foo.bar'
+      RETURN type=kotlin.Nothing from='internal final fun x (): kotlin.String declared in foo.bar'
         CONST String type=kotlin.String value="yes!"
   FUN name:box visibility:public modality:FINAL <> () returnType:kotlin.String
     BLOCK_BODY
       VAR name:result type:A of foo.bar.given [val]
         CALL 'public final fun given <A> (a: A of foo.bar.given): A of foo.bar.given declared in foo.bar' type=A of foo.bar.given origin=null
           <A>: kotlin.String
-          a: CALL 'public final fun x (): kotlin.String declared in foo.bar' type=kotlin.String origin=null
+          a: CALL 'internal final fun x (): kotlin.String declared in foo.bar' type=kotlin.String origin=null
       RETURN type=kotlin.Nothing from='public final fun box (): kotlin.String declared in foo.bar'
         WHEN type=kotlin.String origin=IF
           BRANCH
