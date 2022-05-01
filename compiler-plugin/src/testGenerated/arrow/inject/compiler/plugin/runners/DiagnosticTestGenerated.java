@@ -22,8 +22,26 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     }
 
     @Test
+    @TestMetadata("prohibited_public_proof_of_non_user_types.kt")
+    public void testProhibited_public_proof_of_non_user_types() throws Exception {
+        runTest("src/testData/diagnostics/prohibited_public_proof_of_non_user_types.kt");
+    }
+
+    @Test
+    @TestMetadata("prohibited_public_proof_over_polymorphic_type_parameter.kt")
+    public void testProhibited_public_proof_over_polymorphic_type_parameter() throws Exception {
+        runTest("src/testData/diagnostics/prohibited_public_proof_over_polymorphic_type_parameter.kt");
+    }
+
+    @Test
     @TestMetadata("simple.kt")
     public void testSimple() throws Exception {
         runTest("src/testData/diagnostics/simple.kt");
+    }
+
+    @Test
+    @TestMetadata("unresolved_given_callsite.kt")
+    public void testUnresolved_given_callsite() throws Exception {
+        runTest("src/testData/diagnostics/unresolved_given_callsite.kt");
     }
 }

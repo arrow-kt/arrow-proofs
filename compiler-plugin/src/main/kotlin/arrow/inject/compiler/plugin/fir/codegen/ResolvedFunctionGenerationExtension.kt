@@ -4,8 +4,6 @@ package arrow.inject.compiler.plugin.fir.codegen
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.ProofKey
-import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
-import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import java.util.concurrent.atomic.AtomicInteger
 import org.jetbrains.kotlin.fir.FirSession
@@ -16,7 +14,6 @@ import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
 import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
-import org.jetbrains.kotlin.fir.declarations.utils.addDefaultBoundIfNecessary
 import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotation
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
@@ -50,10 +47,6 @@ internal class ResolvedFunctionGenerationExtension(
 ) : FirDeclarationGenerationExtension(session), FirAbstractProofComponent {
 
   private val counter: AtomicInteger = AtomicInteger(0)
-
-  private val localProofCollector = LocalProofCollectors(session)
-
-  private val externalProofCollector = ExternalProofCollector(session)
 
   private val unitSymbol: FirClassLikeSymbol<*>
     get() = session.builtinTypes.unitType.toClassLikeSymbol(session)!!
@@ -111,7 +104,6 @@ internal class ResolvedFunctionGenerationExtension(
                 isReified = typeParameter.isReified
                 bounds += typeParameter.resolvedBounds
                 annotations += typeParameter.annotations
-                addDefaultBoundIfNecessary()
               }
             }
           valueParameters +=
@@ -169,6 +161,13 @@ internal class ResolvedFunctionGenerationExtension(
           .apply { this.originalForSubstitutionOverrideAttr = firNamedFunctionSymbol.fir }
           .symbol
       }
+
+  override fun getCallableNamesForClass(classSymbol: FirClassSymbol<*>): Set<Name> =
+    (localProofCollector.collectLocalInjectables() +
+        externalProofCollector.collectExternalInjectables())
+      .filter { it.classId == classSymbol.classId }
+      .map { it.callableName }
+      .toSet()
 
   override fun getTopLevelCallableIds(): Set<CallableId> =
     localProofCollector.collectLocalInjectables() +

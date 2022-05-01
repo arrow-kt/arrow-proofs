@@ -2,6 +2,9 @@
 
 package arrow.inject.compiler.plugin.fir
 
+import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
+import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
+import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import org.jetbrains.kotlin.fir.FirAnnotationContainer
 import org.jetbrains.kotlin.fir.FirSession
@@ -24,6 +27,16 @@ import org.jetbrains.kotlin.name.Name
 internal interface FirAbstractProofComponent {
 
   val session: FirSession
+
+  val allCollectedProofs: List<Proof>
+    get() =
+      localProofCollector.collectLocalProofs() + externalProofCollector.collectExternalProofs()
+
+  val localProofCollector: LocalProofCollectors
+    get() = LocalProofCollectors(session)
+
+  val externalProofCollector: ExternalProofCollector
+    get() = ExternalProofCollector(session)
 
   val composer: Fir2IrSignatureComposer
     get() = FirBasedSignatureComposer(FirJvmKotlinMangler(session))

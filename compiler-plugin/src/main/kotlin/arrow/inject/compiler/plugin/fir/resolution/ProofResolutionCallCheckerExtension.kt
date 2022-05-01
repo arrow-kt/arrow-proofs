@@ -3,23 +3,26 @@
 package arrow.inject.compiler.plugin.fir.resolution
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
-import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
-import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
+import arrow.inject.compiler.plugin.fir.resolution.rules.OwnershipRule
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofResolution
 import arrow.inject.compiler.plugin.model.asProofCacheKey
 import arrow.inject.compiler.plugin.model.putProofIntoCache
+import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.analysis.checkers.declaration.DeclarationCheckers
+import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirCallableDeclarationChecker
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.ExpressionCheckers
 import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirCallChecker
 import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
+import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirClassLikeDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
@@ -32,6 +35,7 @@ import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccess
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.fir.expressions.FirResolvable
+import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.resolve.calls.Candidate
 import org.jetbrains.kotlin.fir.resolve.firClassLike
 import org.jetbrains.kotlin.fir.resolve.fqName
@@ -46,18 +50,32 @@ import org.jetbrains.kotlin.fir.types.render
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.toKtPsiSourceElement
 
 internal class ProofResolutionCallCheckerExtension(
   session: FirSession,
 ) : FirAdditionalCheckersExtension(session), FirAbstractProofComponent {
 
-  private val localProofCollector = LocalProofCollectors(session)
+  private val allProofs: List<Proof> by lazy { allCollectedProofs }
 
-  private val externalProofCollector = ExternalProofCollector(session)
+  private val ownerShipRule: OwnershipRule by lazy { OwnershipRule(session) }
 
-  private val allProofs: List<Proof> by lazy {
-    localProofCollector.collectLocalProofs() + externalProofCollector.collectExternalProofs()
-  }
+  override val declarationCheckers: DeclarationCheckers =
+    object : DeclarationCheckers() {
+
+      override val callableDeclarationCheckers: Set<FirCallableDeclarationChecker> =
+        setOf(
+          object : FirCallableDeclarationChecker() {
+            override fun check(
+              declaration: FirCallableDeclaration,
+              context: CheckerContext,
+              reporter: DiagnosticReporter
+            ) {
+              ownerShipRule.reportOwnershipViolations(declaration, context, reporter)
+            }
+          }
+        )
+    }
 
   override val expressionCheckers: ExpressionCheckers =
     object : ExpressionCheckers() {
@@ -98,13 +116,13 @@ internal class ProofResolutionCallCheckerExtension(
           )
         }
 
-        val valueParameterSource: KtSourceElement? = valueParameter.source
+        val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
 
-        if (proofResolution?.proof == null && valueParameterSource != null) {
+        if (proofResolution?.proof == null && expressionSource != null) {
           reportMissingInductiveDependencies(expression, valueParameter, context, reporter)
           reporter.report(
             FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE.on(
-              valueParameterSource,
+              expressionSource,
               expression,
               valueParameter.returnTypeRef.coneType,
               AbstractSourceElementPositioningStrategy.DEFAULT,
@@ -188,16 +206,14 @@ internal class ProofResolutionCallCheckerExtension(
     }
 
   private fun proofCandidate(candidates: Set<Candidate>, type: ConeKotlinType): ProofResolution {
-    val candidate: Candidate = candidates.first(/*TODO() can be null?*/ )
+    val candidate: Candidate? = candidates.firstOrNull()
+
     return ProofResolution(
-      proof = Proof.Implication(candidate.symbol.fir.idSignature, candidate.symbol.fir),
+      proof = candidate?.let { Proof.Implication(it.symbol.fir.idSignature, it.symbol.fir) },
       targetType = type,
       ambiguousProofs =
-        (candidates - candidate).map { ambiguousCandidate ->
-          Proof.Implication(
-            ambiguousCandidate.symbol.fir.idSignature,
-            ambiguousCandidate.symbol.fir
-          )
+        (candidates - candidate).mapNotNull { ambiguousCandidate ->
+          ambiguousCandidate?.let { Proof.Implication(it.symbol.fir.idSignature, it.symbol.fir) }
         }
     )
   }

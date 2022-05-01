@@ -23,6 +23,18 @@ public class BoxTestGenerated extends AbstractBoxTest {
     }
 
     @Test
+    @TestMetadata("class_provider.kt")
+    public void testClass_provider() throws Exception {
+        runTest("src/testData/box/context/class_provider.kt");
+    }
+
+    @Test
+    @TestMetadata("coherent_concrete_identity.kt")
+    public void testCoherent_concrete_identity() throws Exception {
+        runTest("src/testData/box/context/coherent_concrete_identity.kt");
+    }
+
+    @Test
     @TestMetadata("coherent_polymorphic_identity.kt")
     public void testCoherent_polymorphic_identity() throws Exception {
         runTest("src/testData/box/context/coherent_polymorphic_identity.kt");
@@ -41,14 +53,44 @@ public class BoxTestGenerated extends AbstractBoxTest {
     }
 
     @Test
+    @TestMetadata("fun_provider.kt")
+    public void testFun_provider() throws Exception {
+        runTest("src/testData/box/context/fun_provider.kt");
+    }
+
+    @Test
+    @TestMetadata("member_injection_object_.kt")
+    public void testMember_injection_object_() throws Exception {
+        runTest("src/testData/box/context/member_injection_object_.kt");
+    }
+
+    @Test
     @TestMetadata("multiple_context_providers_are_supported.kt")
     public void testMultiple_context_providers_are_supported() throws Exception {
         runTest("src/testData/box/context/multiple_context_providers_are_supported.kt");
     }
 
     @Test
+    @TestMetadata("object_provider.kt")
+    public void testObject_provider() throws Exception {
+        runTest("src/testData/box/context/object_provider.kt");
+    }
+
+    @Test
     @TestMetadata("provider_supports_multiple_contexts.kt")
     public void testProvider_supports_multiple_contexts() throws Exception {
         runTest("src/testData/box/context/provider_supports_multiple_contexts.kt");
+    }
+
+    @Test
+    @TestMetadata("user_explicit_local_override.kt")
+    public void testUser_explicit_local_override() throws Exception {
+        runTest("src/testData/box/context/user_explicit_local_override.kt");
+    }
+
+    @Test
+    @TestMetadata("value_provider.kt")
+    public void testValue_provider() throws Exception {
+        runTest("src/testData/box/context/value_provider.kt");
     }
 }
