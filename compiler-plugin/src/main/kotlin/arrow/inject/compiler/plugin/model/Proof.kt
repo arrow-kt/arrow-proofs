@@ -83,3 +83,22 @@ internal fun KotlinType.asProofCacheKey(contextFqName: FqName): ProofCacheKey =
       },
     typeArguments = arguments.map { it.type.asProofCacheKey(contextFqName) },
   )
+
+internal val FirDeclaration.boundedTypes: List<ConeKotlinType>
+  get() =
+    when (this) {
+      is FirFunction -> {
+        valueParameters.map { it.returnTypeRef.coneType }
+      }
+      is FirClass -> {
+        declarations.filterIsInstance<FirConstructor>().flatMap { constructor ->
+          constructor.valueParameters.flatMap { parameter -> parameter.boundedTypes }
+        }
+      }
+      is FirValueParameter -> {
+        listOf(returnTypeRef.coneType)
+      }
+      else -> {
+        emptyList() // TODO: add more supported types
+      }
+    }

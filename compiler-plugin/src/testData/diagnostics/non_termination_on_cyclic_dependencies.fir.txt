@@ -1,0 +1,21 @@
+FILE: non_termination_on_cyclic_dependencies.kt
+    package foo.bar
+
+    @R|foo/bar/annotations/Given|() internal final fun n(@R|foo/bar/annotations/Given|() s: R|kotlin/String|): R|kotlin/Int| {
+        ^n R|<local>/s|.R|kotlin/text/toInt|()
+    }
+    @R|foo/bar/annotations/Given|() internal final fun s(@R|foo/bar/annotations/Given|() n: R|kotlin/Int|): R|kotlin/String| {
+        ^s R|<local>/n|.R|kotlin/Any.toString|()
+    }
+    @R|foo/bar/annotations/Given|() public final class SomeNumber : R|kotlin/Any| {
+        public constructor(@R|foo/bar/annotations/Given|() string: R|foo/bar/SomeString|): R|foo/bar/SomeNumber| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    @R|foo/bar/annotations/Given|() public final class SomeString : R|kotlin/Any| {
+        public constructor(@R|foo/bar/annotations/Given|() number: R|foo/bar/SomeNumber|): R|foo/bar/SomeString| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
