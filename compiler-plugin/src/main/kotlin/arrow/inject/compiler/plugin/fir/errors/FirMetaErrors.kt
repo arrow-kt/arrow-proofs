@@ -9,9 +9,7 @@ import org.jetbrains.kotlin.diagnostics.error2
 import org.jetbrains.kotlin.diagnostics.error3
 import org.jetbrains.kotlin.diagnostics.rendering.RootDiagnosticRendererFactory
 import org.jetbrains.kotlin.fir.expressions.FirCall
-import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDeclaration
-import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 
 object FirMetaErrors {
@@ -26,7 +24,7 @@ object FirMetaErrors {
 
   val UNRESOLVED_GIVEN_PROOF by error1<KtDeclaration, KotlinTypeMarker>()
 
-  val CYCLE_ON_GIVEN_PROOF by error2<KtDeclaration, KotlinTypeMarker, List<Proof>>()
+  val CIRCULAR_CYCLE_ON_GIVEN_PROOF by error2<PsiElement, KotlinTypeMarker, List<Proof>>()
 
   val UNRESOLVED_GIVEN_CALL_SITE by error2<PsiElement, FirCall, KotlinTypeMarker>()
 

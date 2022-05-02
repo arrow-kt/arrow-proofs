@@ -51,16 +51,6 @@ internal class ProofResolutionStageRunner(
   override val session: FirSession,
 ) : FirAbstractProofComponent {
 
-  private val FirDeclaration.coneType: ConeKotlinType?
-    get() =
-      when (this) {
-        is FirConstructor -> returnTypeRef.coneType
-        is FirSimpleFunction -> returnTypeRef.coneType
-        is FirProperty -> returnTypeRef.coneType
-        is FirRegularClass -> symbol.defaultType()
-        else -> null
-      }
-
   private val resultResolutionStageRunner: ResolutionStageRunner by lazy { ResolutionStageRunner() }
 
   private val firBodyResolveTransformer: FirBodyResolveTransformer by lazy {

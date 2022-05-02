@@ -2,7 +2,7 @@ package arrow.inject.compiler.plugin.fir.errors
 
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.AMBIGUOUS_PROOF
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.AMBIGUOUS_PROOF_FOR_SUPERTYPE
-import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.CYCLE_ON_GIVEN_PROOF
+import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.CIRCULAR_CYCLE_ON_GIVEN_PROOF
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.PUBLISHED_INTERNAL_ORPHAN
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactoryToRendererMap
@@ -50,7 +50,7 @@ object FirMetaErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         RENDER_KOTLIN_TYPE_MARKER
       )
       map.put(
-        CYCLE_ON_GIVEN_PROOF,
+        CIRCULAR_CYCLE_ON_GIVEN_PROOF,
         "This GivenProof on the type {0} has cyclic dependencies: {1}. Please verify" +
           " that proofs don't depend on each other for resolution.",
         RENDER_KOTLIN_TYPE_MARKER,

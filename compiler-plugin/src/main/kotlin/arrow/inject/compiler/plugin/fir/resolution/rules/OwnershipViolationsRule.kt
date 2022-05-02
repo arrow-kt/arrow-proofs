@@ -3,14 +3,13 @@
 package arrow.inject.compiler.plugin.fir.resolution.rules
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
-import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
+import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.OWNERSHIP_VIOLATED_PROOF
 import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.descriptors.Visibilities
-import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
+import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy.Companion.DEFAULT
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
-import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
@@ -22,7 +21,7 @@ import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.type
 
-class OwnershipRule(override val session: FirSession) : FirAbstractProofComponent {
+class OwnershipViolationsRule(override val session: FirSession) : FirAbstractProofComponent {
 
   private val allProofs: List<Proof> by lazy { allCollectedProofs }
 
@@ -31,7 +30,7 @@ class OwnershipRule(override val session: FirSession) : FirAbstractProofComponen
    * That is the associated type or types in the proof have to be user owned.
    * @see isUserOwned
    */
-  fun reportOwnershipViolations(
+  fun report(
     firCallableDeclaration: FirCallableDeclaration,
     context: CheckerContext,
     reporter: DiagnosticReporter
@@ -39,26 +38,20 @@ class OwnershipRule(override val session: FirSession) : FirAbstractProofComponen
     firCallableDeclaration.takeProofIfViolatingOwnershipRule()?.let {
       val source: KtSourceElement? = it.declaration.source
       if (source != null) {
-        reporter.report(
-          FirMetaErrors.OWNERSHIP_VIOLATED_PROOF.on(
-            source,
-            it,
-            AbstractSourceElementPositioningStrategy.DEFAULT,
-          ),
-          context
-        )
+        reporter.report(OWNERSHIP_VIOLATED_PROOF.on(source, it, DEFAULT), context)
       }
     }
   }
 
   private fun FirCallableDeclaration.takeProofIfViolatingOwnershipRule(): Proof? =
-    takeIf { it.metaContextAnnotations.isNotEmpty() }?.let {
-      allProofs.firstOrNull {
-        it.declaration.symbol == this.symbol &&
-          this.visibility != Visibilities.Internal &&
-          !this.returnTypeRef.coneType.isUserOwned()
+    takeIf { it.metaContextAnnotations.isNotEmpty() }
+      ?.let {
+        allProofs.firstOrNull {
+          it.declaration.symbol == this.symbol &&
+            this.visibility != Visibilities.Internal &&
+            !this.returnTypeRef.coneType.isUserOwned()
+        }
       }
-    }
 
   /**
    * A type is user-owned, when at least one position of the type signature is a user type in the

@@ -4,7 +4,8 @@ package arrow.inject.compiler.plugin.fir.resolution
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
-import arrow.inject.compiler.plugin.fir.resolution.rules.OwnershipRule
+import arrow.inject.compiler.plugin.fir.resolution.rules.CircularProofsCycleRule
+import arrow.inject.compiler.plugin.fir.resolution.rules.OwnershipViolationsRule
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofResolution
@@ -57,7 +58,13 @@ internal class ProofResolutionCallCheckerExtension(
 
   private val allProofs: List<Proof> by lazy { allCollectedProofs }
 
-  private val ownerShipRule: OwnershipRule by lazy { OwnershipRule(session) }
+  private val circularProofsCycleRule: CircularProofsCycleRule by lazy {
+    CircularProofsCycleRule(session)
+  }
+
+  private val ownershipViolationsRule: OwnershipViolationsRule by lazy {
+    OwnershipViolationsRule(session)
+  }
 
   override val declarationCheckers: DeclarationCheckers =
     object : DeclarationCheckers() {
@@ -70,7 +77,8 @@ internal class ProofResolutionCallCheckerExtension(
               context: CheckerContext,
               reporter: DiagnosticReporter
             ) {
-              ownerShipRule.reportOwnershipViolations(declaration, context, reporter)
+              circularProofsCycleRule.report(declaration, context, reporter)
+              ownershipViolationsRule.report(declaration, context, reporter)
             }
           }
         )

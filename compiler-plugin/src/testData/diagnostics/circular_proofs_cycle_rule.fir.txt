@@ -1,0 +1,63 @@
+FILE: circular_proofs_cycle_rule.kt
+    package foo.bar
+
+    @R|foo/bar/annotations/Given|() internal final fun n(@R|foo/bar/annotations/Given|() s: R|kotlin/String|): R|kotlin/Int| {
+        ^n R|<local>/s|.R|kotlin/text/toInt|()
+    }
+    @R|foo/bar/annotations/Given|() internal final fun s(@R|foo/bar/annotations/Given|() n: R|kotlin/Int|): R|kotlin/String| {
+        ^s R|<local>/n|.R|kotlin/Any.toString|()
+    }
+    @R|foo/bar/annotations/Given|() public final class SomeNumber : R|kotlin/Any| {
+        public constructor(@R|foo/bar/annotations/Given|() string: R|foo/bar/SomeString|): R|foo/bar/SomeNumber| {
+            super<R|kotlin/Any|>()
+        }
+
+        @R|foo/bar/annotations/Given|() private final val string: R|foo/bar/SomeString| = R|<local>/string|
+            private get(): R|foo/bar/SomeString|
+
+    }
+    @R|foo/bar/annotations/Given|() public final class SomeString : R|kotlin/Any| {
+        public constructor(@R|foo/bar/annotations/Given|() number: R|foo/bar/SomeNumber|): R|foo/bar/SomeString| {
+            super<R|kotlin/Any|>()
+        }
+
+        @R|foo/bar/annotations/Given|() private final val number: R|foo/bar/SomeNumber| = R|<local>/number|
+            private get(): R|foo/bar/SomeNumber|
+
+    }
+    public final class AnotherNumber : R|kotlin/Any| {
+        public constructor(string: R|foo/bar/AnotherString|): R|foo/bar/AnotherNumber| {
+            super<R|kotlin/Any|>()
+        }
+
+        private final val string: R|foo/bar/AnotherString| = R|<local>/string|
+            private get(): R|foo/bar/AnotherString|
+
+    }
+    public final class AnotherString : R|kotlin/Any| {
+        public constructor(number: R|foo/bar/AnotherNumber|): R|foo/bar/AnotherString| {
+            super<R|kotlin/Any|>()
+        }
+
+        private final val number: R|foo/bar/AnotherNumber| = R|<local>/number|
+            private get(): R|foo/bar/AnotherNumber|
+
+    }
+    @R|foo/bar/annotations/Given|() public final class GivenNumber : R|kotlin/Any| {
+        public constructor(@R|foo/bar/annotations/Config|() string: R|foo/bar/ConfigString|): R|foo/bar/GivenNumber| {
+            super<R|kotlin/Any|>()
+        }
+
+        @R|foo/bar/annotations/Config|() private final val string: R|foo/bar/ConfigString| = R|<local>/string|
+            private get(): R|foo/bar/ConfigString|
+
+    }
+    @R|foo/bar/annotations/Config|() public final class ConfigString : R|kotlin/Any| {
+        public constructor(number: R|foo/bar/GivenNumber|): R|foo/bar/ConfigString| {
+            super<R|kotlin/Any|>()
+        }
+
+        private final val number: R|foo/bar/GivenNumber| = R|<local>/number|
+            private get(): R|foo/bar/GivenNumber|
+
+    }

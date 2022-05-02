@@ -11,15 +11,24 @@ import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
 import org.jetbrains.kotlin.fir.backend.Fir2IrSignatureComposer
 import org.jetbrains.kotlin.fir.backend.jvm.FirJvmKotlinMangler
+import org.jetbrains.kotlin.fir.declarations.FirClass
+import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
+import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirProperty
+import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
+import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.extensions.predicate.DeclarationPredicate
 import org.jetbrains.kotlin.fir.extensions.predicate.has
+import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.signaturer.FirBasedSignatureComposer
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
+import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.ir.util.IdSignature
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -55,12 +64,10 @@ internal interface FirAbstractProofComponent {
 
   val resolve: FirSimpleFunction
     get() =
-      session
-        .symbolProvider
+      session.symbolProvider
         .getTopLevelCallableSymbols(FqName("arrow.inject.annotations"), Name.identifier("resolve"))
         .first()
-        .fir as
-        FirSimpleFunction
+        .fir as FirSimpleFunction
 
   val FirAnnotation.isContextAnnotation: Boolean
     get() {
@@ -79,4 +86,37 @@ internal interface FirAbstractProofComponent {
 
   val FirAnnotationContainer.hasMetaContextAnnotation: Boolean
     get() = metaContextAnnotations.isNotEmpty()
+
+  val FirDeclaration.coneType: ConeKotlinType?
+    get() =
+      when (this) {
+        is FirFunction -> returnTypeRef.coneType
+        is FirProperty -> returnTypeRef.coneType
+        is FirRegularClass -> symbol.defaultType()
+        else -> null
+      }
+
+  // TODO FILE: `circular_proofs_cycle_rule.kt`
+  // TODO FIX CHECKING ONLY IF META ANNOTATED
+  // TODO ADD MORE EDGE CASES
+  val FirDeclaration.boundedTypes: List<ConeKotlinType>
+    get() =
+      when (this) {
+        is FirFunction -> {
+          valueParameters.filter { it.hasMetaContextAnnotation }.map { it.returnTypeRef.coneType }
+        }
+        is FirClass -> {
+          declarations.filterIsInstance<FirConstructor>().flatMap { constructor ->
+            constructor.valueParameters
+              .filter { it.hasMetaContextAnnotation }
+              .flatMap { parameter -> parameter.boundedTypes }
+          }
+        }
+        is FirValueParameter -> {
+          listOf(returnTypeRef.coneType)
+        }
+        else -> {
+          emptyList() // TODO: add more supported types
+        }
+      }
 }

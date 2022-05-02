@@ -28,6 +28,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     }
 
     @Test
+    @TestMetadata("circular_proofs_cycle_rule.kt")
+    public void testCircular_proofs_cycle_rule() throws Exception {
+        runTest("src/testData/diagnostics/circular_proofs_cycle_rule.kt");
+    }
+
+    @Test
     @TestMetadata("prohibited_public_proof_of_non_user_types.kt")
     public void testProhibited_public_proof_of_non_user_types() throws Exception {
         runTest("src/testData/diagnostics/prohibited_public_proof_of_non_user_types.kt");
