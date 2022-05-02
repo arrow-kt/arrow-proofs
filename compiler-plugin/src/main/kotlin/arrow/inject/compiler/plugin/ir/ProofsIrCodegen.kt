@@ -2,12 +2,12 @@
 
 package arrow.inject.compiler.plugin.ir
 
+import arrow.inject.compiler.plugin.fir.resolution.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.CompileTimeAnnotation
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.InjectAnnotation
 import arrow.inject.compiler.plugin.model.asProofCacheKey
-import arrow.inject.compiler.plugin.model.getProofFromCache
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
@@ -22,7 +22,6 @@ import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrProperty
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrTypeParametersContainer
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
@@ -54,6 +53,7 @@ import org.jetbrains.kotlin.types.model.TypeSystemContext
 import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 
 class ProofsIrCodegen(
+  private val proofCache: ProofCache,
   private val moduleFragment: IrModuleFragment,
   irPluginContext: IrPluginContext
 ) :
@@ -96,7 +96,7 @@ class ProofsIrCodegen(
   }
 
   private fun givenProofCall(contextFqName: FqName, kotlinType: KotlinType): IrExpression? =
-    getProofFromCache(kotlinType.asProofCacheKey(contextFqName))?.proof?.let { proof ->
+    proofCache.getProofFromCache(kotlinType.asProofCacheKey(contextFqName))?.proof?.let { proof ->
       substitutedProofCall(proof, kotlinType)
     }
 

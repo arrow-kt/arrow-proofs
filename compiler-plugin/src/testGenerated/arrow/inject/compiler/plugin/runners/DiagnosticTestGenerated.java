@@ -46,6 +46,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     }
 
     @Test
+    @TestMetadata("report_unresolved_given_proofs.kt")
+    public void testReport_unresolved_given_proofs() throws Exception {
+        runTest("src/testData/diagnostics/report_unresolved_given_proofs.kt");
+    }
+
+    @Test
     @TestMetadata("simple.kt")
     public void testSimple() throws Exception {
         runTest("src/testData/diagnostics/simple.kt");

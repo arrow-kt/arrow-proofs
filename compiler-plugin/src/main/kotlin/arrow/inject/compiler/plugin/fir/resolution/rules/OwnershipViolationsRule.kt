@@ -72,7 +72,4 @@ class OwnershipViolationsRule(override val session: FirSession) : FirAbstractPro
       false
     }
   }
-
-  // ConeKotlinType coger class id del lookuptag y con eso sacar con el symbolprovider el
-  // classLikeSymbol y comprobar si el source es nulo (jar, remoto) o no
 }

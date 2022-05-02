@@ -138,7 +138,7 @@ internal class ResolvedFunctionGenerationExtension(
   ): FirConstructorSymbol {
     val originalSymbol = FirConstructorSymbol(owner.classId)
     return buildConstructor {
-        resolvePhase = FirResolvePhase.BODY_RESOLVE
+        resolvePhase = FirResolvePhase.RAW_FIR
         moduleData = firConstructorSymbol.moduleData
         origin = FirDeclarationOrigin.SubstitutionOverride
         status =
@@ -174,7 +174,7 @@ internal class ResolvedFunctionGenerationExtension(
           firConstructorSymbol.valueParameterSymbols.map { valueParameter ->
             buildValueParameter {
               moduleData = session.moduleData
-              resolvePhase = FirResolvePhase.BODY_RESOLVE
+              resolvePhase = FirResolvePhase.RAW_FIR
               origin = ProofKey.origin
               attributes = valueParameter.fir.attributes
               returnTypeRef = valueParameter.fir.returnTypeRef

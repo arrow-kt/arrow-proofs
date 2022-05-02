@@ -22,7 +22,7 @@ object FirMetaErrors {
 
   val OWNERSHIP_VIOLATED_PROOF by error1<KtDeclaration, Proof>()
 
-  val UNRESOLVED_GIVEN_PROOF by error1<KtDeclaration, KotlinTypeMarker>()
+  val UNRESOLVED_GIVEN_PROOF by error1<PsiElement, KotlinTypeMarker>()
 
   val CIRCULAR_CYCLE_ON_GIVEN_PROOF by error2<PsiElement, KotlinTypeMarker, List<Proof>>()
 

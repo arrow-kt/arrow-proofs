@@ -1,6 +1,7 @@
 package arrow.inject.compiler.plugin.services
 
 import arrow.inject.compiler.plugin.fir.FirArrowInjectExtensionRegistrar
+import arrow.inject.compiler.plugin.fir.resolution.ProofCache
 import arrow.inject.compiler.plugin.ir.IrArrowInjectExtensionRegistrar
 import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
@@ -18,7 +19,8 @@ class ExtensionRegistrarConfigurator(
     module: TestModule,
     configuration: CompilerConfiguration
   ) {
-    FirExtensionRegistrar.registerExtension(project, FirArrowInjectExtensionRegistrar())
-    IrGenerationExtension.registerExtension(project, IrArrowInjectExtensionRegistrar())
+    val proofCache: ProofCache = ProofCache()
+    FirExtensionRegistrar.registerExtension(project, FirArrowInjectExtensionRegistrar(proofCache))
+    IrGenerationExtension.registerExtension(project, IrArrowInjectExtensionRegistrar(proofCache))
   }
 }

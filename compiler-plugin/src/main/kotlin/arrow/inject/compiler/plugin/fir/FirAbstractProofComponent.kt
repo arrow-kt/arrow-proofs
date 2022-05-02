@@ -96,9 +96,6 @@ internal interface FirAbstractProofComponent {
         else -> null
       }
 
-  // TODO FILE: `circular_proofs_cycle_rule.kt`
-  // TODO FIX CHECKING ONLY IF META ANNOTATED
-  // TODO ADD MORE EDGE CASES
   val FirDeclaration.boundedTypes: List<ConeKotlinType>
     get() =
       when (this) {
@@ -116,7 +113,7 @@ internal interface FirAbstractProofComponent {
           listOf(returnTypeRef.coneType)
         }
         else -> {
-          emptyList() // TODO: add more supported types
+          emptyList()
         }
       }
 }

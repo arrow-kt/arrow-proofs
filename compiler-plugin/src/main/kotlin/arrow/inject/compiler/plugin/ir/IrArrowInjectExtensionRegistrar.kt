@@ -1,5 +1,6 @@
 package arrow.inject.compiler.plugin.ir
 
+import arrow.inject.compiler.plugin.fir.resolution.ProofCache
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
@@ -11,11 +12,11 @@ import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
 
-class IrArrowInjectExtensionRegistrar : IrGenerationExtension {
+class IrArrowInjectExtensionRegistrar(private val proofCache: ProofCache) : IrGenerationExtension {
 
   override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
     moduleFragment.irFunctionAccessExpression { call ->
-      ProofsIrCodegen(moduleFragment, pluginContext).proveCall(call)
+      ProofsIrCodegen(proofCache, moduleFragment, pluginContext).proveCall(call)
     }
 
     moduleFragment.removeCompileTimeDeclarations()

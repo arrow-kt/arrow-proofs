@@ -14,8 +14,7 @@ import org.jetbrains.kotlin.test.directives.CodegenTestDirectives.DUMP_IR
 import org.jetbrains.kotlin.test.runners.RunnerWithTargetBackendForTestGeneratorMarker
 
 open class AbstractBoxTest : BaseTestRunner(), RunnerWithTargetBackendForTestGeneratorMarker {
-  override val targetBackend: TargetBackend
-    get() = TargetBackend.JVM_IR
+  override val targetBackend: TargetBackend = TargetBackend.JVM_IR
 
   override fun TestConfigurationBuilder.configuration() {
     defaultDirectives { +DUMP_IR }

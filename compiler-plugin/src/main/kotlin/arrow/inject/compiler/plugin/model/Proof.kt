@@ -45,14 +45,6 @@ data class ProofResolution(
     get() = ambiguousProofs.isNotEmpty() && proof != null
 }
 
-val cache: ConcurrentHashMap<ProofCacheKey, ProofResolution> = ConcurrentHashMap()
-
-fun getProofFromCache(key: ProofCacheKey): ProofResolution? = cache[key]
-
-fun putProofIntoCache(key: ProofCacheKey, value: ProofResolution) {
-  cache[key] = value
-}
-
 data class ProofCacheKey(
   val contextFqName: FqName,
   val name: String,
