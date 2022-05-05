@@ -4,12 +4,8 @@ package arrow.inject.compiler.plugin.fir
 
 import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
 import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
-import arrow.inject.compiler.plugin.fir.resolution.ProofCache
-import arrow.inject.compiler.plugin.fir.resolution.ProofResolutionStageRunner
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
-import arrow.inject.compiler.plugin.model.ProofResolution
-import arrow.inject.compiler.plugin.model.asProofCacheKey
 import org.jetbrains.kotlin.fir.FirAnnotationContainer
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
