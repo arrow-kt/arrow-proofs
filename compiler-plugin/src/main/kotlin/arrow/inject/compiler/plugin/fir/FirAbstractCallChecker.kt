@@ -96,7 +96,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent {
               is ConeTypeParameterType -> {
                 val originalFunction =
                   ((call as? FirResolvable)?.calleeReference?.resolvedSymbol
-                    as? FirFunctionSymbol<*>)
+                      as? FirFunctionSymbol<*>)
                     ?.fir
                 val originalTypeArgumentIndex =
                   originalFunction?.typeParameters?.indexOfFirst {

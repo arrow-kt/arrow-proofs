@@ -1,0 +1,132 @@
+@file:OptIn(InternalDiagnosticFactoryMethod::class, SymbolInternals::class)
+
+package arrow.inject.compiler.plugin.fir.resolution.rules
+
+import arrow.inject.compiler.plugin.fir.FirAbstractCallChecker
+import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
+import arrow.inject.compiler.plugin.fir.resolution.ProofCache
+import arrow.inject.compiler.plugin.fir.resolution.ProofResolutionStageRunner
+import arrow.inject.compiler.plugin.model.Proof
+import arrow.inject.compiler.plugin.model.ProofResolution
+import org.jetbrains.kotlin.KtSourceElement
+import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
+import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
+import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
+import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.declarations.FirClass
+import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirTypeParameterRefsOwner
+import org.jetbrains.kotlin.fir.declarations.FirValueParameter
+import org.jetbrains.kotlin.fir.declarations.primaryConstructorIfAny
+import org.jetbrains.kotlin.fir.expressions.FirCall
+import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
+import org.jetbrains.kotlin.fir.references.FirNamedReference
+import org.jetbrains.kotlin.fir.resolve.fqName
+import org.jetbrains.kotlin.fir.resolvedSymbol
+import org.jetbrains.kotlin.fir.scopes.impl.toConeType
+import org.jetbrains.kotlin.fir.symbols.SymbolInternals
+import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
+import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.fir.types.render
+import org.jetbrains.kotlin.fir.types.toConeTypeProjection
+import org.jetbrains.kotlin.fir.types.type
+import org.jetbrains.kotlin.name.FqName
+
+internal class MissingInductiveDependenciesRule(
+  override val proofCache: ProofCache,
+  override val session: FirSession,
+) : FirAbstractCallChecker {
+
+  override val proofResolutionStageRunner: ProofResolutionStageRunner by lazy {
+    ProofResolutionStageRunner(session)
+  }
+
+  override val allProofs: List<Proof> by lazy { allCollectedProofs }
+
+  fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
+    proofResolutionList(expression).let {
+      resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
+      resolvedParameters.forEach { (_, valueParameter) ->
+        val metaContextAnnotation: FqName? =
+          valueParameter.metaContextAnnotations.firstOrNull()?.fqName(session)
+
+        if (metaContextAnnotation != null) {
+          val expressionOwner: FirNamedReference? =
+            (expression as? FirFunctionCall)?.calleeReference
+          val valueParameterTypeReturnType = valueParameter.returnTypeRef.coneType
+
+          val proofResolution: ProofResolution =
+            if (valueParameterTypeReturnType is ConeTypeParameterType) {
+              val index =
+                (expressionOwner?.resolvedSymbol?.fir as? FirTypeParameterRefsOwner)
+                  ?.typeParameters
+                  ?.map { it.toConeType() }
+                  ?.indexOfFirst {
+                    it.type.render() ==
+                      valueParameterTypeReturnType.render() // TODO this may be incorrect
+                  }
+              if (index != null && index != -1) {
+                val substitutedType: ConeKotlinType? =
+                  expression.typeArguments[index].toConeTypeProjection().type
+
+                if (substitutedType != null) {
+                  resolveProof(metaContextAnnotation, substitutedType)
+                } else error("Unexpected type argument index")
+              } else {
+                error("Unexpected type argument index")
+              }
+            } else {
+              resolveProof(metaContextAnnotation, valueParameter.returnTypeRef.coneType)
+            }
+
+          val proofResolutionProof = proofResolution.proof
+          val proofResolutionDeclaration = proofResolution.proof?.declaration
+
+          if (proofResolutionProof != null) {
+            val valueParameters =
+              when (proofResolutionDeclaration) {
+                is FirFunction -> proofResolutionDeclaration.valueParameters
+                is FirClass ->
+                  proofResolutionDeclaration
+                    .primaryConstructorIfAny(session)
+                    ?.valueParameterSymbols
+                    ?.map { it.fir }
+                    .orEmpty()
+                else -> emptyList()
+              }
+
+            valueParameters.forEach { firValueParameter ->
+              val contextAnnotationFqName =
+                firValueParameter.metaContextAnnotations.firstOrNull()?.fqName(session)
+
+              val parameterResolveProof =
+                if (contextAnnotationFqName != null) {
+                  resolveProof(
+                    contextAnnotationFqName,
+                    firValueParameter.symbol.resolvedReturnType,
+                  )
+                } else {
+                  null
+                }
+
+              val expressionSource: KtSourceElement? = expression.source
+
+              if (parameterResolveProof?.proof == null && expressionSource != null)
+                reporter.report(
+                  FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE.on(
+                    expressionSource,
+                    expression,
+                    valueParameter.returnTypeRef.coneType,
+                    AbstractSourceElementPositioningStrategy.DEFAULT,
+                  ),
+                  context,
+                )
+            }
+          }
+        }
+      }
+    }
+  }
+}
