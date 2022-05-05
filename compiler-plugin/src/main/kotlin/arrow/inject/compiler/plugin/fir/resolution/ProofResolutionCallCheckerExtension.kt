@@ -3,8 +3,8 @@
 package arrow.inject.compiler.plugin.fir.resolution
 
 import arrow.inject.compiler.plugin.fir.FirAbstractCallChecker
-import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.AMBIGUOUS_PROOF_FOR_SUPERTYPE
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE
+import arrow.inject.compiler.plugin.fir.resolution.rules.AmbiguousProofsRule
 import arrow.inject.compiler.plugin.fir.resolution.rules.CyclesDetectionRule
 import arrow.inject.compiler.plugin.fir.resolution.rules.OwnershipViolationsRule
 import arrow.inject.compiler.plugin.model.Proof
@@ -54,6 +54,10 @@ internal class ProofResolutionCallCheckerExtension(
     ProofResolutionStageRunner(session)
   }
 
+  private val ambiguousProofsRule: AmbiguousProofsRule by lazy {
+    AmbiguousProofsRule(proofCache, session)
+  }
+
   private val cyclesDetectionRule: CyclesDetectionRule by lazy {
     CyclesDetectionRule(proofCache, session)
   }
@@ -89,6 +93,7 @@ internal class ProofResolutionCallCheckerExtension(
               context: CheckerContext,
               reporter: DiagnosticReporter
             ) {
+              ambiguousProofsRule.report(expression, context, reporter)
               cyclesDetectionRule.report(expression, context, reporter)
               reportUnresolvedGivenCallSite(expression, context, reporter)
             }
@@ -104,21 +109,6 @@ internal class ProofResolutionCallCheckerExtension(
     proofResolutionList(expression).let {
       resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
       resolvedParameters.forEach { (proofResolution, valueParameter) ->
-        val source = expression.source
-        val proof = proofResolution?.proof
-        if (proofResolution?.isAmbiguous == true && source != null && proof != null) {
-          reporter.report(
-            AMBIGUOUS_PROOF_FOR_SUPERTYPE.on(
-              source,
-              proofResolution.targetType,
-              proofResolution.proof,
-              proofResolution.ambiguousProofs,
-              DEFAULT,
-            ),
-            context
-          )
-        }
-
         val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
 
         reportMissingInductiveDependencies(expression, valueParameter, context, reporter)
