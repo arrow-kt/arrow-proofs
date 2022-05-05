@@ -11,7 +11,7 @@ class FirArrowInjectExtensionRegistrar(
 ) : FirExtensionRegistrar() {
 
   override fun ExtensionRegistrarContext.configurePlugin() {
-    +::ResolvedFunctionGenerationExtension
+    +{ session: FirSession -> ResolvedFunctionGenerationExtension(session) }
     +{ session: FirSession -> ProofResolutionCallCheckerExtension(proofCache, session) }
   }
 }

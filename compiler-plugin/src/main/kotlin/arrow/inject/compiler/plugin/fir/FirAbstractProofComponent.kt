@@ -4,8 +4,12 @@ package arrow.inject.compiler.plugin.fir
 
 import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
 import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
+import arrow.inject.compiler.plugin.fir.resolution.ProofCache
+import arrow.inject.compiler.plugin.fir.resolution.ProofResolutionStageRunner
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
+import arrow.inject.compiler.plugin.model.ProofResolution
+import arrow.inject.compiler.plugin.model.asProofCacheKey
 import org.jetbrains.kotlin.fir.FirAnnotationContainer
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
@@ -22,6 +26,7 @@ import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.extensions.predicate.DeclarationPredicate
 import org.jetbrains.kotlin.fir.extensions.predicate.has
+import org.jetbrains.kotlin.fir.resolve.calls.Candidate
 import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
@@ -87,33 +92,42 @@ internal interface FirAbstractProofComponent {
   val FirAnnotationContainer.hasMetaContextAnnotation: Boolean
     get() = metaContextAnnotations.isNotEmpty()
 
-  val FirDeclaration.coneType: ConeKotlinType?
+  val FirDeclaration.coneType: ConeKotlinType
     get() =
       when (this) {
         is FirFunction -> returnTypeRef.coneType
         is FirProperty -> returnTypeRef.coneType
         is FirRegularClass -> symbol.defaultType()
-        else -> null
+        is FirValueParameter -> returnTypeRef.coneType
+        else -> error("Unsupported FirDeclaration: $this")
       }
 
-  val FirDeclaration.boundedTypes: List<ConeKotlinType>
+  val FirDeclaration.boundedTypes: Map<FqName, ConeKotlinType>
     get() =
       when (this) {
         is FirFunction -> {
-          valueParameters.filter { it.hasMetaContextAnnotation }.map { it.returnTypeRef.coneType }
+          valueParameters
+            .filter { it.hasMetaContextAnnotation }
+            .associate { it.contextFqNames.first() to it.returnTypeRef.coneType }
         }
         is FirClass -> {
-          declarations.filterIsInstance<FirConstructor>().flatMap { constructor ->
-            constructor.valueParameters
-              .filter { it.hasMetaContextAnnotation }
-              .flatMap { parameter -> parameter.boundedTypes }
-          }
+          declarations
+            .filterIsInstance<FirConstructor>()
+            .flatMap { constructor ->
+              constructor.valueParameters
+                .filter { it.hasMetaContextAnnotation }
+                .flatMap { parameter -> parameter.boundedTypes.toList() }
+            }
+            .toMap()
         }
         is FirValueParameter -> {
-          listOf(returnTypeRef.coneType)
+          mapOf(this.contextFqNames.first() to returnTypeRef.coneType)
         }
         else -> {
-          emptyList()
+          emptyMap()
         }
       }
+
+  val FirDeclaration.contextFqNames: Set<FqName>
+    get() = annotations.filter { it.isContextAnnotation }.mapNotNull { it.fqName(session) }.toSet()
 }

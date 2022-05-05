@@ -18,6 +18,12 @@ import java.util.regex.Pattern;
 @TestDataPath("$PROJECT_ROOT")
 public class BoxTestGenerated extends AbstractBoxTest {
     @Test
+    @TestMetadata("a_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt")
+    public void testA_provider_may_have_injection_arguments_which_are_polymorphically_resolved() throws Exception {
+        runTest("src/testData/box/context/a_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt");
+    }
+
+    @Test
     public void testAllFilesPresentInContext() throws Exception {
         KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("src/testData/box/context"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM_IR, true);
     }

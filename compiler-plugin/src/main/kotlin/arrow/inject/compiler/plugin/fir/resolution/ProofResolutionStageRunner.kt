@@ -1,5 +1,3 @@
-@file:OptIn(SymbolInternals::class)
-
 package arrow.inject.compiler.plugin.fir.resolution
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
@@ -8,20 +6,19 @@ import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.typeParameterSymbols
 import org.jetbrains.kotlin.fir.builder.buildPackageDirective
-import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFile
 import org.jetbrains.kotlin.fir.declarations.FirFunction
-import org.jetbrains.kotlin.fir.declarations.FirProperty
-import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
-import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildFile
 import org.jetbrains.kotlin.fir.expressions.FirEmptyArgumentList
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCallOrigin
+import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
+import org.jetbrains.kotlin.fir.expressions.builder.buildArgumentList
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
 import org.jetbrains.kotlin.fir.moduleData
+import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.fir.resolve.calls.CallInfo
 import org.jetbrains.kotlin.fir.resolve.calls.CallKind
@@ -29,17 +26,13 @@ import org.jetbrains.kotlin.fir.resolve.calls.Candidate
 import org.jetbrains.kotlin.fir.resolve.calls.CandidateFactory
 import org.jetbrains.kotlin.fir.resolve.calls.FirNamedReferenceWithCandidate
 import org.jetbrains.kotlin.fir.resolve.calls.ResolutionStageRunner
-import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.inference.FirCallCompleter
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.FirBodyResolveTransformer
-import org.jetbrains.kotlin.fir.scopes.impl.toConeType
-import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildTypeProjectionWithVariance
-import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.toFirResolvedTypeRef
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -88,6 +81,7 @@ internal class ProofResolutionStageRunner(
       CandidateFactory(firBodyResolveTransformer.resolutionContext, resolveCallInfo)
 
     return mapNotNull { proof ->
+        val proofDeclaration: FirDeclaration = proof.declaration
         val proofCallInfo =
           CallInfo(
             callSite = proof.declaration,
@@ -99,14 +93,34 @@ internal class ProofResolutionStageRunner(
             name = (proof.declaration.symbol as? FirCallableSymbol)?.name
                 ?: Name.identifier("Unsupported"),
             explicitReceiver = null, // TODO()
-            argumentList = FirEmptyArgumentList, // TODO()
+            argumentList =
+              if (proofDeclaration is FirFunction) {
+                buildArgumentList {
+                  arguments +=
+                    (proofDeclaration).symbol.valueParameterSymbols.map { valueParameter ->
+                      buildFunctionCall {
+                        typeRef = valueParameter.resolvedReturnTypeRef
+                        argumentList = buildResolvedArgumentList(LinkedHashMap())
+                        typeArguments +=
+                          valueParameter.typeParameterSymbols.map {
+                            buildTypeProjectionWithVariance {
+                              typeRef = valueParameter.resolvedReturnTypeRef
+                              variance = Variance.OUT_VARIANCE // TODO()
+                            }
+                          }
+                        calleeReference = buildResolvedNamedReference {
+                          name = resolve.name
+                          resolvedSymbol = resolve.symbol
+                        }
+                      }
+                    }
+                } // TODO()
+              } else FirEmptyArgumentList,
             isImplicitInvoke = false,
             typeArguments =
               proof.declaration.symbol.typeParameterSymbols.orEmpty().map { typeParameterSymbol ->
                 buildTypeProjectionWithVariance {
-                  typeRef = buildResolvedTypeRef {
-                    this.type = type
-                  }
+                  typeRef = buildResolvedTypeRef { this.type = type }
                   variance = typeParameterSymbol.variance
                 }
               },

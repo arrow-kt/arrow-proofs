@@ -1,15 +1,9 @@
 package arrow.inject.compiler.plugin.model
 
-import java.util.concurrent.ConcurrentHashMap
-import org.jetbrains.kotlin.fir.declarations.FirClass
-import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
-import org.jetbrains.kotlin.fir.declarations.FirFunction
-import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.renderWithType
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
-import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.ir.util.IdSignature
 import org.jetbrains.kotlin.name.FqName
@@ -38,7 +32,7 @@ sealed class Proof {
 data class ProofResolution(
   val proof: Proof?,
   val targetType: KotlinTypeMarker,
-  val ambiguousProofs: List<Proof>
+  val ambiguousProofs: List<Proof>,
 ) {
 
   val isAmbiguous: Boolean
@@ -75,22 +69,3 @@ internal fun KotlinType.asProofCacheKey(contextFqName: FqName): ProofCacheKey =
       },
     typeArguments = arguments.map { it.type.asProofCacheKey(contextFqName) },
   )
-
-internal val FirDeclaration.boundedTypes: List<ConeKotlinType>
-  get() =
-    when (this) {
-      is FirFunction -> {
-        valueParameters.map { it.returnTypeRef.coneType }
-      }
-      is FirClass -> {
-        declarations.filterIsInstance<FirConstructor>().flatMap { constructor ->
-          constructor.valueParameters.flatMap { parameter -> parameter.boundedTypes }
-        }
-      }
-      is FirValueParameter -> {
-        listOf(returnTypeRef.coneType)
-      }
-      else -> {
-        emptyList() // TODO: add more supported types
-      }
-    }

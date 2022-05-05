@@ -1,12 +1,11 @@
-@file:OptIn(InternalDiagnosticFactoryMethod::class, SymbolInternals::class)
+@file:OptIn(InternalDiagnosticFactoryMethod::class, SymbolInternals::class, SymbolInternals::class)
 
 package arrow.inject.compiler.plugin.fir.resolution
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
-import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
+import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.AMBIGUOUS_PROOF_FOR_SUPERTYPE
+import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.CIRCULAR_CYCLE_ON_GIVEN_PROOF
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE
-import arrow.inject.compiler.plugin.fir.resolution.rules.CircularProofsCycleRule
-import arrow.inject.compiler.plugin.fir.resolution.rules.MissingInductiveProofsRule
 import arrow.inject.compiler.plugin.fir.resolution.rules.OwnershipViolationsRule
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
@@ -25,12 +24,11 @@ import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirCallChecker
 import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
 import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirClass
-import org.jetbrains.kotlin.fir.declarations.FirClassLikeDeclaration
-import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirTypeParameterRefsOwner
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
-import org.jetbrains.kotlin.fir.declarations.constructors
+import org.jetbrains.kotlin.fir.declarations.primaryConstructorIfAny
 import org.jetbrains.kotlin.fir.expressions.FirCall
 import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
@@ -40,18 +38,15 @@ import org.jetbrains.kotlin.fir.expressions.FirResolvable
 import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.references.FirNamedReference
 import org.jetbrains.kotlin.fir.resolve.calls.Candidate
-import org.jetbrains.kotlin.fir.resolve.firClassLike
 import org.jetbrains.kotlin.fir.resolve.fqName
-import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.resolvedSymbol
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
-import org.jetbrains.kotlin.fir.types.FirTypeProjection
-import org.jetbrains.kotlin.fir.types.classId
 import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.fir.types.isSubtypeOf
 import org.jetbrains.kotlin.fir.types.render
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.type
@@ -65,16 +60,12 @@ internal class ProofResolutionCallCheckerExtension(
 
   private val allProofs: List<Proof> by lazy { allCollectedProofs }
 
-  private val missingInductiveProofsRule: MissingInductiveProofsRule by lazy {
-    MissingInductiveProofsRule(session)
-  }
-
-  private val circularProofsCycleRule: CircularProofsCycleRule by lazy {
-    CircularProofsCycleRule(session)
-  }
-
   private val ownershipViolationsRule: OwnershipViolationsRule by lazy {
     OwnershipViolationsRule(session)
+  }
+
+  private val proofResolutionStageRunner: ProofResolutionStageRunner by lazy {
+    ProofResolutionStageRunner(session)
   }
 
   override val declarationCheckers: DeclarationCheckers =
@@ -88,8 +79,6 @@ internal class ProofResolutionCallCheckerExtension(
               context: CheckerContext,
               reporter: DiagnosticReporter
             ) {
-              circularProofsCycleRule.report(declaration, context, reporter)
-              missingInductiveProofsRule.report(declaration, context, reporter)
               ownershipViolationsRule.report(declaration, context, reporter)
             }
           }
@@ -124,7 +113,7 @@ internal class ProofResolutionCallCheckerExtension(
         val proof = proofResolution?.proof
         if (proofResolution?.isAmbiguous == true && source != null && proof != null) {
           reporter.report(
-            FirMetaErrors.AMBIGUOUS_PROOF_FOR_SUPERTYPE.on(
+            AMBIGUOUS_PROOF_FOR_SUPERTYPE.on(
               source,
               proofResolution.targetType,
               proofResolution.proof,
@@ -136,6 +125,22 @@ internal class ProofResolutionCallCheckerExtension(
         }
 
         val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
+
+        val cycles = proofResolution?.proof?.cycles.orEmpty()
+
+        val valueParameterConeType = valueParameter.coneType
+
+        if (cycles.size > 1 && expressionSource != null) {
+          reporter.report(
+            CIRCULAR_CYCLE_ON_GIVEN_PROOF.on(
+              expressionSource,
+              valueParameterConeType,
+              cycles,
+              DEFAULT,
+            ),
+            context,
+          )
+        }
 
         reportMissingInductiveDependencies(expression, valueParameter, context, reporter)
         if (proofResolution?.proof == null && expressionSource != null) {
@@ -171,7 +176,7 @@ internal class ProofResolutionCallCheckerExtension(
   private fun resolvedValueParametersMap(
     call: FirQualifiedAccess,
     unresolvedValueParameters: List<FirValueParameter>,
-  ) =
+  ): Map<ProofResolution?, FirValueParameter> =
     unresolvedValueParameters
       .mapNotNull { valueParameter: FirValueParameter ->
         val contextFqName: FqName? =
@@ -213,10 +218,93 @@ internal class ProofResolutionCallCheckerExtension(
       }
       .toMap()
 
+  private fun reportMissingInductiveDependencies(
+    expression: FirCall,
+    valueParameter: FirValueParameter,
+    context: CheckerContext,
+    reporter: DiagnosticReporter,
+  ) {
+    val metaContextAnnotation: FqName? =
+      valueParameter.metaContextAnnotations.firstOrNull()?.fqName(session)
+
+    if (metaContextAnnotation != null) {
+      val expressionOwner: FirNamedReference? = (expression as? FirFunctionCall)?.calleeReference
+      val valueParameterTypeReturnType = valueParameter.returnTypeRef.coneType
+
+      val proofResolution: ProofResolution =
+        if (valueParameterTypeReturnType is ConeTypeParameterType) {
+          val index =
+            (expressionOwner?.resolvedSymbol?.fir as? FirTypeParameterRefsOwner)
+              ?.typeParameters
+              ?.map { it.toConeType() }
+              ?.indexOfFirst {
+                it.type.render() ==
+                  valueParameterTypeReturnType.render() // TODO this may be incorrect
+              }
+          if (index != null && index != -1) {
+            val substitutedType: ConeKotlinType? =
+              expression.typeArguments[index].toConeTypeProjection().type
+
+            if (substitutedType != null) {
+              resolveProof(metaContextAnnotation, substitutedType)
+            } else error("Unexpected type argument index")
+          } else {
+            error("Unexpected type argument index")
+          }
+        } else {
+          resolveProof(metaContextAnnotation, valueParameter.returnTypeRef.coneType)
+        }
+
+      val proofResolutionProof = proofResolution.proof
+      val proofResolutionDeclaration = proofResolution.proof?.declaration
+
+      if (proofResolutionProof != null) {
+        val valueParameters =
+          when (proofResolutionDeclaration) {
+            is FirFunction -> proofResolutionDeclaration.valueParameters
+            is FirClass ->
+              proofResolutionDeclaration
+                .primaryConstructorIfAny(session)
+                ?.valueParameterSymbols
+                ?.map { it.fir }
+                .orEmpty()
+            else -> emptyList()
+          }
+
+        valueParameters.forEach { firValueParameter ->
+          val contextAnnotationFqName =
+            firValueParameter.metaContextAnnotations.firstOrNull()?.fqName(session)
+
+          val parameterResolveProof =
+            if (contextAnnotationFqName != null) {
+              resolveProof(
+                contextAnnotationFqName,
+                firValueParameter.symbol.resolvedReturnType,
+              )
+            } else {
+              null
+            }
+
+          val expressionSource: KtSourceElement? = expression.source
+
+          if (parameterResolveProof?.proof == null && expressionSource != null)
+            reporter.report(
+              UNRESOLVED_GIVEN_CALL_SITE.on(
+                expressionSource,
+                expression,
+                valueParameter.returnTypeRef.coneType,
+                DEFAULT,
+              ),
+              context,
+            )
+        }
+      }
+    }
+  }
+
   private fun resolveProof(contextFqName: FqName, type: ConeKotlinType): ProofResolution =
     proofCandidate(candidates = candidates(contextFqName, type), type = type).apply {
       proofCache.putProofIntoCache(type.asProofCacheKey(contextFqName), this)
-      // TODO: IMPORTANT CHECK TYPE IN PROOF_CACHE_KEY
     }
 
   private fun candidates(contextFqName: FqName, type: ConeKotlinType): Set<Candidate> =
@@ -228,89 +316,52 @@ internal class ProofResolutionCallCheckerExtension(
     val candidate: Candidate? = candidates.firstOrNull()
 
     return ProofResolution(
-      proof = candidate?.let { Proof.Implication(it.symbol.fir.idSignature, it.symbol.fir) },
+      proof = candidate?.asProof(),
       targetType = type,
       ambiguousProofs =
         (candidates - candidate).mapNotNull { ambiguousCandidate ->
           ambiguousCandidate?.let { Proof.Implication(it.symbol.fir.idSignature, it.symbol.fir) }
-        }
+        },
     )
   }
 
-  private val proofResolutionStageRunner: ProofResolutionStageRunner by lazy {
-    ProofResolutionStageRunner(session)
-  }
-
-  private fun reportMissingInductiveDependencies(
-    expression: FirCall,
-    valueParameter: FirValueParameter,
-    context: CheckerContext,
-    reporter: DiagnosticReporter,
-  ) {
-    if (valueParameter.hasMetaContextAnnotation) {
-      val expressionOwner: FirNamedReference? = (expression as? FirFunctionCall)?.calleeReference
-      val valueParameterTypeReturnType = valueParameter.returnTypeRef.coneType
-      val realTypeClassLikeDeclaration: FirClassLikeDeclaration =
-        if (valueParameterTypeReturnType is ConeTypeParameterType) {
-          val index =
-            (expressionOwner?.resolvedSymbol?.fir as? FirTypeParameterRefsOwner)
-              ?.typeParameters
-              ?.map { it.toConeType() }
-              ?.indexOfFirst {
-                it.type.render() ==
-                  valueParameterTypeReturnType.render() // TODO this may be incorrect
-              }
-          if (index != null && index != -1) {
-            val substitutedType: FirTypeProjection = expression.typeArguments[index]
-            val classId = substitutedType.toConeTypeProjection().type?.classId
-
-            if (classId != null) {
-              session.symbolProvider.getClassLikeSymbolByClassId(classId)?.fir
-                ?: error("Unexpected type argument index")
-            } else {
-              error("Unexpected type argument index")
-            }
-          } else {
-            error("Unexpected type argument index")
-          }
-        } else {
-          valueParameter.returnTypeRef.firClassLike(session)
-            ?: error("Unexpected type argument index")
+  private fun Proof.isResolved(
+    otherProofs: List<Proof>,
+    previousProofs: MutableSet<Proof>
+  ): Set<Proof> =
+    if (this in previousProofs) {
+      previousProofs
+    } else {
+      when (val proofDeclaration = declaration) {
+        is FirFunction -> isResolved(proofDeclaration, otherProofs, previousProofs)
+        is FirClass -> {
+          val constructor = proofDeclaration.primaryConstructorIfAny(session)?.fir
+          constructor?.let { isResolved(it, otherProofs, previousProofs) } ?: (previousProofs)
         }
-
-      if (realTypeClassLikeDeclaration is FirClass) {
-        realTypeClassLikeDeclaration
-          .constructors(session)
-          .firstOrNull { it.isPrimary }
-          ?.valueParameterSymbols?.forEach { valueParameterSymbol ->
-            val contextAnnotationFqName =
-              valueParameterSymbol.fir.metaContextAnnotations.firstOrNull()?.fqName(session)
-
-            val parameterResolveProof =
-              if (contextAnnotationFqName != null) {
-                resolveProof(
-                  contextAnnotationFqName,
-                  valueParameterSymbol.resolvedReturnType,
-                )
-              } else {
-                null
-              }
-
-            val expressionSource: KtSourceElement? = expression.source
-
-            if (parameterResolveProof?.proof == null && expressionSource != null)
-              reporter.report(
-                UNRESOLVED_GIVEN_CALL_SITE.on(
-                  expressionSource,
-                  expression,
-                  valueParameter.returnTypeRef.coneType,
-                  DEFAULT,
-                ),
-                context,
-              )
-          }
+        is FirProperty -> previousProofs
+        else -> error("Unsupported Proof declaration: $proofDeclaration")
       }
     }
+
+  private fun isResolved(
+    declaration: FirFunction,
+    otherProofs: List<Proof>,
+    previousProofs: MutableSet<Proof>
+  ): Set<Proof> {
+    declaration.valueParameters.forEach { valueParameter ->
+      if (valueParameter.coneType !is ConeTypeParameterType &&
+          valueParameter.hasMetaContextAnnotation
+      ) {
+        val coneType = valueParameter.coneType
+        val proofs = otherProofs.filter { coneType.isSubtypeOf(it.declaration.coneType, session) }
+
+        proofs.forEach {
+          previousProofs.add(it)
+          it.isResolved(otherProofs, previousProofs)
+        }
+      }
+    }
+    return previousProofs
   }
 
   private val FirFunction.isCompileTimeAnnotated: Boolean
@@ -319,6 +370,43 @@ internal class ProofResolutionCallCheckerExtension(
         firAnnotation.fqName(session) == ProofAnnotationsFqName.CompileTimeAnnotation
       }
 
-  private val FirDeclaration.contextFqNames: Set<FqName>
-    get() = annotations.filter { it.isContextAnnotation }.mapNotNull { it.fqName(session) }.toSet()
+  private fun Candidate.asProof(): Proof = Proof.Implication(symbol.fir.idSignature, symbol.fir)
+
+  private val Proof.cycles: List<Proof>
+    get() = mutableListOf<Proof>().apply { cycles(this) }
+
+  private fun Proof.cycles(cycles: MutableList<Proof>) {
+    when (val proofDeclaration = declaration) {
+      is FirFunction -> {
+        proofDeclaration.valueParameters.forEach { valueParameter: FirValueParameter ->
+          valueParameter.cycles(cycles)
+        }
+      }
+      is FirClass -> {
+        val constructor = proofDeclaration.primaryConstructorIfAny(session)?.fir
+        constructor?.valueParameters.orEmpty().forEach { valueParameter: FirValueParameter ->
+          valueParameter.cycles(cycles)
+        }
+      }
+      is FirProperty -> {}
+      else -> error("Unsupported Proof declaration: $proofDeclaration")
+    }
+  }
+
+  private fun FirValueParameter.cycles(cycles: MutableList<Proof>) {
+    val valueParameter = this
+    val contextFqName: FqName? =
+      valueParameter.metaContextAnnotations.firstOrNull()?.fqName(session)
+    val type = valueParameter.coneType
+    if (contextFqName != null && type !is ConeTypeParameterType) {
+      val resolvedProof: Proof? = resolveProof(contextFqName, type).proof
+      if (resolvedProof != null) {
+        val encountered = cycles.count { it == resolvedProof }
+        if (encountered <= 1) {
+          cycles.add(resolvedProof)
+          resolvedProof.cycles(cycles)
+        }
+      }
+    }
+  }
 }
