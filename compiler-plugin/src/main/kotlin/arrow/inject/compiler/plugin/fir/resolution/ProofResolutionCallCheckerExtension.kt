@@ -7,6 +7,7 @@ import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.UNRESOLVED_GIVEN_CA
 import arrow.inject.compiler.plugin.fir.resolution.rules.AmbiguousProofsRule
 import arrow.inject.compiler.plugin.fir.resolution.rules.CyclesDetectionRule
 import arrow.inject.compiler.plugin.fir.resolution.rules.OwnershipViolationsRule
+import arrow.inject.compiler.plugin.fir.resolution.rules.UnresolvedCallSiteRule
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.KtSourceElement
@@ -28,7 +29,6 @@ import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.declarations.primaryConstructorIfAny
 import org.jetbrains.kotlin.fir.expressions.FirCall
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
-import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.references.FirNamedReference
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.resolvedSymbol
@@ -41,7 +41,6 @@ import org.jetbrains.kotlin.fir.types.render
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.toKtPsiSourceElement
 
 internal class ProofResolutionCallCheckerExtension(
   override val proofCache: ProofCache,
@@ -64,6 +63,10 @@ internal class ProofResolutionCallCheckerExtension(
 
   private val ownershipViolationsRule: OwnershipViolationsRule by lazy {
     OwnershipViolationsRule(session)
+  }
+
+  private val unresolvedCallSiteRule: UnresolvedCallSiteRule by lazy {
+    UnresolvedCallSiteRule(proofCache, session)
   }
 
   override val declarationCheckers: DeclarationCheckers =
@@ -95,6 +98,7 @@ internal class ProofResolutionCallCheckerExtension(
             ) {
               ambiguousProofsRule.report(expression, context, reporter)
               cyclesDetectionRule.report(expression, context, reporter)
+              unresolvedCallSiteRule.report(expression, context, reporter)
               reportUnresolvedGivenCallSite(expression, context, reporter)
             }
           }
@@ -109,20 +113,7 @@ internal class ProofResolutionCallCheckerExtension(
     proofResolutionList(expression).let {
       resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
       resolvedParameters.forEach { (proofResolution, valueParameter) ->
-        val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
-
         reportMissingInductiveDependencies(expression, valueParameter, context, reporter)
-        if (proofResolution?.proof == null && expressionSource != null) {
-          reporter.report(
-            UNRESOLVED_GIVEN_CALL_SITE.on(
-              expressionSource,
-              expression,
-              valueParameter.returnTypeRef.coneType,
-              DEFAULT,
-            ),
-            context,
-          )
-        }
       }
     }
 

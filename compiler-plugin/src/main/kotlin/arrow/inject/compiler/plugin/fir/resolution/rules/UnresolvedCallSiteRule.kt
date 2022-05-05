@@ -1,0 +1,54 @@
+@file:OptIn(InternalDiagnosticFactoryMethod::class)
+
+package arrow.inject.compiler.plugin.fir.resolution.rules
+
+import arrow.inject.compiler.plugin.fir.FirAbstractCallChecker
+import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
+import arrow.inject.compiler.plugin.fir.resolution.ProofCache
+import arrow.inject.compiler.plugin.fir.resolution.ProofResolutionStageRunner
+import arrow.inject.compiler.plugin.model.Proof
+import arrow.inject.compiler.plugin.model.ProofResolution
+import org.jetbrains.kotlin.KtSourceElement
+import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
+import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
+import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
+import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.declarations.FirValueParameter
+import org.jetbrains.kotlin.fir.expressions.FirCall
+import org.jetbrains.kotlin.fir.psi
+import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.toKtPsiSourceElement
+
+internal class UnresolvedCallSiteRule(
+  override val proofCache: ProofCache,
+  override val session: FirSession,
+) : FirAbstractCallChecker {
+
+  override val proofResolutionStageRunner: ProofResolutionStageRunner by lazy {
+    ProofResolutionStageRunner(session)
+  }
+
+  override val allProofs: List<Proof> by lazy { allCollectedProofs }
+
+  fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
+    proofResolutionList(expression).let {
+      resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
+      resolvedParameters.forEach { (proofResolution, valueParameter) ->
+        val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
+
+        if (proofResolution?.proof == null && expressionSource != null) {
+          reporter.report(
+            FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE.on(
+              expressionSource,
+              expression,
+              valueParameter.returnTypeRef.coneType,
+              AbstractSourceElementPositioningStrategy.DEFAULT,
+            ),
+            context,
+          )
+        }
+      }
+    }
+  }
+}
