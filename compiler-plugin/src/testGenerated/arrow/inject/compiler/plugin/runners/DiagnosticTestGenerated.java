@@ -28,6 +28,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     }
 
     @Test
+    @TestMetadata("ambiguous_public_given_proofs.kt")
+    public void testAmbiguous_public_given_proofs() throws Exception {
+        runTest("src/testData/diagnostics/ambiguous_public_given_proofs.kt");
+    }
+
+    @Test
     @TestMetadata("ambiguous_type_bounds_based_injection.kt")
     public void testAmbiguous_type_bounds_based_injection() throws Exception {
         runTest("src/testData/diagnostics/ambiguous_type_bounds_based_injection.kt");
