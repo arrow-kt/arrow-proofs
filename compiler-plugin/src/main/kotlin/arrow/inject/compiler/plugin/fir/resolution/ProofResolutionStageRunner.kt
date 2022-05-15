@@ -4,6 +4,7 @@ import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.ProofKey
 import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.analysis.checkers.typeParameterSymbols
 import org.jetbrains.kotlin.fir.builder.buildPackageDirective
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
@@ -29,11 +30,15 @@ import org.jetbrains.kotlin.fir.resolve.calls.ResolutionStageRunner
 import org.jetbrains.kotlin.fir.resolve.inference.FirCallCompleter
 import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.FirBodyResolveTransformer
+import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildTypeProjectionWithVariance
 import org.jetbrains.kotlin.fir.types.toFirResolvedTypeRef
+import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
@@ -81,7 +86,7 @@ internal class ProofResolutionStageRunner(
 
       if (isCandidateApplicability) {
 
-        val firFunctionCall = proof.firFunctionCall(candidate)
+        val firFunctionCall = proof.firFunctionCall(type, candidate)
 
         val (_: FirFunctionCall, isCallCompleted: Boolean) =
           firCallCompleter.completeCall(
@@ -97,23 +102,36 @@ internal class ProofResolutionStageRunner(
   }
 
   private fun Proof.firFunctionCall(
+    type: ConeKotlinType,
     candidate: Candidate
   ): FirFunctionCall =
     buildFunctionCall {
       typeRef = declaration.coneType?.toFirResolvedTypeRef()!! // TODO()
-      argumentList = FirEmptyArgumentList // TODO()
+      argumentList = buildResolvedArgumentList(LinkedHashMap())
+      typeArguments +=
+        (declaration as? FirFunction)?.typeParameters?.map {
+          buildTypeProjectionWithVariance {
+            val targetTypeRefArg = targetTypeRef(type, it.toConeType())
+            typeRef = targetTypeRefArg
+            variance = it.symbol.variance
+          }
+        }.orEmpty().toMutableList()
       calleeReference =
         FirNamedReferenceWithCandidate(
           source = declaration.source,
           name = (declaration.symbol as? FirCallableSymbol)?.name
             ?: Name.identifier("Unsupported"),
-          candidate =
-          candidate.apply {
-            substitutor = ConeSubstitutor.Empty // TODO()
-            freshVariables = emptyList()
-          },
+          candidate = candidate,
         )
     }
+
+  private fun Proof.substitutionMap(expectedType: ConeKotlinType): Map<FirTypeParameterSymbol, ConeKotlinType> =
+    (declaration as? FirFunction)?.typeParameters?.zip(expectedType.typeArguments).orEmpty()
+      .mapNotNull { (tp1, tp2) ->
+        val targetType = tp2.type
+        if (targetType != null) tp1.symbol to targetType
+        else null
+      }.toMap()
 
   private fun Candidate.applicability(): CandidateApplicability =
     resultResolutionStageRunner.processCandidate(
@@ -154,14 +172,16 @@ internal class ProofResolutionStageRunner(
       buildArgumentList {
         arguments +=
           (proofDeclaration).symbol.valueParameterSymbols.map { valueParameter ->
+            val targetTypeRef = targetTypeRef(type, valueParameter.resolvedReturnTypeRef.type)
             buildFunctionCall {
-              typeRef = valueParameter.resolvedReturnTypeRef
+              typeRef = targetTypeRef
               argumentList = buildResolvedArgumentList(LinkedHashMap())
               typeArguments +=
                 valueParameter.typeParameterSymbols.map {
                   buildTypeProjectionWithVariance {
-                    typeRef = valueParameter.resolvedReturnTypeRef
-                    variance = Variance.OUT_VARIANCE // TODO()
+                    val targetTypeRefArg = targetTypeRef(type, it.toConeType())
+                    typeRef = targetTypeRefArg
+                    variance = it.variance
                   }
                 }
               calleeReference = buildResolvedNamedReference {
@@ -176,7 +196,8 @@ internal class ProofResolutionStageRunner(
     typeArguments =
     declaration.symbol.typeParameterSymbols.orEmpty().map { typeParameterSymbol ->
       buildTypeProjectionWithVariance {
-        typeRef = buildResolvedTypeRef { this.type = type }
+        val targetTypeRef = targetTypeRef(type, typeParameterSymbol.toConeType())
+        typeRef = buildResolvedTypeRef { this.type = targetTypeRef.type }
         variance = typeParameterSymbol.variance
       }
     },
@@ -185,6 +206,38 @@ internal class ProofResolutionStageRunner(
     containingDeclarations = emptyList(), // TODO()
     origin = FirFunctionCallOrigin.Regular, // TODO()
   )
+
+  private fun typeArgIndex(
+    typeArgs: List<FirTypeParameterSymbol>,
+    expressionType: ConeKotlinType
+  ) = typeArgs.indexOfFirst { it.name.asString() == expressionType.toString() }
+
+  private fun typeArgs(type: ConeKotlinType) =
+    type.toRegularClassSymbol(session)?.typeParameterSymbols.orEmpty()
+
+  private fun targetType(
+    type: ConeKotlinType,
+    expressionType: ConeKotlinType
+  ): ConeKotlinType? {
+    val typeArgs = typeArgs(type)
+    val typeArgIndex = typeArgIndex(typeArgs, expressionType)
+    val targetType = if (typeArgIndex >= 0) type.typeArguments[typeArgIndex].type else null
+    return targetType
+  }
+
+  private fun targetTypeRef(
+    type: ConeKotlinType,
+    expressionType: ConeKotlinType
+  ): FirResolvedTypeRef {
+    val targetType = targetType(type, expressionType)
+
+    val typeRef = if (targetType != null) buildResolvedTypeRef {
+      this.type = targetType
+    } else buildResolvedTypeRef {
+      this.type = expressionType
+    }
+    return typeRef
+  }
 
   private fun resolveCallInfo() = CallInfo(
     callSite = resolve, // TODO check generics
