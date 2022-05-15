@@ -5,7 +5,7 @@ import foo.bar.annotations.Given
 
 @Given internal fun intProvider(): Int = 42
 
-class Foo<A>(val n: A)
+data class Foo<A>(val n: A)
 
 @Given internal fun <A> fooProvider(@Given x: A): Foo<A> = Foo(x)
 

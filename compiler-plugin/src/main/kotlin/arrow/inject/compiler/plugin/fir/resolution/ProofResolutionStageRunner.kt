@@ -207,38 +207,6 @@ internal class ProofResolutionStageRunner(
     origin = FirFunctionCallOrigin.Regular, // TODO()
   )
 
-  private fun typeArgIndex(
-    typeArgs: List<FirTypeParameterSymbol>,
-    expressionType: ConeKotlinType
-  ) = typeArgs.indexOfFirst { it.name.asString() == expressionType.toString() }
-
-  private fun typeArgs(type: ConeKotlinType) =
-    type.toRegularClassSymbol(session)?.typeParameterSymbols.orEmpty()
-
-  private fun targetType(
-    type: ConeKotlinType,
-    expressionType: ConeKotlinType
-  ): ConeKotlinType? {
-    val typeArgs = typeArgs(type)
-    val typeArgIndex = typeArgIndex(typeArgs, expressionType)
-    val targetType = if (typeArgIndex >= 0) type.typeArguments[typeArgIndex].type else null
-    return targetType
-  }
-
-  private fun targetTypeRef(
-    type: ConeKotlinType,
-    expressionType: ConeKotlinType
-  ): FirResolvedTypeRef {
-    val targetType = targetType(type, expressionType)
-
-    val typeRef = if (targetType != null) buildResolvedTypeRef {
-      this.type = targetType
-    } else buildResolvedTypeRef {
-      this.type = expressionType
-    }
-    return typeRef
-  }
-
   private fun resolveCallInfo() = CallInfo(
     callSite = resolve, // TODO check generics
     callKind = CallKind.Function,

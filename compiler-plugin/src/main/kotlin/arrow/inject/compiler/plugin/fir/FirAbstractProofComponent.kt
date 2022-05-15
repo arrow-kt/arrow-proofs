@@ -9,6 +9,7 @@ import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import org.jetbrains.kotlin.fir.FirAnnotationContainer
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
+import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.backend.Fir2IrSignatureComposer
 import org.jetbrains.kotlin.fir.backend.jvm.FirJvmKotlinMangler
 import org.jetbrains.kotlin.fir.declarations.FirClass
@@ -28,8 +29,12 @@ import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.signaturer.FirBasedSignatureComposer
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
+import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
+import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.ir.util.IdSignature
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -126,4 +131,36 @@ internal interface FirAbstractProofComponent {
 
   val FirDeclaration.contextFqNames: Set<FqName>
     get() = annotations.filter { it.isContextAnnotation }.mapNotNull { it.fqName(session) }.toSet()
+
+  private fun typeArgIndex(
+    typeArgs: List<FirTypeParameterSymbol>,
+    expressionType: ConeKotlinType
+  ) = typeArgs.indexOfFirst { it.name.asString() == expressionType.toString() }
+
+  fun typeArgs(type: ConeKotlinType) =
+    type.toRegularClassSymbol(session)?.typeParameterSymbols.orEmpty()
+
+  fun targetType(
+    type: ConeKotlinType,
+    expressionType: ConeKotlinType
+  ): ConeKotlinType? {
+    val typeArgs = typeArgs(type)
+    val typeArgIndex = typeArgIndex(typeArgs, expressionType)
+    val targetType = if (typeArgIndex >= 0) type.typeArguments[typeArgIndex].type else null
+    return targetType
+  }
+
+  fun targetTypeRef(
+    type: ConeKotlinType,
+    expressionType: ConeKotlinType
+  ): FirResolvedTypeRef {
+    val targetType = targetType(type, expressionType)
+
+    val typeRef = if (targetType != null) buildResolvedTypeRef {
+      this.type = targetType
+    } else buildResolvedTypeRef {
+      this.type = expressionType
+    }
+    return typeRef
+  }
 }

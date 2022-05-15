@@ -101,11 +101,13 @@ internal class MissingInductiveDependenciesRule(
               val contextAnnotationFqName =
                 firValueParameter.metaContextAnnotations.firstOrNull()?.fqName(session)
 
+              val targetType = targetTypeRef(proofResolution.targetType as ConeKotlinType, firValueParameter.symbol.resolvedReturnType)
+
               val parameterResolveProof =
                 if (contextAnnotationFqName != null) {
                   resolveProof(
                     contextAnnotationFqName,
-                    firValueParameter.symbol.resolvedReturnType,
+                    targetType.type,
                   )
                 } else {
                   null
