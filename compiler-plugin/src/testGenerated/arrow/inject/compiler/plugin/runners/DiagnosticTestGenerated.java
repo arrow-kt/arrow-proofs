@@ -22,6 +22,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     }
 
     @Test
+    @TestMetadata("ambiguous_internal_orphans.kt")
+    public void testAmbiguous_internal_orphans() throws Exception {
+        runTest("src/testData/diagnostics/ambiguous_internal_orphans.kt");
+    }
+
+    @Test
     @TestMetadata("ambiguous_type_bounds_based_injection.kt")
     public void testAmbiguous_type_bounds_based_injection() throws Exception {
         runTest("src/testData/diagnostics/ambiguous_type_bounds_based_injection.kt");
