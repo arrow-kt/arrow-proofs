@@ -63,110 +63,25 @@ internal class ProofResolutionStageRunner(
 
   fun List<Proof>.matchingCandidates(type: ConeKotlinType): Set<Candidate> {
     val resolveCallInfo =
-      CallInfo(
-        callSite = resolve, // TODO check generics
-        callKind = CallKind.Function,
-        name = resolve.name,
-        explicitReceiver = null, // TODO()
-        argumentList = FirEmptyArgumentList,
-        isImplicitInvoke = false,
-        typeArguments = emptyList(),
-        session = session,
-        containingFile = fakeFirFile,
-        containingDeclarations = emptyList(), // TODO()
-        origin = FirFunctionCallOrigin.Regular, // TODO()
-      )
+      resolveCallInfo()
 
     val candidateFactory =
       CandidateFactory(firBodyResolveTransformer.resolutionContext, resolveCallInfo)
 
     return mapNotNull { proof ->
-        val proofDeclaration: FirDeclaration = proof.declaration
-        val proofCallInfo =
-          CallInfo(
-            callSite = proof.declaration,
-            callKind =
-              when (proof.declaration) {
-                is FirFunction -> CallKind.Function
-                else -> CallKind.VariableAccess
-              },
-            name = (proof.declaration.symbol as? FirCallableSymbol)?.name
-                ?: Name.identifier("Unsupported"),
-            explicitReceiver = null, // TODO()
-            argumentList =
-              if (proofDeclaration is FirFunction) {
-                buildArgumentList {
-                  arguments +=
-                    (proofDeclaration).symbol.valueParameterSymbols.map { valueParameter ->
-                      buildFunctionCall {
-                        typeRef = valueParameter.resolvedReturnTypeRef
-                        argumentList = buildResolvedArgumentList(LinkedHashMap())
-                        typeArguments +=
-                          valueParameter.typeParameterSymbols.map {
-                            buildTypeProjectionWithVariance {
-                              typeRef = valueParameter.resolvedReturnTypeRef
-                              variance = Variance.OUT_VARIANCE // TODO()
-                            }
-                          }
-                        calleeReference = buildResolvedNamedReference {
-                          name = resolve.name
-                          resolvedSymbol = resolve.symbol
-                        }
-                      }
-                    }
-                } // TODO()
-              } else FirEmptyArgumentList,
-            isImplicitInvoke = false,
-            typeArguments =
-              proof.declaration.symbol.typeParameterSymbols.orEmpty().map { typeParameterSymbol ->
-                buildTypeProjectionWithVariance {
-                  typeRef = buildResolvedTypeRef { this.type = type }
-                  variance = typeParameterSymbol.variance
-                }
-              },
-            session = session,
-            containingFile = fakeFirFile,
-            containingDeclarations = emptyList(), // TODO()
-            origin = FirFunctionCallOrigin.Regular, // TODO()
-          )
+      val proofDeclaration: FirDeclaration = proof.declaration
+      val proofCallInfo =
+        proof.proofCallInfo(proofDeclaration, type)
 
-        val candidate: Candidate =
-          candidateFactory.createCandidate(
-            callInfo = proofCallInfo,
-            symbol = proof.declaration.symbol,
-            explicitReceiverKind = ExplicitReceiverKind.NO_EXPLICIT_RECEIVER,
-            scope = null, // TODO()
-            dispatchReceiverValue = null, // TODO()
-            givenExtensionReceiverOptions = emptyList(), // TODO()
-            objectsByName = false, // TODO()
-          )
+      val candidate: Candidate = candidate(candidateFactory, proofCallInfo, proof)
 
-        val candidateApplicability =
-          resultResolutionStageRunner.processCandidate(
-            candidate = candidate,
-            context = firBodyResolveTransformer.resolutionContext,
-            stopOnFirstError = true, // TODO()
-          )
+      val candidateApplicability = candidate.applicability()
 
-        val isCandidateApplicability = candidateApplicability == CandidateApplicability.RESOLVED
+      val isCandidateApplicability = candidateApplicability == CandidateApplicability.RESOLVED
 
-        if (!isCandidateApplicability) return@mapNotNull null
+      if (isCandidateApplicability) {
 
-        val firFunctionCall = buildFunctionCall {
-          typeRef = proof.declaration.coneType?.toFirResolvedTypeRef()!! // TODO()
-          argumentList = FirEmptyArgumentList // TODO()
-          calleeReference =
-            FirNamedReferenceWithCandidate(
-              source = proof.declaration.source,
-              name = (proof.declaration.symbol as? FirCallableSymbol)?.name
-                  ?: Name.identifier("Unsupported"),
-              candidate =
-                candidate.apply {
-                  substitutor = ConeSubstitutor.Empty // TODO()
-                  freshVariables = emptyList()
-                },
-            )
-        }
+        val firFunctionCall = proof.firFunctionCall(candidate)
 
         val (_: FirFunctionCall, isCallCompleted: Boolean) =
           firCallCompleter.completeCall(
@@ -175,14 +90,115 @@ internal class ProofResolutionStageRunner(
             expectedTypeMismatchIsReportedInChecker = true
           )
 
-        if (!isCallCompleted) return@mapNotNull null
-
-        if (candidate.errors.isNotEmpty()) return@mapNotNull null
-
-        candidate
-      }
-      .toSet()
+        if (isCallCompleted && candidate.errors.isEmpty()) candidate
+        else null
+      } else null
+    }.toSet()
   }
+
+  private fun Proof.firFunctionCall(
+    candidate: Candidate
+  ): FirFunctionCall =
+    buildFunctionCall {
+      typeRef = declaration.coneType?.toFirResolvedTypeRef()!! // TODO()
+      argumentList = FirEmptyArgumentList // TODO()
+      calleeReference =
+        FirNamedReferenceWithCandidate(
+          source = declaration.source,
+          name = (declaration.symbol as? FirCallableSymbol)?.name
+            ?: Name.identifier("Unsupported"),
+          candidate =
+          candidate.apply {
+            substitutor = ConeSubstitutor.Empty // TODO()
+            freshVariables = emptyList()
+          },
+        )
+    }
+
+  private fun Candidate.applicability(): CandidateApplicability =
+    resultResolutionStageRunner.processCandidate(
+      candidate = this,
+      context = firBodyResolveTransformer.resolutionContext,
+      stopOnFirstError = true, // TODO()
+    )
+
+  private fun candidate(
+    candidateFactory: CandidateFactory,
+    proofCallInfo: CallInfo,
+    proof: Proof
+  ) = candidateFactory.createCandidate(
+    callInfo = proofCallInfo,
+    symbol = proof.declaration.symbol,
+    explicitReceiverKind = ExplicitReceiverKind.NO_EXPLICIT_RECEIVER,
+    scope = null, // TODO()
+    dispatchReceiverValue = null, // TODO()
+    givenExtensionReceiverOptions = emptyList(), // TODO()
+    objectsByName = false, // TODO()
+  )
+
+  private fun Proof.proofCallInfo(
+    proofDeclaration: FirDeclaration,
+    type: ConeKotlinType
+  ): CallInfo = CallInfo(
+    callSite = declaration,
+    callKind =
+    when (declaration) {
+      is FirFunction -> CallKind.Function
+      else -> CallKind.VariableAccess
+    },
+    name = (declaration.symbol as? FirCallableSymbol)?.name
+      ?: Name.identifier("Unsupported"),
+    explicitReceiver = null, // TODO()
+    argumentList =
+    if (proofDeclaration is FirFunction) {
+      buildArgumentList {
+        arguments +=
+          (proofDeclaration).symbol.valueParameterSymbols.map { valueParameter ->
+            buildFunctionCall {
+              typeRef = valueParameter.resolvedReturnTypeRef
+              argumentList = buildResolvedArgumentList(LinkedHashMap())
+              typeArguments +=
+                valueParameter.typeParameterSymbols.map {
+                  buildTypeProjectionWithVariance {
+                    typeRef = valueParameter.resolvedReturnTypeRef
+                    variance = Variance.OUT_VARIANCE // TODO()
+                  }
+                }
+              calleeReference = buildResolvedNamedReference {
+                name = resolve.name
+                resolvedSymbol = resolve.symbol
+              }
+            }
+          }
+      } // TODO()
+    } else FirEmptyArgumentList,
+    isImplicitInvoke = false,
+    typeArguments =
+    declaration.symbol.typeParameterSymbols.orEmpty().map { typeParameterSymbol ->
+      buildTypeProjectionWithVariance {
+        typeRef = buildResolvedTypeRef { this.type = type }
+        variance = typeParameterSymbol.variance
+      }
+    },
+    session = session,
+    containingFile = fakeFirFile,
+    containingDeclarations = emptyList(), // TODO()
+    origin = FirFunctionCallOrigin.Regular, // TODO()
+  )
+
+  private fun resolveCallInfo() = CallInfo(
+    callSite = resolve, // TODO check generics
+    callKind = CallKind.Function,
+    name = resolve.name,
+    explicitReceiver = null, // TODO()
+    argumentList = FirEmptyArgumentList,
+    isImplicitInvoke = false,
+    typeArguments = emptyList(),
+    session = session,
+    containingFile = fakeFirFile,
+    containingDeclarations = emptyList(), // TODO()
+    origin = FirFunctionCallOrigin.Regular, // TODO()
+  )
 
   private val fakeFirFile: FirFile
     get() = buildFile {
