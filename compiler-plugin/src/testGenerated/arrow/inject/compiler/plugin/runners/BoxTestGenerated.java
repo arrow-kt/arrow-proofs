@@ -71,6 +71,12 @@ public class BoxTestGenerated extends AbstractBoxTest {
     }
 
     @Test
+    @TestMetadata("given_internal_orphan_override.kt")
+    public void testGiven_internal_orphan_override() throws Exception {
+        runTest("src/testData/box/context/given_internal_orphan_override.kt");
+    }
+
+    @Test
     @TestMetadata("member_injection_class_.kt")
     public void testMember_injection_class_() throws Exception {
         runTest("src/testData/box/context/member_injection_class_.kt");

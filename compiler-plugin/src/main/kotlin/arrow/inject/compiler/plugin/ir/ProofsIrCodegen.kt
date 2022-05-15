@@ -11,16 +11,13 @@ import arrow.inject.compiler.plugin.model.asProofCacheKey
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
-import org.jetbrains.kotlin.fir.analysis.checkers.toRegularClassSymbol
+import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirFunction
+import org.jetbrains.kotlin.fir.declarations.FirMemberDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirProperty
-import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
-import org.jetbrains.kotlin.fir.types.ConeKotlinType
-import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
-import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
-import org.jetbrains.kotlin.fir.types.type
+import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
@@ -30,7 +27,6 @@ import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrProperty
-import org.jetbrains.kotlin.ir.declarations.IrTypeParameter
 import org.jetbrains.kotlin.ir.declarations.IrTypeParametersContainer
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
@@ -107,28 +103,29 @@ class ProofsIrCodegen(
     }
   }
 
-  private fun typeArgIndex(
-    typeArgs: List<TypeParameterDescriptor>,
-    expressionType: IrType
-  ) = typeArgs.indexOfFirst {
-    it.name.asString() == expressionType.dumpKotlinLike()
-  }
+  private fun typeArgIndex(typeArgs: List<TypeParameterDescriptor>, expressionType: IrType) =
+    typeArgs.indexOfFirst { it.name.asString() == expressionType.dumpKotlinLike() }
 
   fun typeArgs(type: IrType): List<TypeParameterDescriptor> =
-    (type.toIrBasedKotlinType().constructor.declarationDescriptor as? ClassDescriptor)?.declaredTypeParameters.orEmpty()
+    (type.toIrBasedKotlinType().constructor.declarationDescriptor as? ClassDescriptor)
+      ?.declaredTypeParameters.orEmpty()
 
-  fun targetType(
-    type: IrType,
-    expressionType: IrType
-  ): IrType? {
+  fun targetType(type: IrType, expressionType: IrType): IrType? {
     val typeArgs = typeArgs(type)
     val typeArgIndex = typeArgIndex(typeArgs, expressionType)
     return if (typeArgIndex >= 0) type.getArgument(typeArgIndex) as? IrType else null
   }
 
   private fun givenProofCall(contextFqName: FqName, kotlinType: KotlinType): IrExpression? =
-    proofCache.getProofFromCache(kotlinType.asProofCacheKey(contextFqName))?.proof?.let { proof ->
-      substitutedProofCall(proof, kotlinType)
+    proofCache.getProofFromCache(kotlinType.asProofCacheKey(contextFqName))?.let { proofResolution
+      ->
+      val proof = proofResolution.proof
+      val ambiguousProofs = proofResolution.ambiguousProofs
+      val internalProof =
+        ambiguousProofs.firstOrNull {
+          (it.declaration as? FirMemberDeclaration)?.visibility == Visibilities.Internal
+        }
+      if (proof != null) substitutedProofCall(internalProof ?: proof, kotlinType) else null
     }
 
   private fun substitutedProofCall(proof: Proof, kotlinType: KotlinType): IrExpression =

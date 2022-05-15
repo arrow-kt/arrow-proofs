@@ -1,6 +1,9 @@
 package arrow.inject.compiler.plugin.model
 
+import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
+import org.jetbrains.kotlin.fir.declarations.FirMemberDeclaration
+import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.fir.renderWithType
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
@@ -36,7 +39,13 @@ data class ProofResolution(
 ) {
 
   val isAmbiguous: Boolean
-    get() = ambiguousProofs.isNotEmpty() && proof != null
+    get() =
+      ambiguousProofs.count() >= 2 &&
+        proof != null &&
+        (ambiguousProofs.all { it.isInternal } || ambiguousProofs.none { it.isInternal })
+
+  private val Proof.isInternal
+    get() = (declaration as? FirMemberDeclaration)?.visibility == Visibilities.Internal
 }
 
 data class ProofCacheKey(

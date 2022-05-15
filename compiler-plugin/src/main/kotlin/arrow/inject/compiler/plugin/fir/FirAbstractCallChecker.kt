@@ -57,7 +57,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent {
       proof = candidate?.asProof(),
       targetType = type,
       ambiguousProofs =
-        (candidates - candidate).mapNotNull { ambiguousCandidate ->
+        candidates.mapNotNull { ambiguousCandidate ->
           ambiguousCandidate?.let { Proof.Implication(it.symbol.fir.idSignature, it.symbol.fir) }
         },
     )
