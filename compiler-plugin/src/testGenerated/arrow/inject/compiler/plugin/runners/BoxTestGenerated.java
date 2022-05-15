@@ -113,6 +113,12 @@ public class BoxTestGenerated extends AbstractBoxTest {
     }
 
     @Test
+    @TestMetadata("primitive_internal_orphan_override.kt")
+    public void testPrimitive_internal_orphan_override() throws Exception {
+        runTest("src/testData/box/context/primitive_internal_orphan_override.kt");
+    }
+
+    @Test
     @TestMetadata("provider_supports_multiple_contexts.kt")
     public void testProvider_supports_multiple_contexts() throws Exception {
         runTest("src/testData/box/context/provider_supports_multiple_contexts.kt");
