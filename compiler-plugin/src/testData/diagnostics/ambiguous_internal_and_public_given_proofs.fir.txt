@@ -1,0 +1,42 @@
+FILE: ambiguous_internal_and_public_given_proofs.kt
+    package foo.bar
+
+    public final data class Person : R|kotlin/Any| {
+        public constructor(name: R|kotlin/String|, age: R|kotlin/Int|): R|foo/bar/Person| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val name: R|kotlin/String| = R|<local>/name|
+            public get(): R|kotlin/String|
+
+        public final val age: R|kotlin/Int| = R|<local>/age|
+            public get(): R|kotlin/Int|
+
+        public final operator fun component1(): R|kotlin/String|
+
+        public final operator fun component2(): R|kotlin/Int|
+
+        public final fun copy(name: R|kotlin/String| = this@R|foo/bar/Person|.R|foo/bar/Person.name|, age: R|kotlin/Int| = this@R|foo/bar/Person|.R|foo/bar/Person.age|): R|foo/bar/Person|
+
+    }
+    @R|foo/bar/annotations/Given|() public final fun person1(): R|foo/bar/Person| {
+        ^person1 R|foo/bar/Person.Person|(String(X), Int(0))
+    }
+    @R|foo/bar/annotations/Given|() public final fun person2(): R|foo/bar/Person| {
+        ^person2 R|foo/bar/Person.Person|(String(X), Int(0))
+    }
+    @R|foo/bar/annotations/Given|() internal final fun person3(): R|foo/bar/Person| {
+        ^person3 R|foo/bar/Person.Person|(String(X), Int(0))
+    }
+    @R|foo/bar/annotations/Given|() internal final fun person4(): R|foo/bar/Person| {
+        ^person4 R|foo/bar/Person.Person|(String(X), Int(0))
+    }
+    @R|arrow/inject/annotations/Inject|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A|): R|A| {
+        ^given R|<local>/a|
+    }
+    public final val result: R|A| = R|SubstitutionOverride<foo/bar/given: R|A|>|<R|foo/bar/Person|>()
+        public get(): R|A|
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/CompileTime|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A| = R|arrow/inject/annotations/resolve|(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|A|

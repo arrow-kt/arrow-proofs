@@ -40,9 +40,12 @@ data class ProofResolution(
 
   val isAmbiguous: Boolean
     get() =
-      ambiguousProofs.count() >= 2 &&
-        proof != null &&
-        (ambiguousProofs.all { it.isInternal } || ambiguousProofs.none { it.isInternal })
+      when {
+        ambiguousProofs.count() > 2 && proof != null -> true
+        ambiguousProofs.count() == 2 &&
+          (ambiguousProofs.all { it.isInternal } || ambiguousProofs.none { it.isInternal }) -> true
+        else -> false
+      }
 
   private val Proof.isInternal
     get() = (declaration as? FirMemberDeclaration)?.visibility == Visibilities.Internal
