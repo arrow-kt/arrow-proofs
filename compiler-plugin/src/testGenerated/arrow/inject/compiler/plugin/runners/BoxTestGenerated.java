@@ -18,6 +18,12 @@ import java.util.regex.Pattern;
 @TestDataPath("$PROJECT_ROOT")
 public class BoxTestGenerated extends AbstractBoxTest {
     @Test
+    @TestMetadata("a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt")
+    public void testA_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved() throws Exception {
+        runTest("src/testData/box/context/a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt");
+    }
+
+    @Test
     @TestMetadata("a_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt")
     public void testA_provider_may_have_injection_arguments_which_are_polymorphically_resolved() throws Exception {
         runTest("src/testData/box/context/a_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt");
