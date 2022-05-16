@@ -14,6 +14,6 @@ dependencyResolutionManagement {
 }
 
 include(
-  "annotations",
-  ":compiler-plugin",
+  ":inject-annotations",
+  ":inject-compiler-plugin",
 )

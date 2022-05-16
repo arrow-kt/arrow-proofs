@@ -1,4 +1,4 @@
 allprojects {
-    group = "io.arrow-kt:inject"
+    group = "io.arrow-kt"
     version = "0.1.0"
 }
