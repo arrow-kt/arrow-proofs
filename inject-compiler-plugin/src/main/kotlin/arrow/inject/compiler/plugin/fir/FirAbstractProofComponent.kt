@@ -6,6 +6,9 @@ import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
 import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
+import org.jetbrains.kotlin.descriptors.EffectiveVisibility
+import org.jetbrains.kotlin.descriptors.Modality
+import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.FirAnnotationContainer
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
@@ -15,28 +18,56 @@ import org.jetbrains.kotlin.fir.backend.jvm.FirJvmKotlinMangler
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationAttributes
+import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
+import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
 import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
+import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
+import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
+import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
+import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
+import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
+import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotation
+import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
+import org.jetbrains.kotlin.fir.expressions.impl.FirEmptyAnnotationArgumentMapping
 import org.jetbrains.kotlin.fir.extensions.predicate.DeclarationPredicate
 import org.jetbrains.kotlin.fir.extensions.predicate.has
+import org.jetbrains.kotlin.fir.moduleData
+import org.jetbrains.kotlin.fir.originalForSubstitutionOverrideAttr
+import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
+import org.jetbrains.kotlin.fir.resolve.constructType
 import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.signaturer.FirBasedSignatureComposer
+import org.jetbrains.kotlin.fir.symbols.ConeTypeParameterLookupTag
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
+import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.ConeLookupTagBasedType
+import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
+import org.jetbrains.kotlin.fir.types.builder.buildTypeProjectionWithVariance
 import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.fir.types.impl.ConeTypeParameterTypeImpl
 import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.ir.util.IdSignature
+import org.jetbrains.kotlin.name.CallableId
+import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.types.Variance
+
+val callableId = CallableId(FqName("arrow.inject.annotations"), Name.identifier("resolve"))
+val originalSymbol = FirNamedFunctionSymbol(callableId)
 
 internal interface FirAbstractProofComponent {
 
@@ -68,11 +99,65 @@ internal interface FirAbstractProofComponent {
     get() = checkNotNull(composer.composeSignature(this))
 
   val resolve: FirSimpleFunction
+    get() {
+//      return session.symbolProvider
+//        .getTopLevelCallableSymbols(FqName("arrow.inject.annotations"), Name.identifier("resolve"))
+//        .first()
+//        .fir as FirSimpleFunction
+      val typeArg = buildTypeParameter {
+        moduleData = session.moduleData
+        resolvePhase = FirResolvePhase.RAW_FIR
+        origin = ProofKey.origin
+        attributes = FirDeclarationAttributes() // TODO()
+        name = Name.identifier("A")
+        symbol = FirTypeParameterSymbol()
+        containingDeclarationSymbol = originalSymbol
+        variance = Variance.OUT_VARIANCE
+        isReified = false
+      }
+      return buildSimpleFunction {
+        resolvePhase = FirResolvePhase.BODY_RESOLVE
+        moduleData = session.moduleData
+        origin = ProofKey.origin
+        status =
+          FirResolvedDeclarationStatusImpl(
+            Visibilities.Public,
+            Modality.FINAL,
+            EffectiveVisibility.Public,
+          )
+        returnTypeRef = buildResolvedTypeRef {
+          this.type = ConeTypeParameterTypeImpl(
+            ConeTypeParameterLookupTag(typeArg.symbol),
+            false
+          )
+        }
+        name = callableId.callableName
+        symbol = originalSymbol
+        annotations += buildAnnotation {
+          annotationTypeRef = buildResolvedTypeRef { type = resolveAnnotationType }
+          argumentMapping = FirEmptyAnnotationArgumentMapping
+        }
+        typeParameters +=
+          listOf(
+            typeArg
+          )
+      }
+    }
+
+  private val resolveAnnotationType: ConeLookupTagBasedType
     get() =
       session.symbolProvider
-        .getTopLevelCallableSymbols(FqName("arrow.inject.annotations"), Name.identifier("resolve"))
-        .first()
-        .fir as FirSimpleFunction
+        .getClassLikeSymbolByClassId(
+          ClassId.fromString(
+            ProofAnnotationsFqName.ResolveAnnotation.asString().replace(".", "/")
+          )
+        )!!
+        .fir.symbol.constructType(emptyArray(), false)
+
+//      session.symbolProvider
+//        .getTopLevelCallableSymbols(FqName("arrow.inject.annotations"), Name.identifier("resolve"))
+//        .first()
+//        .fir as FirSimpleFunction
 
   val FirAnnotation.isContextAnnotation: Boolean
     get() {

@@ -164,7 +164,7 @@ private fun FirSession.topLevelFunctionSymbolProviders(
   method: Method
 ): List<FirNamedFunctionSymbol> =
   symbolProvider.getTopLevelFunctionSymbols(
-    FqName(method.declaringClass.packageName),
+    FqName(method.declaringClass.`package`.name),
     Name.identifier(method.namedSanitized)
   )
 
@@ -178,7 +178,7 @@ private fun FirSession.classDeclaredPropertySymbolProviders(
 
 private fun FirSession.topLevelPropertySymbolProviders(method: Method): List<FirPropertySymbol> =
   symbolProvider.getTopLevelPropertySymbols(
-    FqName(method.declaringClass.packageName),
+    FqName(method.declaringClass.`package`.name),
     Name.identifier(method.namedSanitized)
   )
 
