@@ -1,4 +1,5 @@
 [versions]
+arrowGradleConfig = "0.10.2"
 classgraph = "4.8.146"
 kotlin = "1.7.20-dev-474"
 reflections = "0.10.2"
@@ -15,4 +16,6 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 reflections = { module = "org.reflections:reflections", version.ref = "reflections" }
 
 [plugins]
+arrowGradleConfig-kotlin = { id = "io.arrow-kt.arrow-gradle-config-kotlin", version.ref = "arrowGradleConfig" }
+arrowGradleConfig-publish = { id = "io.arrow-kt.arrow-gradle-config-publish", version.ref = "arrowGradleConfig" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

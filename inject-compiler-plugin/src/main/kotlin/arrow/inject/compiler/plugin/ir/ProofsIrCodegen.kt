@@ -58,7 +58,7 @@ import org.jetbrains.kotlin.types.model.TypeArgumentMarker
 import org.jetbrains.kotlin.types.model.TypeSystemContext
 import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 
-class ProofsIrCodegen(
+internal class ProofsIrCodegen(
   private val proofCache: ProofCache,
   private val moduleFragment: IrModuleFragment,
   irPluginContext: IrPluginContext

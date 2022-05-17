@@ -15,7 +15,7 @@ import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.SimpleType
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 
-sealed class Proof {
+internal sealed class Proof {
 
   abstract val idSignature: IdSignature
 
@@ -32,7 +32,7 @@ sealed class Proof {
   ) : Proof()
 }
 
-data class ProofResolution(
+internal data class ProofResolution(
   val proof: Proof?,
   val targetType: KotlinTypeMarker,
   val ambiguousProofs: List<Proof>,
@@ -51,7 +51,7 @@ data class ProofResolution(
     get() = (declaration as? FirMemberDeclaration)?.visibility == Visibilities.Internal
 }
 
-data class ProofCacheKey(
+internal data class ProofCacheKey(
   val contextFqName: FqName,
   val name: String,
   val typeArguments: List<ProofCacheKey>,

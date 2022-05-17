@@ -12,7 +12,7 @@ import org.jetbrains.kotlin.fir.expressions.FirCall
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 
-object FirMetaErrors {
+internal object FirMetaErrors {
 
   val PUBLISHED_INTERNAL_ORPHAN by error0<KtDeclaration>(SELECTOR_BY_QUALIFIED)
 

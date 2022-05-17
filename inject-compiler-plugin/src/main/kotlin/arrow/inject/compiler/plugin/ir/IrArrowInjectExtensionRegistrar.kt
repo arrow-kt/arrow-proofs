@@ -12,7 +12,7 @@ import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
 
-class IrArrowInjectExtensionRegistrar(private val proofCache: ProofCache) : IrGenerationExtension {
+public class IrArrowInjectExtensionRegistrar(private val proofCache: ProofCache) : IrGenerationExtension {
 
   override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
     moduleFragment.irFunctionAccessExpression { call ->

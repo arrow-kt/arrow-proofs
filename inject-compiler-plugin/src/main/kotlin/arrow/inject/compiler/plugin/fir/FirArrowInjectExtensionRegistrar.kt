@@ -11,7 +11,7 @@ import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
 
-class FirArrowInjectExtensionRegistrar(
+public class FirArrowInjectExtensionRegistrar(
   private val proofCache: ProofCache,
 ) : FirExtensionRegistrar() {
 

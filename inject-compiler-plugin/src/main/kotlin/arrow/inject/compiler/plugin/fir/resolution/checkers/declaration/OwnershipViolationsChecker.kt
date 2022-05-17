@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.type
 
-class OwnershipViolationsChecker(override val session: FirSession) : FirAbstractDeclarationChecker {
+internal class OwnershipViolationsChecker(override val session: FirSession) : FirAbstractDeclarationChecker {
 
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 

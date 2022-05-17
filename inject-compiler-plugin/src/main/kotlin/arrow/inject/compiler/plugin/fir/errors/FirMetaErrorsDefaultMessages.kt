@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 import org.jetbrains.kotlin.diagnostics.rendering.Renderer
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 
-object FirMetaErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
+internal object FirMetaErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
 
   override val MAP: KtDiagnosticFactoryToRendererMap =
     KtDiagnosticFactoryToRendererMap("FirMeta").also { map ->

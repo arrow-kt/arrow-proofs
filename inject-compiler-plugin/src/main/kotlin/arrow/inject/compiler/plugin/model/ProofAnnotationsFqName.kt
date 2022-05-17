@@ -2,7 +2,7 @@ package arrow.inject.compiler.plugin.model
 
 import org.jetbrains.kotlin.fir.extensions.AnnotationFqn
 
-object ProofAnnotationsFqName {
+internal object ProofAnnotationsFqName {
 
   val CompileTimeAnnotation = AnnotationFqn("arrow.inject.annotations.CompileTime")
 
