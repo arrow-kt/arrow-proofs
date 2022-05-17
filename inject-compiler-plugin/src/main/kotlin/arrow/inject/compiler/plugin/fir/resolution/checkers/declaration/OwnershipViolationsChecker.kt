@@ -1,13 +1,12 @@
 @file:OptIn(InternalDiagnosticFactoryMethod::class)
 
-package arrow.inject.compiler.plugin.fir.resolution.rules
+package arrow.inject.compiler.plugin.fir.resolution.checkers.declaration
 
-import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
-import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.OWNERSHIP_VIOLATED_PROOF
+import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
 import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.descriptors.Visibilities
-import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy.Companion.DEFAULT
+import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
 import org.jetbrains.kotlin.fir.FirSession
@@ -21,24 +20,31 @@ import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.type
 
-class OwnershipViolationsRule(override val session: FirSession) : FirAbstractProofComponent {
+class OwnershipViolationsChecker(override val session: FirSession) : FirAbstractDeclarationChecker {
 
-  private val allProofs: List<Proof> by lazy { allCollectedProofs }
+  override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
   /**
    * Public Proofs are only valid, if they don't impose inconsistencies in the resolution process.
    * That is the associated type or types in the proof have to be user owned.
    * @see isUserOwned
    */
-  fun report(
-    firCallableDeclaration: FirCallableDeclaration,
+  override fun report(
+    declaration: FirCallableDeclaration,
     context: CheckerContext,
     reporter: DiagnosticReporter
   ) {
-    firCallableDeclaration.takeProofIfViolatingOwnershipRule()?.let {
+    declaration.takeProofIfViolatingOwnershipRule()?.let {
       val source: KtSourceElement? = it.declaration.source
       if (source != null) {
-        reporter.report(OWNERSHIP_VIOLATED_PROOF.on(source, it, DEFAULT), context)
+        reporter.report(
+          FirMetaErrors.OWNERSHIP_VIOLATED_PROOF.on(
+            source,
+            it,
+            AbstractSourceElementPositioningStrategy.DEFAULT
+          ),
+          context
+        )
       }
     }
   }

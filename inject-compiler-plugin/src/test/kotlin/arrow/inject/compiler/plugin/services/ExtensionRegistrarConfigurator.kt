@@ -1,7 +1,7 @@
 package arrow.inject.compiler.plugin.services
 
 import arrow.inject.compiler.plugin.fir.FirArrowInjectExtensionRegistrar
-import arrow.inject.compiler.plugin.fir.resolution.ProofCache
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.ir.IrArrowInjectExtensionRegistrar
 import com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension

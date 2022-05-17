@@ -2,7 +2,7 @@
 
 package arrow.inject.compiler.plugin.ir
 
-import arrow.inject.compiler.plugin.fir.resolution.ProofCache
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.CompileTimeAnnotation

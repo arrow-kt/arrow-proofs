@@ -1,13 +1,16 @@
 @file:OptIn(SymbolInternals::class)
 
-package arrow.inject.compiler.plugin.fir
+package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
-import arrow.inject.compiler.plugin.fir.resolution.ProofCache
-import arrow.inject.compiler.plugin.fir.resolution.ProofResolutionStageRunner
+import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionStageRunner
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofResolution
 import arrow.inject.compiler.plugin.model.asProofCacheKey
+import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
+import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.expressions.FirCall
@@ -37,6 +40,8 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent {
   val proofResolutionStageRunner: ProofResolutionStageRunner
 
   val allProofs: List<Proof>
+
+  fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter)
 
   fun Candidate.asProof(): Proof = Proof.Implication(symbol.fir.idSignature, symbol.fir)
 

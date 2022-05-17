@@ -1,11 +1,10 @@
 @file:OptIn(InternalDiagnosticFactoryMethod::class)
 
-package arrow.inject.compiler.plugin.fir.resolution.rules
+package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
-import arrow.inject.compiler.plugin.fir.FirAbstractCallChecker
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
-import arrow.inject.compiler.plugin.fir.resolution.ProofCache
-import arrow.inject.compiler.plugin.fir.resolution.ProofResolutionStageRunner
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionStageRunner
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.KtSourceElement
@@ -20,7 +19,7 @@ import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.toKtPsiSourceElement
 
-internal class UnresolvedCallSiteRule(
+internal class UnresolvedCallSiteChecker(
   override val proofCache: ProofCache,
   override val session: FirSession,
 ) : FirAbstractCallChecker {
@@ -31,7 +30,7 @@ internal class UnresolvedCallSiteRule(
 
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
-  fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
+  override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
     proofResolutionList(expression).let {
       resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
       resolvedParameters.forEach { (proofResolution, valueParameter) ->

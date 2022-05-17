@@ -1,4 +1,4 @@
-package arrow.inject.compiler.plugin.fir.resolution
+package arrow.inject.compiler.plugin.fir.resolution.resolver
 
 import arrow.inject.compiler.plugin.model.ProofCacheKey
 import arrow.inject.compiler.plugin.model.ProofResolution

@@ -1,11 +1,10 @@
-@file:OptIn(SymbolInternals::class, InternalDiagnosticFactoryMethod::class)
+@file:OptIn(InternalDiagnosticFactoryMethod::class, SymbolInternals::class)
 
-package arrow.inject.compiler.plugin.fir.resolution.rules
+package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
-import arrow.inject.compiler.plugin.fir.FirAbstractCallChecker
-import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.CIRCULAR_CYCLE_ON_GIVEN_PROOF
-import arrow.inject.compiler.plugin.fir.resolution.ProofCache
-import arrow.inject.compiler.plugin.fir.resolution.ProofResolutionStageRunner
+import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionStageRunner
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.KtSourceElement
@@ -27,7 +26,7 @@ import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.toKtPsiSourceElement
 
-internal class CyclesDetectionRule(
+internal class CyclesDetectionChecker(
   override val proofCache: ProofCache,
   override val session: FirSession,
 ) : FirAbstractCallChecker {
@@ -38,7 +37,7 @@ internal class CyclesDetectionRule(
 
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
-  fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
+  override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
     proofResolutionList(expression).let {
       resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
       resolvedParameters.forEach { (proofResolution, valueParameter) ->
@@ -50,7 +49,7 @@ internal class CyclesDetectionRule(
 
         if (cycles.size > 1 && expressionSource != null) {
           reporter.report(
-            CIRCULAR_CYCLE_ON_GIVEN_PROOF.on(
+            FirMetaErrors.CIRCULAR_CYCLE_ON_GIVEN_PROOF.on(
               expressionSource,
               valueParameterConeType,
               cycles,

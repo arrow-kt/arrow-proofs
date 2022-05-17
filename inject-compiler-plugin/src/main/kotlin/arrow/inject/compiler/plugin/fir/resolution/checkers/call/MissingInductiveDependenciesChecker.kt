@@ -1,11 +1,10 @@
-@file:OptIn(InternalDiagnosticFactoryMethod::class, SymbolInternals::class)
+@file:OptIn(SymbolInternals::class, InternalDiagnosticFactoryMethod::class)
 
-package arrow.inject.compiler.plugin.fir.resolution.rules
+package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
-import arrow.inject.compiler.plugin.fir.FirAbstractCallChecker
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
-import arrow.inject.compiler.plugin.fir.resolution.ProofCache
-import arrow.inject.compiler.plugin.fir.resolution.ProofResolutionStageRunner
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionStageRunner
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.KtSourceElement
@@ -34,7 +33,7 @@ import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.name.FqName
 
-internal class MissingInductiveDependenciesRule(
+internal class MissingInductiveDependenciesChecker(
   override val proofCache: ProofCache,
   override val session: FirSession,
 ) : FirAbstractCallChecker {
@@ -45,7 +44,7 @@ internal class MissingInductiveDependenciesRule(
 
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
-  fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
+  override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
     proofResolutionList(expression).let {
       resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
       resolvedParameters.forEach { (_, valueParameter) ->
