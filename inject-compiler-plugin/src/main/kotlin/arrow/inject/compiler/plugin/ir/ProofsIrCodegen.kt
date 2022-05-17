@@ -106,11 +106,11 @@ class ProofsIrCodegen(
   private fun typeArgIndex(typeArgs: List<TypeParameterDescriptor>, expressionType: IrType) =
     typeArgs.indexOfFirst { it.name.asString() == expressionType.dumpKotlinLike() }
 
-  fun typeArgs(type: IrType): List<TypeParameterDescriptor> =
+  private fun typeArgs(type: IrType): List<TypeParameterDescriptor> =
     (type.toIrBasedKotlinType().constructor.declarationDescriptor as? ClassDescriptor)
       ?.declaredTypeParameters.orEmpty()
 
-  fun targetType(type: IrType, expressionType: IrType): IrType? {
+  private fun targetType(type: IrType, expressionType: IrType): IrType? {
     val typeArgs = typeArgs(type)
     val typeArgIndex = typeArgIndex(typeArgs, expressionType)
     return if (typeArgIndex >= 0) type.getArgument(typeArgIndex) as? IrType else null

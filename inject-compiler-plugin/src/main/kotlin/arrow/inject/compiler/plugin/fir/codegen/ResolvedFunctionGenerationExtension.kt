@@ -6,20 +6,21 @@ import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.ProofKey
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import java.util.concurrent.atomic.AtomicInteger
-import org.jetbrains.kotlin.descriptors.EffectiveVisibility
-import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
 import org.jetbrains.kotlin.fir.containingClassForStaticMemberAttr
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationAttributes
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
+import org.jetbrains.kotlin.fir.declarations.FirResolvedDeclarationStatus
+import org.jetbrains.kotlin.fir.declarations.FirTypeParameter
+import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.declarations.builder.buildConstructor
 import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
+import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotation
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
@@ -37,6 +38,7 @@ import org.jetbrains.kotlin.fir.symbols.impl.ConeClassLikeLookupTagImpl
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
@@ -61,15 +63,21 @@ internal class ResolvedFunctionGenerationExtension(
   private val unitSymbol: FirClassLikeSymbol<*>
     get() = session.builtinTypes.unitType.toClassLikeSymbol(session)!!
 
-  private val compileTimeAnnotationType: ConeLookupTagBasedType
+  private val compileTimeAnnotationClassId: ClassId
     get() =
-      session.symbolProvider
-        .getClassLikeSymbolByClassId(
-          ClassId.fromString(
-            ProofAnnotationsFqName.CompileTimeAnnotation.asString().replace(".", "/")
-          )
-        )!!
-        .fir.symbol.constructType(emptyArray(), false)
+      ClassId.fromString(ProofAnnotationsFqName.CompileTimeAnnotation.asString().replace(".", "/"))
+
+  private val compileTimeAnnotationClassLikeSymbol: FirClassLikeSymbol<*>
+    get() =
+      checkNotNull(
+        session.symbolProvider.getClassLikeSymbolByClassId(compileTimeAnnotationClassId)
+      ) {
+        // TODO: rename this artifact if it is wrong before publishing the final release
+        "@CompileTime annotation is missing, add io.arrow-kt.inject-annotations"
+      }
+
+  private val compileTimeAnnotationType: ConeLookupTagBasedType
+    get() = compileTimeAnnotationClassLikeSymbol.fir.symbol.constructType(emptyArray(), false)
 
   override fun FirDeclarationPredicateRegistrar.registerPredicates() {
     register(contextPredicate)
@@ -108,7 +116,53 @@ internal class ResolvedFunctionGenerationExtension(
 
   override fun hasPackage(packageFqName: FqName): Boolean = true
 
-  private fun generateFreshUnitName() = "_unit${counter.getAndIncrement()}_"
+  private fun buildConstructorSymbol(
+    owner: FirClassSymbol<*>,
+    firConstructorSymbol: FirConstructorSymbol
+  ): FirConstructorSymbol {
+    val originalSymbol = FirConstructorSymbol(owner.classId)
+    return buildConstructor {
+        resolvePhase = FirResolvePhase.RAW_FIR
+        moduleData = firConstructorSymbol.moduleData
+        origin = FirDeclarationOrigin.SubstitutionOverride
+        status = buildStatus()
+        returnTypeRef = firConstructorSymbol.resolvedReturnTypeRef
+        symbol = originalSymbol
+        dispatchReceiverType = firConstructorSymbol.dispatchReceiverType
+        annotations += buildAnnotations()
+        typeParameters += buildTypeParameters(firConstructorSymbol, originalSymbol)
+        valueParameters +=
+          buildValueParameters(firConstructorSymbol) + unambiguousUnitValueParameter()
+      }
+      .apply {
+        this.containingClassForStaticMemberAttr = ConeClassLikeLookupTagImpl(owner.classId)
+        this.originalForSubstitutionOverrideAttr = firConstructorSymbol.fir
+      }
+      .symbol
+  }
+
+  private fun buildInjectableFunctionSymbol(
+    firNamedFunctionSymbol: FirNamedFunctionSymbol,
+    callableId: CallableId
+  ): FirNamedFunctionSymbol {
+    val originalSymbol = FirNamedFunctionSymbol(callableId)
+    return buildSimpleFunction {
+        resolvePhase = FirResolvePhase.BODY_RESOLVE
+        moduleData = firNamedFunctionSymbol.moduleData
+        origin = FirDeclarationOrigin.SubstitutionOverride
+        status = buildStatus()
+        returnTypeRef = firNamedFunctionSymbol.resolvedReturnTypeRef
+        name = callableId.callableName
+        symbol = originalSymbol
+        dispatchReceiverType = firNamedFunctionSymbol.dispatchReceiverType
+        annotations += buildAnnotations()
+        typeParameters += buildTypeParameters(firNamedFunctionSymbol, originalSymbol)
+        valueParameters +=
+          buildValueParameters(firNamedFunctionSymbol) + unambiguousUnitValueParameter()
+      }
+      .apply { this.originalForSubstitutionOverrideAttr = firNamedFunctionSymbol.fir }
+      .symbol
+  }
 
   private fun unambiguousUnitValueParameter() = buildValueParameter {
     val newName = Name.identifier(generateFreshUnitName())
@@ -131,193 +185,85 @@ internal class ResolvedFunctionGenerationExtension(
     }
   }
 
-  private fun buildConstructorSymbol(
-    owner: FirClassSymbol<*>,
-    firConstructorSymbol: FirConstructorSymbol
-  ): FirConstructorSymbol {
-    val originalSymbol = FirConstructorSymbol(owner.classId)
-    return buildConstructor {
-        resolvePhase = FirResolvePhase.RAW_FIR
-        moduleData = firConstructorSymbol.moduleData
-        origin = FirDeclarationOrigin.SubstitutionOverride
-        status =
-          FirResolvedDeclarationStatusImpl(
-            Visibilities.Public,
-            Modality.FINAL,
-            EffectiveVisibility.Public,
-          )
-        returnTypeRef = firConstructorSymbol.resolvedReturnTypeRef
-        symbol = originalSymbol
-        dispatchReceiverType = firConstructorSymbol.dispatchReceiverType
-        annotations += buildAnnotation {
-          annotationTypeRef = buildResolvedTypeRef { type = compileTimeAnnotationType }
-          argumentMapping = FirEmptyAnnotationArgumentMapping
-        }
-        typeParameters +=
-          firConstructorSymbol.typeParameterSymbols.map { typeParameter ->
-            buildTypeParameter {
-              moduleData = session.moduleData
-              resolvePhase = FirResolvePhase.RAW_FIR
-              origin = ProofKey.origin
-              attributes = FirDeclarationAttributes() // TODO()
-              name = typeParameter.name
-              symbol = FirTypeParameterSymbol()
-              containingDeclarationSymbol = originalSymbol
-              variance = typeParameter.variance
-              isReified = typeParameter.isReified
-              bounds += typeParameter.resolvedBounds
-              annotations += typeParameter.annotations
-            }
-          }
-        valueParameters +=
-          firConstructorSymbol.valueParameterSymbols.map { valueParameter ->
-            buildValueParameter {
-              moduleData = session.moduleData
-              resolvePhase = FirResolvePhase.RAW_FIR
-              origin = ProofKey.origin
-              attributes = valueParameter.fir.attributes
-              returnTypeRef = valueParameter.fir.returnTypeRef
-              deprecation = valueParameter.fir.deprecation
-              containerSource = valueParameter.fir.containerSource
-              dispatchReceiverType = valueParameter.fir.dispatchReceiverType
-              contextReceivers += valueParameter.fir.contextReceivers
-              name = valueParameter.fir.name
-              backingField = valueParameter.fir.backingField
-              symbol = FirValueParameterSymbol(valueParameter.fir.name)
-              annotations +=
-                valueParameter.annotations.map { firAnnotation ->
-                  buildAnnotation {
-                    annotationTypeRef = buildResolvedTypeRef {
-                      type = firAnnotation.annotationTypeRef.coneType
-                    }
-                    argumentMapping = FirEmptyAnnotationArgumentMapping
-                  }
-                }
-              defaultValue =
-                if (valueParameter.fir.hasMetaContextAnnotation) {
-                  buildFunctionCall {
-                    typeRef = valueParameter.resolvedReturnTypeRef
-                    argumentList = buildResolvedArgumentList(LinkedHashMap())
-                    typeArguments +=
-                      valueParameter.typeParameterSymbols.map {
-                        buildTypeProjectionWithVariance {
-                          typeRef = valueParameter.resolvedReturnTypeRef
-                          variance = Variance.OUT_VARIANCE // TODO()
-                        }
-                      }
-                    calleeReference = buildResolvedNamedReference {
-                      name = resolve.name
-                      resolvedSymbol = resolve.symbol
-                    }
-                  }
-                } else {
-                  valueParameter.fir.defaultValue
-                }
-              isCrossinline = valueParameter.fir.isCrossinline
-              isNoinline = valueParameter.fir.isNoinline
-              isVararg = valueParameter.fir.isVararg
-            }
-          }
-        valueParameters += unambiguousUnitValueParameter()
-      }
-      .apply {
-        this.containingClassForStaticMemberAttr = ConeClassLikeLookupTagImpl(owner.classId)
-        this.originalForSubstitutionOverrideAttr = firConstructorSymbol.fir
-      }
-      .symbol
+  private fun generateFreshUnitName() = "_unit${counter.getAndIncrement()}_"
+
+  private fun buildAnnotations(): FirAnnotation = buildAnnotation {
+    annotationTypeRef = buildResolvedTypeRef { type = compileTimeAnnotationType }
+    argumentMapping = FirEmptyAnnotationArgumentMapping
   }
 
-  private fun buildInjectableFunctionSymbol(
-    firNamedFunctionSymbol: FirNamedFunctionSymbol,
-    callableId: CallableId
-  ): FirNamedFunctionSymbol {
-    val originalSymbol = FirNamedFunctionSymbol(callableId)
-    return buildSimpleFunction {
-        resolvePhase = FirResolvePhase.BODY_RESOLVE
-        moduleData = firNamedFunctionSymbol.moduleData
-        origin = FirDeclarationOrigin.SubstitutionOverride
-        status =
-          FirResolvedDeclarationStatusImpl(
-            Visibilities.Public,
-            Modality.FINAL,
-            EffectiveVisibility.Public,
-          )
-        returnTypeRef = firNamedFunctionSymbol.resolvedReturnTypeRef
-        name = callableId.callableName
-        symbol = originalSymbol
-        dispatchReceiverType = firNamedFunctionSymbol.dispatchReceiverType
-        annotations += buildAnnotation {
-          annotationTypeRef = buildResolvedTypeRef { type = compileTimeAnnotationType }
-          argumentMapping = FirEmptyAnnotationArgumentMapping
-        }
-        typeParameters +=
-          firNamedFunctionSymbol.typeParameterSymbols.map { typeParameter ->
-            buildTypeParameter {
-              moduleData = session.moduleData
-              resolvePhase = FirResolvePhase.RAW_FIR
-              origin = ProofKey.origin
-              attributes = FirDeclarationAttributes() // TODO()
-              name = typeParameter.name
-              symbol = FirTypeParameterSymbol()
-              containingDeclarationSymbol = originalSymbol
-              variance = typeParameter.variance
-              isReified = typeParameter.isReified
-              bounds += typeParameter.resolvedBounds
-              annotations += typeParameter.annotations
-            }
-          }
-        valueParameters +=
-          firNamedFunctionSymbol.valueParameterSymbols.map { valueParameter ->
-            buildValueParameter {
-              moduleData = session.moduleData
-              resolvePhase = FirResolvePhase.BODY_RESOLVE
-              origin = ProofKey.origin
-              attributes = valueParameter.fir.attributes
-              returnTypeRef = valueParameter.fir.returnTypeRef
-              deprecation = valueParameter.fir.deprecation
-              containerSource = valueParameter.fir.containerSource
-              dispatchReceiverType = valueParameter.fir.dispatchReceiverType
-              contextReceivers += valueParameter.fir.contextReceivers
-              name = valueParameter.fir.name
-              backingField = valueParameter.fir.backingField
-              symbol = FirValueParameterSymbol(valueParameter.fir.name)
-              annotations +=
-                valueParameter.annotations.map { firAnnotation ->
-                  buildAnnotation {
-                    annotationTypeRef = buildResolvedTypeRef {
-                      type = firAnnotation.annotationTypeRef.coneType
-                    }
-                    argumentMapping = FirEmptyAnnotationArgumentMapping
-                  }
-                }
-              defaultValue =
-                if (valueParameter.fir.hasMetaContextAnnotation) {
-                  buildFunctionCall {
-                    typeRef = valueParameter.resolvedReturnTypeRef
-                    argumentList = buildResolvedArgumentList(LinkedHashMap())
-                    typeArguments +=
-                      valueParameter.typeParameterSymbols.map {
-                        buildTypeProjectionWithVariance {
-                          typeRef = valueParameter.resolvedReturnTypeRef
-                          variance = Variance.OUT_VARIANCE // TODO()
-                        }
-                      }
-                    calleeReference = buildResolvedNamedReference {
-                      name = resolve.name
-                      resolvedSymbol = resolve.symbol
-                    }
-                  }
-                } else {
-                  valueParameter.fir.defaultValue
-                }
-              isCrossinline = valueParameter.fir.isCrossinline
-              isNoinline = valueParameter.fir.isNoinline
-              isVararg = valueParameter.fir.isVararg
-            }
-          }
-        valueParameters += unambiguousUnitValueParameter()
+  private fun buildStatus(): FirResolvedDeclarationStatus =
+    FirResolvedDeclarationStatusImpl.DEFAULT_STATUS_FOR_STATUSLESS_DECLARATIONS
+
+  private fun buildTypeParameters(
+    firNamedFunctionSymbol: FirFunctionSymbol<*>,
+    originalSymbol: FirFunctionSymbol<*>
+  ): List<FirTypeParameter> =
+    firNamedFunctionSymbol.typeParameterSymbols.map { typeParameter ->
+      buildTypeParameter {
+        moduleData = session.moduleData
+        resolvePhase = FirResolvePhase.RAW_FIR
+        origin = ProofKey.origin
+        attributes = FirDeclarationAttributes() // TODO()
+        name = typeParameter.name
+        symbol = FirTypeParameterSymbol()
+        containingDeclarationSymbol = originalSymbol
+        variance = typeParameter.variance
+        isReified = typeParameter.isReified
+        bounds += typeParameter.resolvedBounds
+        annotations += typeParameter.annotations
       }
-      .apply { this.originalForSubstitutionOverrideAttr = firNamedFunctionSymbol.fir }
-      .symbol
-  }
+    }
+
+  private fun buildValueParameters(
+    firFunctionSymbol: FirFunctionSymbol<*>
+  ): List<FirValueParameter> =
+    firFunctionSymbol.valueParameterSymbols.map { valueParameter ->
+      buildValueParameter {
+        moduleData = session.moduleData
+        resolvePhase = FirResolvePhase.RAW_FIR
+        origin = ProofKey.origin
+        attributes = valueParameter.fir.attributes
+        returnTypeRef = valueParameter.fir.returnTypeRef
+        deprecation = valueParameter.fir.deprecation
+        containerSource = valueParameter.fir.containerSource
+        dispatchReceiverType = valueParameter.fir.dispatchReceiverType
+        contextReceivers += valueParameter.fir.contextReceivers
+        name = valueParameter.fir.name
+        backingField = valueParameter.fir.backingField
+        symbol = FirValueParameterSymbol(valueParameter.fir.name)
+        annotations +=
+          valueParameter.annotations.map { firAnnotation ->
+            buildAnnotation {
+              annotationTypeRef = buildResolvedTypeRef {
+                type = firAnnotation.annotationTypeRef.coneType
+              }
+              argumentMapping = FirEmptyAnnotationArgumentMapping
+            }
+          }
+        defaultValue =
+          if (valueParameter.fir.hasMetaContextAnnotation) {
+            buildFunctionCall {
+              typeRef = valueParameter.resolvedReturnTypeRef
+              argumentList = buildResolvedArgumentList(LinkedHashMap())
+              typeArguments +=
+                valueParameter.typeParameterSymbols.map {
+                  buildTypeProjectionWithVariance {
+                    typeRef = valueParameter.resolvedReturnTypeRef
+                    variance = Variance.OUT_VARIANCE // TODO()
+                  }
+                }
+              calleeReference = buildResolvedNamedReference {
+                name = resolve.name
+                resolvedSymbol = resolve.symbol
+              }
+            }
+          } else {
+            valueParameter.fir.defaultValue
+          }
+        isCrossinline = valueParameter.fir.isCrossinline
+        isNoinline = valueParameter.fir.isNoinline
+        isVararg = valueParameter.fir.isVararg
+      }
+    }
 }

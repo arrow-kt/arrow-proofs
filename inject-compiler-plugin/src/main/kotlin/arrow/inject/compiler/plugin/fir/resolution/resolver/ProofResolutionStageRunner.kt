@@ -97,7 +97,7 @@ internal class ProofResolutionStageRunner(
 
   private fun Proof.firFunctionCall(type: ConeKotlinType, candidate: Candidate): FirFunctionCall =
     buildFunctionCall {
-      typeRef = declaration.coneType?.toFirResolvedTypeRef()!! // TODO()
+      typeRef = declaration.coneType.toFirResolvedTypeRef() // TODO()
       argumentList = buildResolvedArgumentList(LinkedHashMap())
       typeArguments +=
         (declaration as? FirFunction)
