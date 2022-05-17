@@ -74,7 +74,6 @@ internal class ResolvedFunctionGenerationExtension(
   override fun FirDeclarationPredicateRegistrar.registerPredicates() {
     register(contextPredicate)
     register(injectPredicate)
-    register(resolvePredicate)
   }
 
   override fun generateConstructors(owner: FirClassSymbol<*>): List<FirConstructorSymbol> =
