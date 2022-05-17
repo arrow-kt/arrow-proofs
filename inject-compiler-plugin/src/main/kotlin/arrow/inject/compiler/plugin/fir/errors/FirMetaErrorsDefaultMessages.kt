@@ -18,7 +18,8 @@ internal object FirMetaErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         PUBLISHED_INTERNAL_ORPHAN,
         "Internal overrides of proofs are not permitted to be published, " +
           "as they break coherent proof resolution over the kotlin ecosystem. " +
-          "Please remove the @PublishedApi annotation."
+          "Please remove the @PublishedApi annotation.",
+        RenderProof
       )
       map.put(
         AMBIGUOUS_PROOF,

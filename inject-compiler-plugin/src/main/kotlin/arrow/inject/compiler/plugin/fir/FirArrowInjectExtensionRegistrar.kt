@@ -7,6 +7,7 @@ import arrow.inject.compiler.plugin.fir.resolution.checkers.call.CyclesDetection
 import arrow.inject.compiler.plugin.fir.resolution.checkers.call.MissingInductiveDependenciesChecker
 import arrow.inject.compiler.plugin.fir.resolution.checkers.call.UnresolvedCallSiteChecker
 import arrow.inject.compiler.plugin.fir.resolution.checkers.declaration.OwnershipViolationsChecker
+import arrow.inject.compiler.plugin.fir.resolution.checkers.declaration.PublishedApiViolationsChecker
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
@@ -23,6 +24,7 @@ public class FirArrowInjectExtensionRegistrar(
         declarationCheckers =
           listOf(
             OwnershipViolationsChecker(session),
+            PublishedApiViolationsChecker(session),
           ),
         callCheckers =
           listOf(

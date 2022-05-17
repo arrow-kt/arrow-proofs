@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 
 internal object FirMetaErrors {
 
-  val PUBLISHED_INTERNAL_ORPHAN by error0<KtDeclaration>(SELECTOR_BY_QUALIFIED)
+  val PUBLISHED_INTERNAL_ORPHAN by error1<KtDeclaration, Proof>()
 
   val AMBIGUOUS_PROOF by error2<KtDeclaration, Proof, List<Proof>>()
 
