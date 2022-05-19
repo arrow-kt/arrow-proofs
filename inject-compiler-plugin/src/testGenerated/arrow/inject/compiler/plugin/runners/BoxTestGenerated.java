@@ -143,6 +143,12 @@ public class BoxTestGenerated extends AbstractBoxTest {
     }
 
     @Test
+    @TestMetadata("value_class_support.kt")
+    public void testValue_class_support() throws Exception {
+        runTest("src/testData/box/context/value_class_support.kt");
+    }
+
+    @Test
     @TestMetadata("value_provider.kt")
     public void testValue_provider() throws Exception {
         runTest("src/testData/box/context/value_provider.kt");

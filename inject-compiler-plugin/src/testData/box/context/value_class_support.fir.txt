@@ -1,0 +1,38 @@
+FILE: value_class_support.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Inject|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A|): R|A| {
+        ^given R|<local>/a|
+    }
+    @R|kotlin/jvm/JvmInline|() public final inline class X : R|kotlin/Any| {
+        public constructor(value: R|kotlin/String|): R|foo/bar/X| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val value: R|kotlin/String| = R|<local>/value|
+            public get(): R|kotlin/String|
+
+        public final override fun toString(): R|kotlin/String| {
+            ^toString this@R|foo/bar/X|.R|foo/bar/X.value|
+        }
+
+    }
+    @R|foo/bar/annotations/Given|() public final fun xProvider(): R|foo/bar/X| {
+        ^xProvider R|foo/bar/X.X|(String(yes!))
+    }
+    public final fun box(): R|kotlin/String| {
+        lval result: R|A| = R|SubstitutionOverride<foo/bar/given: R|A|>|<R|foo/bar/X|>()
+        ^box when () {
+            ==(<strcat>(R|<local>/result|), String(yes!)) ->  {
+                String(OK)
+            }
+            else ->  {
+                <strcat>(String(Fail: ), R|<local>/result|)
+            }
+        }
+
+    }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/CompileTime|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A| = R|arrow/inject/annotations/resolve|(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|A|
