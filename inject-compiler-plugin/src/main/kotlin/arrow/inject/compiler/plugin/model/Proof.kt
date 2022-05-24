@@ -1,8 +1,11 @@
 package arrow.inject.compiler.plugin.model
 
 import org.jetbrains.kotlin.descriptors.Visibilities
+import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirMemberDeclaration
+import org.jetbrains.kotlin.fir.declarations.FirProperty
+import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.fir.renderWithType
 import org.jetbrains.kotlin.fir.types.ConeClassLikeType
@@ -20,6 +23,14 @@ internal sealed class Proof {
   abstract val idSignature: IdSignature
 
   abstract val declaration: FirDeclaration
+
+  fun declarationName(): String =
+    when (val decl = declaration) {
+      is FirSimpleFunction -> decl.name.asString()
+      is FirProperty -> decl.name.asString()
+      is FirClass -> decl.symbol.name.asString()
+      else -> error("Unsupported declaration ${decl.renderWithType()}")
+    }
 
   fun asString(): String =
     when (this) {

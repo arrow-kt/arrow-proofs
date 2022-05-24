@@ -10,13 +10,18 @@ import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
+import org.jetbrains.kotlin.diagnostics.Errors
 import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
+import org.jetbrains.kotlin.diagnostics.KtDiagnostic
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.expressions.FirCall
 import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.types.coneType
+import org.jetbrains.kotlin.psi
+import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.toKtPsiSourceElement
 
 internal class UnresolvedCallSiteChecker(
@@ -31,8 +36,7 @@ internal class UnresolvedCallSiteChecker(
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
   override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
-    proofResolutionList(expression).let {
-      resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
+    proofResolutionList(expression).let { resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
       resolvedParameters.forEach { (proofResolution, valueParameter) ->
         val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
 

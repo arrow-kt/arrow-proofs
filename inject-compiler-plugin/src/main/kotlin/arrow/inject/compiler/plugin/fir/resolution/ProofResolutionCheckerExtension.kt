@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.expression.FirCallChecker
 import org.jetbrains.kotlin.fir.analysis.extensions.FirAdditionalCheckersExtension
 import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
 import org.jetbrains.kotlin.fir.expressions.FirCall
+import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
 
 internal class ProofResolutionCheckerExtension(
   session: FirSession,
@@ -51,4 +52,9 @@ internal class ProofResolutionCheckerExtension(
           }
         )
     }
+
+  override fun FirDeclarationPredicateRegistrar.registerPredicates() {
+    register(contextPredicate)
+    register(injectPredicate)
+  }
 }

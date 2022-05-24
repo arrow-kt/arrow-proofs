@@ -2,6 +2,8 @@
 
 package arrow.inject.compiler.plugin.fir.resolution.checkers.declaration
 
+import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
+import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
 import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.KtSourceElement
@@ -11,6 +13,8 @@ import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.caches.FirLazyValue
+import org.jetbrains.kotlin.fir.caches.firCachesFactory
 import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
@@ -22,7 +26,11 @@ import org.jetbrains.kotlin.fir.types.type
 
 internal class OwnershipViolationsChecker(override val session: FirSession) : FirAbstractDeclarationChecker {
 
-  override val allProofs: List<Proof> by lazy { allCollectedProofs }
+  override val allProofs: FirLazyValue<List<Proof>, Unit> =
+    session.firCachesFactory.createLazyValue {
+      LocalProofCollectors(session).collectLocalProofs() +
+        ExternalProofCollector(session).collectExternalProofs()
+    }
 
   /**
    * Public Proofs are only valid, if they don't impose inconsistencies in the resolution process.
@@ -52,7 +60,7 @@ internal class OwnershipViolationsChecker(override val session: FirSession) : Fi
   private fun FirCallableDeclaration.takeProofIfViolatingOwnershipRule(): Proof? =
     takeIf { it.metaContextAnnotations.isNotEmpty() }
       ?.let {
-        allProofs.firstOrNull {
+        allProofs.getValue(Unit).firstOrNull {
           it.declaration.symbol == this.symbol &&
             this.visibility != Visibilities.Internal &&
             !this.returnTypeRef.coneType.isUserOwned()
