@@ -24,7 +24,9 @@ import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.type
 
-internal class OwnershipViolationsChecker(override val session: FirSession) : FirAbstractDeclarationChecker {
+internal class OwnershipViolationsChecker(
+  override val session: FirSession,
+) : FirAbstractDeclarationChecker {
 
   override val allProofs: FirLazyValue<List<Proof>, Unit> =
     session.firCachesFactory.createLazyValue {

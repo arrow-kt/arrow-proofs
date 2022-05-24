@@ -2,8 +2,6 @@ package arrow.inject.compiler.plugin.fir.errors
 
 import arrow.inject.compiler.plugin.model.Proof
 import com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.diagnostics.SourceElementPositioningStrategies.SELECTOR_BY_QUALIFIED
-import org.jetbrains.kotlin.diagnostics.error0
 import org.jetbrains.kotlin.diagnostics.error1
 import org.jetbrains.kotlin.diagnostics.error2
 import org.jetbrains.kotlin.diagnostics.error3

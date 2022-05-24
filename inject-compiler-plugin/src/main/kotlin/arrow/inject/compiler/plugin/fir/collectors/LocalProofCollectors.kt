@@ -15,23 +15,21 @@ import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.visitors.FirVisitorVoid
 import org.jetbrains.kotlin.name.CallableId
-import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstance
 import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 
 internal class LocalProofCollectors(override val session: FirSession) : FirAbstractProofComponent {
 
-  fun collectLocalProofs(): List<Proof> =
-    collectLocalProofsIde() + collectLocalProofsCLI()
+  fun collectLocalProofs(): List<Proof> = collectLocalProofsIde() + collectLocalProofsCLI()
 
   fun collectLocalProofsIde(): List<Proof> =
-    session.predicateBasedProvider.getSymbolsByPredicate(metaHas(ProofAnnotationsFqName.ContextAnnotation)).map {
-      Proof.Implication(it.fir.idSignature, it.fir)
-    }
+    session.predicateBasedProvider
+      .getSymbolsByPredicate(metaHas(ProofAnnotationsFqName.ContextAnnotation))
+      .map { Proof.Implication(it.fir.idSignature, it.fir) }
 
   private fun collectLocalProofsCLI(): List<Proof> =
-    session.firstIsInstanceOrNull<FirProviderImpl>()?.getAllFirFiles().orEmpty().flatMap { firFile ->
+    session.firstIsInstanceOrNull<FirProviderImpl>()?.getAllFirFiles().orEmpty().flatMap { file ->
       val localProofs: MutableList<Proof> = mutableListOf()
-      firFile.acceptChildren(
+      file.acceptChildren(
         visitor =
           object : FirVisitorVoid() {
             override fun visitElement(element: FirElement) {
