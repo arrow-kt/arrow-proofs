@@ -4,17 +4,15 @@ package arrow.inject.compiler.plugin.fir.resolution.contexts
 
 import arrow.inject.compiler.plugin.fir.FirResolutionProofComponent
 import arrow.inject.compiler.plugin.fir.coneType
+import arrow.inject.compiler.plugin.fir.contextReceivers
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
-import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.FirContextReceiver
-import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.extensions.FirExpressionResolutionExtension
-import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
-import org.jetbrains.kotlin.fir.resolve.diagnostics.ConeInapplicableCandidateError
 import org.jetbrains.kotlin.fir.resolve.providers.getSymbolByTypeRef
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
@@ -32,13 +30,6 @@ internal class ContextProvidersResolutionExtension(
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
   override fun addNewImplicitReceivers(functionCall: FirFunctionCall): List<ConeKotlinType> {
-//    val types =
-//      functionCall.failedContextReceivers.mapNotNull {
-//        val proof =
-//          resolveProof(ProofAnnotationsFqName.ProviderAnnotation, it.typeRef.coneType).proof
-//        if (proof != null) it.typeRef.coneType else null
-//      }
-
     return functionCall.proofContextReceivers.map { it.typeRef.coneType }
   }
 
@@ -59,19 +50,11 @@ internal class ContextProvidersResolutionExtension(
         .map { typeProjection ->
           session.symbolProvider.getSymbolByTypeRef<FirBasedSymbol<*>>(typeProjection.typeRef)
         }
-        // TODO: check more use cases
-        .mapNotNull { basedSymbol -> (basedSymbol?.fir as? FirRegularClass)?.contextReceivers }
+        .mapNotNull { basedSymbol -> basedSymbol?.fir?.contextReceivers(session) }
         .flatten()
         .filter { contextReceiver ->
-          contextReceiver.typeRef.coneType in allProofs.map { proof -> proof.declaration.coneType }
+          val proofResolution = resolveProof(ProviderAnnotation, contextReceiver.typeRef.coneType)
+          proofResolution.proof != null
         }
         .toList()
-
-//  private val FirFunctionCall.failedContextReceivers: List<FirContextReceiver>
-//    get() =
-//      (((calleeReference as? FirErrorNamedReference)?.diagnostic as? ConeInapplicableCandidateError)
-//          ?.candidate
-//          ?.symbol
-//          ?.fir as? FirFunction)
-//        ?.contextReceivers.orEmpty()
 }

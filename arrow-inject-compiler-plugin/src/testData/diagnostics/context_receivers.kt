@@ -7,9 +7,20 @@ import arrow.inject.annotations.Provider
 class Persistence
 
 context(Persistence)
-class Repo
+@Provider class Repo
 
 fun main() {
   contextOf<Repo>()
   val repo: Repo = Repo()
+}
+
+@Provider
+class JsonBar
+
+context(JsonBar)
+class JsonFoo
+
+fun main2() {
+  contextOf<JsonBar>
+  //...
 }

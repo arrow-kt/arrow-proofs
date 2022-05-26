@@ -38,6 +38,7 @@ internal class CyclesDetectionChecker(
   override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
     proofResolutionList(expression).let {
       resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
+
       resolvedParameters.forEach { (proofResolution, valueParameter) ->
         val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
 

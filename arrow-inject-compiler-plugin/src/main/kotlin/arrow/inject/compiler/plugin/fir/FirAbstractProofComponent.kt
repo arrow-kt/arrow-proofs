@@ -1,3 +1,5 @@
+@file:OptIn(SymbolInternals::class)
+
 package arrow.inject.compiler.plugin.fir
 
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
@@ -9,6 +11,7 @@ import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
+import org.jetbrains.kotlin.fir.declarations.FirContextReceiver
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationAttributes
 import org.jetbrains.kotlin.fir.declarations.FirFunction
@@ -20,6 +23,7 @@ import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
+import org.jetbrains.kotlin.fir.declarations.primaryConstructorIfAny
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.extensions.predicate.DeclarationPredicate
 import org.jetbrains.kotlin.fir.extensions.predicate.has
@@ -29,6 +33,7 @@ import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.symbols.ConeTypeParameterLookupTag
+import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirTypeParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
@@ -168,3 +173,18 @@ val FirDeclaration.coneType: ConeKotlinType
       is FirValueParameter -> returnTypeRef.coneType
       else -> error("Unsupported FirDeclaration: $this")
     }
+
+fun FirDeclaration.contextReceivers(session: FirSession): List<FirContextReceiver> =
+  when (this) {
+    is FirFunction -> contextReceivers
+    is FirRegularClass -> contextReceivers
+    is FirProperty -> contextReceivers
+    else -> emptyList()
+  }
+
+fun FirDeclaration.valueParameters(session: FirSession): List<FirValueParameter> =
+  when (this) {
+    is FirFunction -> valueParameters
+    is FirClass -> primaryConstructorIfAny(session)?.valueParameterSymbols?.map { it.fir }.orEmpty()
+    else -> emptyList()
+  }

@@ -4,6 +4,7 @@ package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.FirResolutionProofComponent
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ResolutionTargetArgument
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
@@ -32,7 +33,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
 
   fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter)
 
-  fun proofResolutionList(call: FirCall): Map<ProofResolution?, FirValueParameter> {
+  fun proofResolutionList(call: FirCall): Map<ProofResolution?, ResolutionTargetArgument> {
     val originalFunction: FirFunction? =
       ((call as? FirResolvable)?.calleeReference?.resolvedSymbol as? FirFunctionSymbol<*>)?.fir
 
@@ -50,16 +51,17 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
 
   private fun resolvedValueParametersMap(
     call: FirQualifiedAccess,
-    unresolvedValueParameters: List<FirValueParameter>,
-  ): Map<ProofResolution?, FirValueParameter> =
+    unresolvedValueParameters: List<ResolutionTargetArgument>,
+  ): Map<ProofResolution?, ResolutionTargetArgument> =
     unresolvedValueParameters
-      .mapNotNull { valueParameter: FirValueParameter ->
-        val contextFqName: FqName? =
+      .mapNotNull { valueParameter: ResolutionTargetArgument ->
+        val contextFqName: FqName =
           valueParameter.annotations.firstOrNull { it.isContextAnnotation }?.fqName(session)
+            ?: ProofAnnotationsFqName.ProviderAnnotation
 
         val defaultValue: FirExpression? = valueParameter.defaultValue
 
-        if (contextFqName != null && defaultValue is FirQualifiedAccessExpression) {
+        if (defaultValue is FirQualifiedAccessExpression) {
           val type =
             when (valueParameter.returnTypeRef.coneType) {
               is ConeTypeParameterType -> {
@@ -85,8 +87,9 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
             }
 
           val proofResolution = resolveProof(contextFqName, type)
-          if (proofResolution.proof == null) null to valueParameter
-          else proofResolution to valueParameter
+          if (proofResolution.proof == null) {
+            null to ResolutionTargetArgument.ValueParameter(valueParameter)
+          } else proofResolution to ResolutionTargetArgument.ValueParameter(valueParameter)
         } else {
           null
         }

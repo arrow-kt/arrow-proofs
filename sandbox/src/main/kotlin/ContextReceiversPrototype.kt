@@ -14,19 +14,25 @@ interface Repo
 context(Persistence)
 @Provider class Repo1 : Repo
 
-context(Repo, Repo2, Repo3, Repo4)
+context(Persistence)
+@Provider class Repo2 : Repo
+
+context(Persistence)
+@Provider class Repo3 : Repo
+
+context(Persistence)
+@Provider class Repo4 : Repo
+
+context(Repo1, Repo2, Repo3, Repo4)
 @Provider class ViewModel(val id: Int)
 
 fun main2() {
-//  context<Repo>() // context(Repo, Persistence)
-//  context<Repo2>() // context(Repo, Persistence)
-//  context<Repo3>() // context(Repo, Persistence)
-//  context<Repo4>() // context(Repo, Persistence)
+//  context<Repo1>() // context(Repo1, Persistence)
+//  context<Repo2>() // context(Repo2, Persistence)
+//  context<Repo3>() // context(Repo3, Persistence)
+//  context<Repo4>() // context(Repo4, Persistence)
 
+  contextOf<ViewModel>() // context(Repo1, Repo2, Repo3, Repo4, Persistence)
 
-//  contextOf<ViewModel>() // context(Repo, Repo2, Repo3, Repo4, Persistence)
-
-//  @Resolve val viewModel: ViewModel = ViewModel(1)
-
-  //  val repo: Repo = @Resolve Repo1(1)
+  val viewModel: ViewModel = ViewModel(1)
 }
