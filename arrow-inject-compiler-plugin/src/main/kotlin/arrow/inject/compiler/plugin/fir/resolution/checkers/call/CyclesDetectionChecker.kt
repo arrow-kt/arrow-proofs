@@ -2,20 +2,20 @@
 
 package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
-import arrow.inject.compiler.plugin.fir.FirResolutionProofComponent
 import arrow.inject.compiler.plugin.fir.coneType
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
-import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionStageRunner
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
+import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.FirClass
+import org.jetbrains.kotlin.fir.declarations.FirContextReceiver
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
+import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.toKtPsiSourceElement
 
@@ -36,15 +37,15 @@ internal class CyclesDetectionChecker(
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
   override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
-    proofResolutionList(expression).let {
-      resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
+    proofResolutionList(expression).let { resolvedParameters: Map<ProofResolution?, FirElement> ->
 
       resolvedParameters.forEach { (proofResolution, valueParameter) ->
         val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
 
         val cycles = proofResolution?.proof?.cycles.orEmpty()
 
-        val valueParameterConeType = valueParameter.coneType
+        val valueParameterConeType =
+          valueParameter.coneType()
 
         if (cycles.size > 1 && expressionSource != null) {
           reporter.report(

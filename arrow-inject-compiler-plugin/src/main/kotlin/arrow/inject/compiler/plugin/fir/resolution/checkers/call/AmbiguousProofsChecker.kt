@@ -10,6 +10,7 @@ import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
+import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
@@ -24,7 +25,7 @@ internal class AmbiguousProofsChecker(
 
   override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
     proofResolutionList(expression).let {
-      resolvedParameters: Map<ProofResolution?, FirValueParameter> ->
+      resolvedParameters: Map<ProofResolution?, FirElement> ->
       resolvedParameters.forEach { (proofResolution, _) ->
         val source = expression.source
         val proof = proofResolution?.proof

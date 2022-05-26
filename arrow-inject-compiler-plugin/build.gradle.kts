@@ -22,7 +22,7 @@ sourceSets {
 dependencies {
   implementation(project(":arrow-inject-annotations"))
   implementation(libs.classgraph)
-  compileOnly(libs.kotlin.compilerEmbeddable)
+  compileOnly(libs.kotlin.compiler)
 
   testCompileOnly(libs.kotlin.compiler)
   testImplementation(libs.kotlin.compiler)

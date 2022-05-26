@@ -1,7 +1,7 @@
 package arrow.inject.compiler.plugin.fir.errors
 
 import arrow.inject.compiler.plugin.model.Proof
-import org.jetbrains.kotlin.com.intellij.psi.PsiElement
+import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.diagnostics.error1
 import org.jetbrains.kotlin.diagnostics.error2
 import org.jetbrains.kotlin.diagnostics.error3

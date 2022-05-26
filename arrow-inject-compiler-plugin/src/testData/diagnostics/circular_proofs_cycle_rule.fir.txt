@@ -5,7 +5,7 @@ FILE: circular_proofs_cycle_rule.kt
         ^n R|<local>/s|.R|kotlin/text/toInt|()
     }
     @R|foo/bar/annotations/Given|() internal final fun s(@R|foo/bar/annotations/Given|() n: R|kotlin/Int|): R|kotlin/String| {
-        ^s R|<local>/n|.R|kotlin/Any.toString|()
+        ^s R|<local>/n|.R|kotlin/Int.toString|()
     }
     @R|arrow/inject/annotations/Inject|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A|): R|A| {
         ^given R|<local>/a|
