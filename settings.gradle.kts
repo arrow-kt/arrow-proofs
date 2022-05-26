@@ -3,6 +3,7 @@ pluginManagement {
     mavenCentral()
     gradlePluginPortal()
     maven(url = "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
+    mavenLocal()
   }
 }
 
@@ -10,10 +11,13 @@ dependencyResolutionManagement {
   repositories {
     mavenCentral()
     maven(url = "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
+    mavenLocal()
   }
 }
 
 include(
-  ":inject-annotations",
-  ":inject-compiler-plugin",
+  ":arrow-inject-annotations",
+  ":arrow-inject-compiler-plugin",
+  ":arrow-inject-gradle-plugin",
+//  ":sandbox",
 )

@@ -1,0 +1,41 @@
+FILE: context_receivers.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Provider|() public final class Persistence : R|kotlin/Any| {
+        public constructor(): R|foo/bar/Persistence| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    context(R|foo/bar/Persistence|)
+    public final data class Repo : R|kotlin/Any| {
+        public constructor(): R|foo/bar/Repo| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val name: R|kotlin/String| = String(Hello)
+            public get(): R|kotlin/String|
+
+        public final fun copy(): R|foo/bar/Repo|
+
+    }
+    public final val expectedRepo: R|foo/bar/Repo|
+        public get(): R|foo/bar/Repo| {
+            ^ R|kotlin/with|<R|foo/bar/Persistence|, R|foo/bar/Repo|>(R|foo/bar/Persistence.Persistence|(), <L> = with@fun R|foo/bar/Persistence|.<anonymous>(): R|foo/bar/Repo| <inline=Inline, kind=EXACTLY_ONCE>  {
+                ^ R|foo/bar/Repo.Repo|()
+            }
+            )
+        }
+    public final fun box(): R|kotlin/String| {
+        R|arrow/inject/annotations/contextOf|<R|foo/bar/Repo|>()
+        lval result: R|foo/bar/Repo| = R|foo/bar/Repo.Repo|()
+        ^box when () {
+            ==(R|<local>/result|, R|foo/bar/expectedRepo|) ->  {
+                String(OK)
+            }
+            else ->  {
+                <strcat>(String(Fail: ), R|<local>/result|)
+            }
+        }
+
+    }
