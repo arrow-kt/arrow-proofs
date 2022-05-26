@@ -13,14 +13,3 @@ fun main() {
   contextOf<Repo>()
   val repo: Repo = Repo()
 }
-
-@Provider
-class JsonBar
-
-context(JsonBar)
-class JsonFoo
-
-fun main2() {
-  contextOf<JsonBar>
-  //...
-}
