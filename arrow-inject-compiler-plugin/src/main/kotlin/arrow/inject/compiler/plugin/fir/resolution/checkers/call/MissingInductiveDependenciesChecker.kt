@@ -4,7 +4,6 @@ package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
-import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionStageRunner
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.KtSourceElement
@@ -17,7 +16,6 @@ import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirTypeParameterRefsOwner
-import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.declarations.primaryConstructorIfAny
 import org.jetbrains.kotlin.fir.expressions.FirCall
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
@@ -28,7 +26,6 @@ import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
-import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.render
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.type
@@ -51,7 +48,7 @@ internal class MissingInductiveDependenciesChecker(
         if (metaContextAnnotation != null) {
           val expressionOwner: FirNamedReference? =
             (expression as? FirFunctionCall)?.calleeReference
-          val valueParameterTypeReturnType = valueParameter.coneType()
+          val valueParameterTypeReturnType = valueParameter.resolutionTargetType()
 
           val proofResolution: ProofResolution =
             if (valueParameterTypeReturnType is ConeTypeParameterType) {
@@ -74,7 +71,7 @@ internal class MissingInductiveDependenciesChecker(
                 error("Unexpected type argument index")
               }
             } else {
-              resolveProof(metaContextAnnotation, valueParameter.coneType())
+              resolveProof(metaContextAnnotation, valueParameter.resolutionTargetType())
             }
 
           val proofResolutionProof = proofResolution.proof
@@ -120,7 +117,7 @@ internal class MissingInductiveDependenciesChecker(
                   FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE.on(
                     expressionSource,
                     expression,
-                    valueParameter.coneType(),
+                    valueParameter.resolutionTargetType(),
                     AbstractSourceElementPositioningStrategy.DEFAULT,
                   ),
                   context,

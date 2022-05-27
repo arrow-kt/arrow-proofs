@@ -14,10 +14,8 @@ import org.jetbrains.kotlin.fir.declarations.FirContextReceiver
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.expressions.FirCall
-import org.jetbrains.kotlin.fir.expressions.FirExpression
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccess
-import org.jetbrains.kotlin.fir.expressions.FirQualifiedAccessExpression
 import org.jetbrains.kotlin.fir.expressions.FirResolvable
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.resolvedSymbol
@@ -29,7 +27,9 @@ import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.render
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.type
+import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
 
 internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolutionProofComponent {
 
@@ -45,11 +45,20 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
           val defaultValue: FirFunctionCall? = (it.defaultValue as? FirFunctionCall)
           defaultValue?.calleeReference?.resolvedSymbol == resolve.symbol
         }
-      resolvedValueParametersMap(call, unresolvedValueParameters, originalFunction.contextReceivers)
+      if (originalFunction.isContextOf()) {
+        val targetType = call.typeArguments.firstOrNull()?.toConeTypeProjection()?.type
+        if (targetType != null) {
+          val contextProofResolution = resolveProof(ProofAnnotationsFqName.ProviderAnnotation, targetType)
+          mapOf(contextProofResolution to call)
+        } else emptyMap()
+      } else resolvedValueParametersMap(call, unresolvedValueParameters, originalFunction.contextReceivers)
     } else {
       emptyMap()
     }
   }
+
+  private fun FirFunction.isContextOf() =
+    symbol.callableId == CallableId(FqName("arrow.inject.annotations"), Name.identifier("contextOf"))
 
   private fun resolvedValueParametersMap(
     call: FirQualifiedAccess,
@@ -65,7 +74,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
     contextFqName: FqName
   ): Pair<ProofResolution?, FirElement> {
     val type =
-      when (val coneType = coneType()) {
+      when (val coneType = resolutionTargetType()) {
         is ConeTypeParameterType -> {
           val originalFunction =
             ((call as? FirResolvable)?.calleeReference?.resolvedSymbol
@@ -99,15 +108,19 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
         firAnnotation.fqName(session) == ProofAnnotationsFqName.CompileTimeAnnotation
       }
 
-  fun FirElement.coneType() = when (this) {
+  fun FirElement.resolutionTargetType() = when (this) {
     is FirValueParameter -> coneType
     is FirContextReceiver -> typeRef.coneType
+    is FirFunctionCall -> {
+      typeArguments[0].toConeTypeProjection().type!!
+    }//contextOf
     else -> error("unsupported $this")
   }
 
   fun FirElement.contextAnnotation(): FqName? = when (this) {
     is FirValueParameter -> metaContextAnnotations.firstOrNull()?.fqName(session)
     is FirContextReceiver -> ProofAnnotationsFqName.ProviderAnnotation
+    is FirFunctionCall -> ProofAnnotationsFqName.ProviderAnnotation // contextOf
     else -> error("unsupported $this")
   }
 }

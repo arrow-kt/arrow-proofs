@@ -4,7 +4,6 @@ package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
-import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionStageRunner
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.KtSourceElement
@@ -14,10 +13,8 @@ import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
-import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.expressions.FirCall
 import org.jetbrains.kotlin.fir.psi
-import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.toKtPsiSourceElement
 
 internal class UnresolvedCallSiteChecker(
@@ -38,7 +35,7 @@ internal class UnresolvedCallSiteChecker(
             FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE.on(
               expressionSource,
               expression,
-              valueParameter.coneType(),
+              valueParameter.resolutionTargetType(),
               AbstractSourceElementPositioningStrategy.DEFAULT,
             ),
             context,

@@ -7,4 +7,5 @@ package arrow.inject.annotations
 @Retention(AnnotationRetention.SOURCE)
 annotation class Resolve
 
+@CompileTime
 fun <A> contextOf() = Unit
