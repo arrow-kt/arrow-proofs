@@ -3,7 +3,7 @@
 package arrow.inject.compiler.plugin.fir.codegen
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
-import arrow.inject.compiler.plugin.fir.FirResolutionProofComponent
+import arrow.inject.compiler.plugin.fir.FirResolutionProof
 import arrow.inject.compiler.plugin.fir.ProofKey
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
@@ -63,7 +63,7 @@ internal class ResolvedFunctionGenerationExtension(
 ) :
   FirDeclarationGenerationExtension(session),
   FirAbstractProofComponent,
-  FirResolutionProofComponent {
+  FirResolutionProof {
 
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
@@ -213,7 +213,7 @@ internal class ResolvedFunctionGenerationExtension(
         moduleData = session.moduleData
         resolvePhase = FirResolvePhase.RAW_FIR
         origin = ProofKey.origin
-        attributes = FirDeclarationAttributes() // TODO()
+        attributes = FirDeclarationAttributes()
         name = typeParameter.name
         symbol = FirTypeParameterSymbol()
         containingDeclarationSymbol = originalSymbol
@@ -259,7 +259,7 @@ internal class ResolvedFunctionGenerationExtension(
                 valueParameter.typeParameterSymbols.map {
                   buildTypeProjectionWithVariance {
                     typeRef = valueParameter.resolvedReturnTypeRef
-                    variance = Variance.OUT_VARIANCE // TODO()
+                    variance = Variance.OUT_VARIANCE
                   }
                 }
               calleeReference = buildResolvedNamedReference {

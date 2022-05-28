@@ -3,7 +3,7 @@
 package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
-import arrow.inject.compiler.plugin.fir.FirResolutionProofComponent
+import arrow.inject.compiler.plugin.fir.FirResolutionProof
 import arrow.inject.compiler.plugin.fir.coneType
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofResolution
@@ -31,7 +31,7 @@ import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
-internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolutionProofComponent {
+internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolutionProof {
 
   fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter)
 

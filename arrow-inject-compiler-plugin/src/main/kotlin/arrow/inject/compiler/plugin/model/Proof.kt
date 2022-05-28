@@ -74,7 +74,7 @@ internal fun ConeKotlinType.asProofCacheKey(contextFqName: FqName?): ProofCacheK
     name =
       when (this) {
         is ConeClassLikeType -> lookupTag.classId.asFqNameString()
-        else -> TODO("Unsupported type")
+        else -> error("Unsupported type")
       },
     typeArguments = typeArguments.mapNotNull { it.type?.asProofCacheKey(contextFqName) },
   )

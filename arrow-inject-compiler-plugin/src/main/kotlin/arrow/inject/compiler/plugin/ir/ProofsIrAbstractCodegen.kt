@@ -5,37 +5,57 @@ package arrow.inject.compiler.plugin.ir
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.asProofCacheKey
+import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
 import org.jetbrains.kotlin.descriptors.Visibilities
+import org.jetbrains.kotlin.fir.declarations.FirClass
+import org.jetbrains.kotlin.fir.declarations.FirConstructor
+import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirMemberDeclaration
+import org.jetbrains.kotlin.fir.declarations.FirProperty
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
-import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
-import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.declarations.IrClass
+import org.jetbrains.kotlin.ir.declarations.IrConstructor
+import org.jetbrains.kotlin.ir.declarations.IrDeclaration
+import org.jetbrains.kotlin.ir.declarations.IrFunction
+import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.declarations.IrProperty
+import org.jetbrains.kotlin.ir.declarations.IrTypeParametersContainer
+import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
-import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
+import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetObjectValueImpl
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
-import org.jetbrains.kotlin.ir.types.*
+import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.types.classFqName
+import org.jetbrains.kotlin.ir.types.defaultType
+import org.jetbrains.kotlin.ir.util.IdSignature
+import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.dumpKotlinLike
+import org.jetbrains.kotlin.ir.util.getPackageFragment
+import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.ir.util.render
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.checker.SimpleClassicTypeSystemContext.getArgument
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 import org.jetbrains.kotlin.types.model.TypeArgumentMarker
+import org.jetbrains.kotlin.types.model.TypeSystemContext
 import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 
-interface ProofsIrCodegenAbstractComponent {
+interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
+
+  val moduleFragment: IrModuleFragment
 
   val proofCache: ProofCache
-
-  val irBuiltIns: IrBuiltIns
 
   fun insertGivenCall(call: IrFunctionAccessExpression): IrMemberAccessExpression<*> {
     val replacementCall: IrMemberAccessExpression<*> = replacementCall(call)
@@ -214,6 +234,15 @@ interface ProofsIrCodegenAbstractComponent {
       }
     }
 
+  // TODO: Fix init
+  private fun Proof.irCallableDeclaration(): IrDeclaration =
+    when (declaration) {
+      is FirClass -> symbolTable.referenceClass(idSignature).constructors.first().owner
+      is FirConstructor -> symbolTable.referenceConstructor(idSignature).owner
+      is FirFunction -> symbolTable.referenceSimpleFunction(idSignature).owner
+      is FirProperty -> symbolTable.referenceProperty(idSignature).owner
+      else -> error("Unsupported FirDeclaration: $this")
+    }
 
   private fun Proof.irDeclaration(): IrDeclaration =
     when (declaration) {
@@ -271,5 +300,4 @@ interface ProofsIrCodegenAbstractComponent {
 
     return replacementCall
   }
-
 }

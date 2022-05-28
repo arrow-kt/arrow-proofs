@@ -98,7 +98,7 @@ internal class ProofResolutionStageRunner(
 
   private fun Proof.firFunctionCall(type: ConeKotlinType, candidate: Candidate): FirFunctionCall =
     buildFunctionCall {
-      typeRef = declaration.coneType.toFirResolvedTypeRef() // TODO()
+      typeRef = declaration.coneType.toFirResolvedTypeRef()
       argumentList = buildResolvedArgumentList(LinkedHashMap())
       typeArguments +=
         (declaration as? FirFunction)
@@ -137,7 +137,7 @@ internal class ProofResolutionStageRunner(
     resultResolutionStageRunner.processCandidate(
       candidate = this,
       context = firBodyResolveTransformer.resolutionContext,
-      stopOnFirstError = true, // TODO()
+      stopOnFirstError = true,
     )
 
   private fun candidate(candidateFactory: CandidateFactory, proofCallInfo: CallInfo, proof: Proof) =
@@ -145,10 +145,10 @@ internal class ProofResolutionStageRunner(
       callInfo = proofCallInfo,
       symbol = proof.declaration.symbol,
       explicitReceiverKind = ExplicitReceiverKind.NO_EXPLICIT_RECEIVER,
-      scope = null, // TODO()
-      dispatchReceiverValue = null, // TODO()
-      givenExtensionReceiverOptions = emptyList(), // TODO()
-      objectsByName = false, // TODO()
+      scope = null,
+      dispatchReceiverValue = null,
+      givenExtensionReceiverOptions = emptyList(),
+      objectsByName = false,
     )
 
   private fun Proof.proofCallInfo(
@@ -163,7 +163,7 @@ internal class ProofResolutionStageRunner(
           else -> CallKind.VariableAccess
         },
       name = (declaration.symbol as? FirCallableSymbol)?.name ?: Name.identifier("Unsupported"),
-      explicitReceiver = null, // TODO()
+      explicitReceiver = null,
       argumentList =
         if (proofDeclaration is FirFunction) {
           buildArgumentList {
@@ -187,7 +187,7 @@ internal class ProofResolutionStageRunner(
                   }
                 }
               }
-          } // TODO()
+          }
         } else FirEmptyArgumentList,
       isImplicitInvoke = false,
       typeArguments =
@@ -200,8 +200,8 @@ internal class ProofResolutionStageRunner(
         },
       session = session,
       containingFile = fakeFirFile,
-      containingDeclarations = emptyList(), // TODO()
-      origin = FirFunctionCallOrigin.Regular, // TODO()
+      containingDeclarations = emptyList(),
+      origin = FirFunctionCallOrigin.Regular,
     )
 
   private fun resolveCallInfo() =
@@ -209,14 +209,14 @@ internal class ProofResolutionStageRunner(
       callSite = resolve, // TODO check generics
       callKind = CallKind.Function,
       name = resolve.name,
-      explicitReceiver = null, // TODO()
+      explicitReceiver = null,
       argumentList = FirEmptyArgumentList,
       isImplicitInvoke = false,
       typeArguments = emptyList(),
       session = session,
       containingFile = fakeFirFile,
-      containingDeclarations = emptyList(), // TODO()
-      origin = FirFunctionCallOrigin.Regular, // TODO()
+      containingDeclarations = emptyList(),
+      origin = FirFunctionCallOrigin.Regular,
     )
 
   private val fakeFirFile: FirFile

@@ -3,7 +3,7 @@
 package arrow.inject.compiler.plugin.fir.collectors
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
-import arrow.inject.compiler.plugin.fir.FirProofIdSignatureComponent
+import arrow.inject.compiler.plugin.fir.FirProofIdSignature
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import org.jetbrains.kotlin.fir.FirElement
@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.utils.addToStdlib.firstIsInstanceOrNull
 
 internal class LocalProofCollectors(
   override val session: FirSession,
-) : FirAbstractProofComponent, FirProofIdSignatureComponent {
+) : FirAbstractProofComponent, FirProofIdSignature {
 
   fun collectLocalProofs(): List<Proof> = collectLocalProofsIde() + collectLocalProofsCLI()
 

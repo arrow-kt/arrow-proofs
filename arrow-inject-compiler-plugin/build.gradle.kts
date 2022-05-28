@@ -54,6 +54,8 @@ tasks.withType<KotlinCompile>().configureEach {
 tasks.create<JavaExec>("generateTests") {
   classpath = sourceSets.test.get().runtimeClasspath
   mainClass.set("arrow.inject.compiler.plugin.GenerateTestsKt")
+
+  dependsOn(":arrow-inject-annotations:jar")
 }
 
 tasks.test {

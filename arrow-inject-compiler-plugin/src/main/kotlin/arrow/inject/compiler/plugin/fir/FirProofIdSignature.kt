@@ -7,7 +7,7 @@ import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.signaturer.FirBasedSignatureComposer
 import org.jetbrains.kotlin.ir.util.IdSignature
 
-interface FirProofIdSignatureComponent {
+interface FirProofIdSignature {
 
   val session: FirSession
 

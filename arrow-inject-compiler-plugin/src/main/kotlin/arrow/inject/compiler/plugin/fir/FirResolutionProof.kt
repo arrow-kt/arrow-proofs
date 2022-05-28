@@ -14,7 +14,7 @@ import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.name.FqName
 
-internal interface FirResolutionProofComponent : FirProofIdSignatureComponent {
+internal interface FirResolutionProof : FirProofIdSignature {
 
   val proofCache: ProofCache
 

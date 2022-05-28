@@ -5,7 +5,7 @@ package arrow.inject.compiler.plugin.fir.collectors
 import arrow.inject.annotations.Context
 import arrow.inject.annotations.Inject
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
-import arrow.inject.compiler.plugin.fir.FirProofIdSignatureComponent
+import arrow.inject.compiler.plugin.fir.FirProofIdSignature
 import arrow.inject.compiler.plugin.model.Proof
 import io.github.classgraph.ClassGraph
 import io.github.classgraph.ClassInfo
@@ -28,7 +28,7 @@ import org.jetbrains.kotlin.name.Name
 
 internal class ExternalProofCollector(
   override val session: FirSession,
-) : FirAbstractProofComponent, FirProofIdSignatureComponent {
+) : FirAbstractProofComponent, FirProofIdSignature {
 
   fun collectExternalProofs(): List<Proof> =
     firClasspathResult

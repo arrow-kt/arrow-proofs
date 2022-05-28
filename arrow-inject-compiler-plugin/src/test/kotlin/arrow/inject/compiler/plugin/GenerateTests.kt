@@ -7,9 +7,15 @@ import org.jetbrains.kotlin.generators.generateTestGroupSuiteWithJUnit5
 fun main() {
   generateTestGroupSuiteWithJUnit5 {
     testGroup(testDataRoot = "src/testData", testsRoot = "src/testGenerated") {
-      testClass<AbstractDiagnosticTest> { model("diagnostics") }
+      testClass<AbstractDiagnosticTest> {
+        model("diagnostics/value-arguments")
+        model("diagnostics/context-receivers")
+      }
 
-      testClass<AbstractBoxTest> { model("box/context") }
+      testClass<AbstractBoxTest> {
+        model("box/value-arguments")
+        model("box/context-receivers")
+      }
     }
   }
 }

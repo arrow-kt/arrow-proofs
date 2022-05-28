@@ -5,7 +5,7 @@ import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.CompileTimeAnnotation
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.InjectAnnotation
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
-import org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI
+import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
@@ -22,21 +22,42 @@ import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isTypeParameter
 import org.jetbrains.kotlin.ir.util.kotlinFqName
+import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 import org.jetbrains.kotlin.types.model.TypeSystemContext
 
-internal class ProofsIrCodegen(
+internal class ProofsIrArgumentsCodegen(
   override val proofCache: ProofCache,
-  private val moduleFragment: IrModuleFragment,
+  override val moduleFragment: IrModuleFragment,
   private val irPluginContext: IrPluginContext
 ) :
   IrPluginContext by irPluginContext,
-  TypeSystemContext by IrTypeSystemContextImpl(irPluginContext.irBuiltIns), ProofsIrCodegenAbstractComponent {
+  TypeSystemContext by IrTypeSystemContextImpl(irPluginContext.irBuiltIns),
+  ProofsIrAbstractCodegen {
 
-  fun proveCall(call: IrFunctionAccessExpression): IrExpression =
+  fun generateArguments() {
+    irFunctionAccessExpression { call -> proveCall(call) }
+  }
+
+  private fun proveCall(call: IrFunctionAccessExpression): IrExpression =
     if (call.symbol.owner.annotations.hasAnnotation(InjectAnnotation)) insertGivenCall(call)
     else call
 
+  private fun irFunctionAccessExpression(
+    call: (IrFunctionAccessExpression) -> IrElement?
+  ): Unit =
+    moduleFragment.transformChildren(
+      object : IrElementTransformer<Unit> {
+        override fun visitFunctionAccess(
+          expression: IrFunctionAccessExpression,
+          data: Unit
+        ): IrElement =
+          expression.transformChildren(this, Unit).let {
+            call(expression) ?: super.visitFunctionAccess(expression, data)
+          }
+      },
+      Unit
+    )
 }
 
 internal val IrFunctionAccessExpression.typeArguments: Map<Int, IrType?>
@@ -70,8 +91,8 @@ internal fun IrFunction.substitutedValueParameters(
         ?: typeParameters
           .firstOrNull { typeParam -> typeParam.defaultType == type }
           ?.let { typeParam -> call.getTypeArgument(typeParam.index) }
-        ?: type // Could not resolve the substituted KotlinType
-        )
+          ?: type // Could not resolve the substituted KotlinType
+      )
   }
 
 internal val IrAnnotationContainer.metaContextAnnotations: List<IrConstructorCall>
@@ -94,7 +115,7 @@ internal fun IrDeclaration.mirrorFunction(functionFqName: String): IrFunction? {
   return when (this) {
     is IrFunction -> {
       if (kotlinFqName.asString() == functionFqName &&
-        !annotations.hasAnnotation(CompileTimeAnnotation)
+          !annotations.hasAnnotation(CompileTimeAnnotation)
       ) {
         this
       } else {

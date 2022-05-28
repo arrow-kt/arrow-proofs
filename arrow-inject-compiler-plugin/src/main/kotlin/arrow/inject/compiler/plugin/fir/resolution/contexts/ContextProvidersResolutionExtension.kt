@@ -2,32 +2,22 @@
 
 package arrow.inject.compiler.plugin.fir.resolution.contexts
 
-import arrow.inject.compiler.plugin.fir.FirResolutionProofComponent
-import arrow.inject.compiler.plugin.fir.coneType
-import arrow.inject.compiler.plugin.fir.contextReceivers
+import arrow.inject.compiler.plugin.fir.FirResolutionProof
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
-import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.declarations.FirContextReceiver
-import org.jetbrains.kotlin.fir.declarations.FirRegularClass
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.extensions.FirExpressionResolutionExtension
-import org.jetbrains.kotlin.fir.resolve.providers.getSymbolByTypeRef
-import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
-import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.FirTypeProjection
-import org.jetbrains.kotlin.fir.types.FirTypeProjectionWithVariance
-import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.type
 
 internal class ContextProvidersResolutionExtension(
   override val proofCache: ProofCache,
   session: FirSession,
-) : FirExpressionResolutionExtension(session), FirResolutionProofComponent {
+) : FirExpressionResolutionExtension(session), FirResolutionProof {
 
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
