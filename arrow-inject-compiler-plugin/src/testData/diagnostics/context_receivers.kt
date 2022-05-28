@@ -10,6 +10,6 @@ context(Persistence)
 @Provider class Repo
 
 fun main() {
-  contextOf<Repo>()
+  contextOf<Persistence>()
   val repo: Repo = Repo()
 }
