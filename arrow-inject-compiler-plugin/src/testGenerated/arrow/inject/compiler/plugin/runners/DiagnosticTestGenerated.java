@@ -106,6 +106,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
         }
 
         @Test
+        @TestMetadata("ambiguous_internal_and_public_given_proofs.kt")
+        public void testAmbiguous_internal_and_public_given_proofs() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/ambiguous_internal_and_public_given_proofs.kt");
+        }
+
+        @Test
         @TestMetadata("context_receivers.kt")
         public void testContext_receivers() throws Exception {
             runTest("src/testData/diagnostics/context-receivers/context_receivers.kt");
