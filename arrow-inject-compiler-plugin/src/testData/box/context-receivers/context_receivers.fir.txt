@@ -19,7 +19,7 @@ FILE: context_receivers.kt
     }
     public final fun f2(): R|kotlin/Int| {
         R|kotlin/io/println|(String(will drop from nested body))
-        R|arrow/inject/annotations/contextOf|<R|foo/bar/Persistence|>()
+        R|arrow/inject/annotations/context|<R|foo/bar/Persistence|>()
         ^f2 R|foo/bar/Repo.Repo|(Int(0)).R|foo/bar/Repo.x|
     }
     public final fun f3(): R|kotlin/Int| {

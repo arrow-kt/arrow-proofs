@@ -110,5 +110,11 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
         public void testContext_receivers() throws Exception {
             runTest("src/testData/diagnostics/context-receivers/context_receivers.kt");
         }
+
+        @Test
+        @TestMetadata("unresolved_given_callsite.kt")
+        public void testUnresolved_given_callsite() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/unresolved_given_callsite.kt");
+        }
     }
 }

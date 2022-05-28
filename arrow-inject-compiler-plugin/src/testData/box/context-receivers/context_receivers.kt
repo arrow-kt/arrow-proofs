@@ -1,6 +1,6 @@
 package foo.bar
 
-import arrow.inject.annotations.contextOf
+import arrow.inject.annotations.context
 import arrow.inject.annotations.Provider
 import arrow.inject.annotations.contextual
 
@@ -12,7 +12,7 @@ class Repo(val x: Int)
 
 fun f2(): Int {
   println("will drop from nested body")
-  contextOf<Persistence>()
+  context<Persistence>()
   return Repo(0).x
 }
 

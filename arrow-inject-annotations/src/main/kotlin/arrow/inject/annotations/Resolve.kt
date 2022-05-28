@@ -8,4 +8,4 @@ package arrow.inject.annotations
 annotation class Resolve
 
 @CompileTime
-fun <A> contextOf() = Unit
+fun <A> context() = Unit

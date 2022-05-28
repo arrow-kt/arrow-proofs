@@ -22,33 +22,36 @@ internal class ContextProvidersResolutionExtension(
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
   override fun addNewImplicitReceivers(functionCall: FirFunctionCall): List<ConeKotlinType> {
-    return functionCall.contextOfTypeArguments.mapNotNull { it.toConeTypeProjection().type }
+    return functionCall.contextSyntheticFunctionTypeArguments.mapNotNull {
+      it.toConeTypeProjection().type
+    }
   }
 
   // TODO: Improve this equality
-  private val FirFunctionCall.isContextOf: Boolean
-    get() = calleeReference.name.asString() == "contextOf"
+  private val FirFunctionCall.isCallToContextSyntheticFunction: Boolean
+    get() = calleeReference.name.asString() == "context"
 
-  private val FirFunctionCall.contextOfTypeArguments: List<FirTypeProjection>
-    get() = if (isContextOf) typeArguments else emptyList()
+  private val FirFunctionCall.contextSyntheticFunctionTypeArguments: List<FirTypeProjection>
+    get() = if (isCallToContextSyntheticFunction) typeArguments else emptyList()
 
   // TODO: inductive is not working (context receivers of context receivers are not being searched)
-//  private val FirFunctionCall.proofContextReceivers: List<FirContextReceiver>
-//    get() =
-//      contextOfTypeArguments
-//        .asSequence()
-//        // TODO: all are `FirTypeProjectionWithVariance`?
-//        .mapNotNull { typeProjection -> (typeProjection as? FirTypeProjectionWithVariance) }
-//        .map { typeProjection ->
-//          session.symbolProvider.getSymbolByTypeRef<FirBasedSymbol<*>>(typeProjection.typeRef)
-//        }
-//        .mapNotNull { basedSymbol ->
-//          basedSymbol?.fir?.contextReceivers(session)
-//        }
-//        .flatten()
-//        .filter { contextReceiver ->
-//          val proofResolution = resolveProof(ProviderAnnotation, contextReceiver.typeRef.coneType)
-//          proofResolution.proof != null
-//        }
-//        .toList()
+  //  private val FirFunctionCall.proofContextReceivers: List<FirContextReceiver>
+  //    get() =
+  //      contextOfTypeArguments
+  //        .asSequence()
+  //        // TODO: all are `FirTypeProjectionWithVariance`?
+  //        .mapNotNull { typeProjection -> (typeProjection as? FirTypeProjectionWithVariance) }
+  //        .map { typeProjection ->
+  //          session.symbolProvider.getSymbolByTypeRef<FirBasedSymbol<*>>(typeProjection.typeRef)
+  //        }
+  //        .mapNotNull { basedSymbol ->
+  //          basedSymbol?.fir?.contextReceivers(session)
+  //        }
+  //        .flatten()
+  //        .filter { contextReceiver ->
+  //          val proofResolution = resolveProof(ProviderAnnotation,
+  // contextReceiver.typeRef.coneType)
+  //          proofResolution.proof != null
+  //        }
+  //        .toList()
 }

@@ -1,7 +1,7 @@
-FILE: context_receivers.kt
+FILE: unresolved_given_callsite.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/Provider|() public final class Persistence : R|kotlin/Any| {
+    public final class Persistence : R|kotlin/Any| {
         public constructor(): R|foo/bar/Persistence| {
             super<R|kotlin/Any|>()
         }

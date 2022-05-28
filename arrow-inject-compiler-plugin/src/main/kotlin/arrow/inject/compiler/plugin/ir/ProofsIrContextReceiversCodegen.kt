@@ -296,18 +296,18 @@ internal class ProofsIrContextReceiversCodegen(
     )
   }
 
-  private val IrFunctionAccessExpression.isContextOfCall
+  private val IrFunctionAccessExpression.isCallToContextSyntheticFunction
     get() =
-      symbol.owner.fqNameWhenAvailable == FqName("arrow.inject.annotations.ResolveKt.contextOf")
+      symbol.owner.fqNameWhenAvailable == FqName("arrow.inject.annotations.ResolveKt.context")
 
   private fun IrElement.contextCall(): IrFunctionAccessExpression? =
-    if (this is IrCall && isContextOfCall) this
+    if (this is IrCall && isCallToContextSyntheticFunction) this
     else {
       var expression: IrFunctionAccessExpression? = null
       acceptChildrenVoid(
         object : IrElementVisitorVoid {
           override fun visitElement(element: IrElement) {
-            if (element is IrCall && element.isContextOfCall) {
+            if (element is IrCall && element.isCallToContextSyntheticFunction) {
               expression = element
             }
           }
