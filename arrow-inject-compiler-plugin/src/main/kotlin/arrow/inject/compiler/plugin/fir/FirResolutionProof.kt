@@ -21,7 +21,7 @@ internal interface FirResolutionProof : FirProofIdSignature {
   val allProofs: List<Proof>
 
   val proofResolutionStageRunner: ProofResolutionStageRunner
-    get() = ProofResolutionStageRunner(session)
+    get() = ProofResolutionStageRunner(session, this)
 
   val allCollectedProofs: List<Proof>
     get() =
@@ -33,17 +33,40 @@ internal interface FirResolutionProof : FirProofIdSignature {
   val externalProofCollector: ExternalProofCollector
     get() = ExternalProofCollector(session)
 
-  fun resolveProof(contextFqName: FqName, type: ConeKotlinType): ProofResolution =
-    proofCandidate(candidates = candidates(contextFqName, type), type = type).apply {
-      proofCache.putProofIntoCache(type.asProofCacheKey(contextFqName), this)
+  fun resolveProof(
+    contextFqName: FqName,
+    type: ConeKotlinType,
+    currentType: ConeKotlinType?
+  ): ProofResolution {
+    return when (val candidatesOrCycles = candidates(contextFqName, type, currentType)) {
+      is ProofResolutionStageRunner.CandidatesOrCycles.Candidates -> {
+        val candidates = candidatesOrCycles.candidates
+        val proofResolution = proofCandidate(candidates, type)
+        return proofResolution.apply {
+          proofCache.putProofIntoCache(type.asProofCacheKey(contextFqName), this)
+        }
+      }
+      is ProofResolutionStageRunner.CandidatesOrCycles.CyclesFound -> {
+        ProofResolution(candidatesOrCycles.proof, type, emptyList())
+      }
     }
+  }
 
-  private fun candidates(contextFqName: FqName, type: ConeKotlinType): Set<Candidate> =
+  private fun candidates(
+    contextFqName: FqName,
+    type: ConeKotlinType,
+    currentType: ConeKotlinType?,
+  ): ProofResolutionStageRunner.CandidatesOrCycles =
     proofResolutionStageRunner.run {
-      allProofs.filter { contextFqName in it.declaration.contextFqNames }.matchingCandidates(type)
+      allProofs
+        .filter { contextFqName in it.declaration.contextFqNames }
+        .matchingCandidates(type, currentType)
     }
 
-  private fun proofCandidate(candidates: Set<Candidate>, type: ConeKotlinType): ProofResolution {
+  private fun proofCandidate(
+    candidates: Set<Candidate>,
+    type: ConeKotlinType,
+  ): ProofResolution {
     val candidate: Candidate? = candidates.firstOrNull()
 
     return ProofResolution(

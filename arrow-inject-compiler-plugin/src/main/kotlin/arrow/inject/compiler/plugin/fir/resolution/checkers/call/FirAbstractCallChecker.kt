@@ -6,6 +6,7 @@ import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.FirResolutionProof
 import arrow.inject.compiler.plugin.fir.coneType
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.fir.FirElement
@@ -48,10 +49,16 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
       if (originalFunction.isContextSyntheticFunction()) {
         val targetType = call.typeArguments.firstOrNull()?.toConeTypeProjection()?.type
         if (targetType != null) {
-          val contextProofResolution = resolveProof(ProofAnnotationsFqName.ProviderAnnotation, targetType)
+          val contextProofResolution =
+            resolveProof(ProviderAnnotation, targetType, null)
           mapOf(contextProofResolution to call)
         } else emptyMap()
-      } else resolvedValueParametersMap(call, unresolvedValueParameters, originalFunction.contextReceivers)
+      } else
+        resolvedValueParametersMap(
+          call,
+          unresolvedValueParameters,
+          originalFunction.contextReceivers
+        )
     } else {
       emptyMap()
     }
@@ -65,9 +72,11 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
     unresolvedValueParameters: List<FirValueParameter>,
     unresolvedContextReceivers: List<FirContextReceiver>
   ): Map<ProofResolution?, FirElement> =
-    (unresolvedContextReceivers + unresolvedValueParameters).mapNotNull { valueParameter ->
-      valueParameter.contextAnnotation()?.let { valueParameter.proofResolution(call, it) }
-    }.toMap()
+    (unresolvedContextReceivers + unresolvedValueParameters)
+      .mapNotNull { valueParameter ->
+        valueParameter.contextAnnotation()?.let { valueParameter.proofResolution(call, it) }
+      }
+      .toMap()
 
   fun FirElement.proofResolution(
     call: FirQualifiedAccess,
@@ -77,8 +86,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
       when (val coneType = resolutionTargetType()) {
         is ConeTypeParameterType -> {
           val originalFunction =
-            ((call as? FirResolvable)?.calleeReference?.resolvedSymbol
-              as? FirFunctionSymbol<*>)
+            ((call as? FirResolvable)?.calleeReference?.resolvedSymbol as? FirFunctionSymbol<*>)
               ?.fir
           val originalTypeArgumentIndex =
             originalFunction?.typeParameters?.indexOfFirst {
@@ -96,7 +104,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
         else -> coneType
       }
 
-    val proofResolution = resolveProof(contextFqName, type)
+    val proofResolution = resolveProof(contextFqName, type, null)
     return if (proofResolution.proof == null) {
       null to this
     } else proofResolution to this
@@ -108,17 +116,20 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
         firAnnotation.fqName(session) == ProofAnnotationsFqName.CompileTimeAnnotation
       }
 
-  fun FirElement.resolutionTargetType() = when (this) {
-    is FirValueParameter -> coneType
-    is FirContextReceiver -> typeRef.coneType
-    is FirFunctionCall -> typeArguments[0].toConeTypeProjection().type!! //contextSyntheticFunction
-    else -> error("unsupported $this")
-  }
+  fun FirElement.resolutionTargetType() =
+    when (this) {
+      is FirValueParameter -> coneType
+      is FirContextReceiver -> typeRef.coneType
+      is FirFunctionCall ->
+        typeArguments[0].toConeTypeProjection().type!! // contextSyntheticFunction
+      else -> error("unsupported $this")
+    }
 
-  fun FirElement.contextAnnotation(): FqName? = when (this) {
-    is FirValueParameter -> metaContextAnnotations.firstOrNull()?.fqName(session)
-    is FirContextReceiver -> ProofAnnotationsFqName.ProviderAnnotation
-    is FirFunctionCall -> ProofAnnotationsFqName.ProviderAnnotation // contextSyntheticFunction
-    else -> error("unsupported $this")
-  }
+  fun FirElement.contextAnnotation(): FqName? =
+    when (this) {
+      is FirValueParameter -> metaContextAnnotations.firstOrNull()?.fqName(session)
+      is FirContextReceiver -> ProviderAnnotation
+      is FirFunctionCall -> ProviderAnnotation // contextSyntheticFunction
+      else -> error("unsupported $this")
+    }
 }

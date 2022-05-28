@@ -1,5 +1,7 @@
 package foo.bar
 
+import arrow.inject.annotations.Provider
+
 
 class Persistence
 
@@ -12,4 +14,9 @@ fun main() {
   Persistence().run {
     Repo().hello()
   }
+}
+
+context(Int)
+@Provider internal fun n(): Int {
+  return this@Int
 }

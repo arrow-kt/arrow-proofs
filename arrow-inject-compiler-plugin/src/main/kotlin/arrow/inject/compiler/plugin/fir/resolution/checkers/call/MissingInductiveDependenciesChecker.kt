@@ -39,11 +39,9 @@ internal class MissingInductiveDependenciesChecker(
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
   override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
-    proofResolutionList(expression).let {
-      resolvedParameters: Map<ProofResolution?, FirElement> ->
+    proofResolutionList(expression).let { resolvedParameters: Map<ProofResolution?, FirElement> ->
       resolvedParameters.forEach { (_, valueParameter) ->
-        val metaContextAnnotation: FqName? =
-          valueParameter.contextAnnotation()
+        val metaContextAnnotation: FqName? = valueParameter.contextAnnotation()
 
         if (metaContextAnnotation != null) {
           val expressionOwner: FirNamedReference? =
@@ -65,13 +63,13 @@ internal class MissingInductiveDependenciesChecker(
                   expression.typeArguments[index].toConeTypeProjection().type
 
                 if (substitutedType != null) {
-                  resolveProof(metaContextAnnotation, substitutedType)
+                  resolveProof(metaContextAnnotation, substitutedType, null)
                 } else error("Unexpected type argument index")
               } else {
                 error("Unexpected type argument index")
               }
             } else {
-              resolveProof(metaContextAnnotation, valueParameter.resolutionTargetType())
+              resolveProof(metaContextAnnotation, valueParameter.resolutionTargetType(), null)
             }
 
           val proofResolutionProof = proofResolution.proof
@@ -102,10 +100,7 @@ internal class MissingInductiveDependenciesChecker(
 
               val parameterResolveProof =
                 if (contextAnnotationFqName != null) {
-                  resolveProof(
-                    contextAnnotationFqName,
-                    targetType.type,
-                  )
+                  resolveProof(contextAnnotationFqName, targetType.type, null)
                 } else {
                   null
                 }

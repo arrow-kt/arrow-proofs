@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.FirAnnotationContainer
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
+import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirContextReceiver
@@ -29,7 +30,12 @@ import org.jetbrains.kotlin.fir.extensions.predicate.DeclarationPredicate
 import org.jetbrains.kotlin.fir.extensions.predicate.has
 import org.jetbrains.kotlin.fir.extensions.predicate.metaHas
 import org.jetbrains.kotlin.fir.extensions.predicate.or
+import org.jetbrains.kotlin.fir.labelName
 import org.jetbrains.kotlin.fir.moduleData
+import org.jetbrains.kotlin.fir.resolve.ScopeSession
+import org.jetbrains.kotlin.fir.resolve.calls.ContextReceiverValue
+import org.jetbrains.kotlin.fir.resolve.calls.ContextReceiverValueForCallable
+import org.jetbrains.kotlin.fir.resolve.calls.ContextReceiverValueForClass
 import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.symbols.ConeTypeParameterLookupTag
@@ -174,17 +180,39 @@ val FirDeclaration.coneType: ConeKotlinType
       else -> error("Unsupported FirDeclaration: $this")
     }
 
-fun FirDeclaration.contextReceivers(session: FirSession): List<FirContextReceiver> =
-  when (this) {
-    is FirFunction -> contextReceivers
-    is FirRegularClass -> contextReceivers
-    is FirProperty -> contextReceivers
-    else -> emptyList()
-  }
+val FirDeclaration.contextReceivers: List<FirContextReceiver>
+  get() =
+    when (this) {
+      is FirFunction -> contextReceivers
+      is FirRegularClass -> contextReceivers
+      is FirProperty -> contextReceivers
+      else -> emptyList()
+    }
 
-fun FirDeclaration.valueParameters(session: FirSession): List<FirValueParameter> =
+fun FirDeclaration.contextReceiverValue(
+  session: FirSession,
+  scopeSession: ScopeSession,
+  receiver: FirContextReceiver,
+  index: Int
+): ContextReceiverValue<*>? =
   when (this) {
-    is FirFunction -> valueParameters
-    is FirClass -> primaryConstructorIfAny(session)?.valueParameterSymbols?.map { it.fir }.orEmpty()
-    else -> emptyList()
+    is FirCallableDeclaration ->
+      ContextReceiverValueForCallable(
+        symbol,
+        receiver.typeRef.coneType,
+        receiver.labelName,
+        session,
+        scopeSession,
+        contextReceiverNumber = index,
+      )
+    is FirRegularClass ->
+      ContextReceiverValueForClass(
+        symbol,
+        receiver.typeRef.coneType,
+        receiver.labelName,
+        session,
+        scopeSession,
+        contextReceiverNumber = index,
+      )
+    else -> null
   }

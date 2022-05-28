@@ -118,15 +118,39 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
         }
 
         @Test
+        @TestMetadata("ambiguous_type_bounds_based_injection.kt")
+        public void testAmbiguous_type_bounds_based_injection() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/ambiguous_type_bounds_based_injection.kt");
+        }
+
+        @Test
+        @TestMetadata("circular_proof_single_cycle_rule.kt")
+        public void testCircular_proof_single_cycle_rule() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/circular_proof_single_cycle_rule.kt");
+        }
+
+        @Test
         @TestMetadata("context_receivers.kt")
         public void testContext_receivers() throws Exception {
             runTest("src/testData/diagnostics/context-receivers/context_receivers.kt");
         }
 
         @Test
+        @TestMetadata("inductive.kt")
+        public void testInductive() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/inductive.kt");
+        }
+
+        @Test
         @TestMetadata("unresolved_given_callsite.kt")
         public void testUnresolved_given_callsite() throws Exception {
             runTest("src/testData/diagnostics/context-receivers/unresolved_given_callsite.kt");
+        }
+
+        @Test
+        @TestMetadata("unresolved_given_callsite_inductive.kt")
+        public void testUnresolved_given_callsite_inductive() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/unresolved_given_callsite_inductive.kt");
         }
     }
 }
