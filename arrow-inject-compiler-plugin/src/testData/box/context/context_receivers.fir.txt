@@ -8,29 +8,31 @@ FILE: context_receivers.kt
 
     }
     context(R|foo/bar/Persistence|)
-    public final data class Repo : R|kotlin/Any| {
-        public constructor(): R|foo/bar/Repo| {
+    public final class Repo : R|kotlin/Any| {
+        public constructor(x: R|kotlin/Int|): R|foo/bar/Repo| {
             super<R|kotlin/Any|>()
         }
 
-        public final val name: R|kotlin/String| = String(Hello)
-            public get(): R|kotlin/String|
-
-        public final fun copy(): R|foo/bar/Repo|
+        public final val x: R|kotlin/Int| = R|<local>/x|
+            public get(): R|kotlin/Int|
 
     }
-    public final val expectedRepo: R|foo/bar/Repo|
-        public get(): R|foo/bar/Repo| {
-            ^ R|kotlin/with|<R|foo/bar/Persistence|, R|foo/bar/Repo|>(R|foo/bar/Persistence.Persistence|(), <L> = with@fun R|foo/bar/Persistence|.<anonymous>(): R|foo/bar/Repo| <inline=Inline, kind=EXACTLY_ONCE>  {
-                ^ R|foo/bar/Repo.Repo|()
-            }
-            )
+    public final fun f2(): R|kotlin/Int| {
+        R|kotlin/io/println|(String(will drop from nested body))
+        R|arrow/inject/annotations/contextOf|<R|foo/bar/Persistence|>()
+        ^f2 R|foo/bar/Repo.Repo|(Int(0)).R|foo/bar/Repo.x|
+    }
+    public final fun f3(): R|kotlin/Int| {
+        R|kotlin/io/println|(String(will drop from nested body))
+        ^f3 R|arrow/inject/annotations/contextual|<R|foo/bar/Persistence|, R|kotlin/Int|>(R|foo/bar/Persistence.Persistence|(), <L> = contextual@fun R|foo/bar/Persistence|.<anonymous>(): R|kotlin/Int| <inline=Inline, kind=UNKNOWN>  {
+            ^f3 R|foo/bar/Repo.Repo|(Int(0)).R|foo/bar/Repo.x|
         }
+        )
+    }
     public final fun box(): R|kotlin/String| {
-        R|arrow/inject/annotations/contextOf|<R|foo/bar/Repo|>()
-        lval result: R|foo/bar/Repo| = R|foo/bar/Repo.Repo|()
+        lval result: R|kotlin/Int| = R|foo/bar/f2|()
         ^box when () {
-            ==(R|<local>/result|, R|foo/bar/expectedRepo|) ->  {
+            ==(R|<local>/result|, Int(0)) ->  {
                 String(OK)
             }
             else ->  {

@@ -347,8 +347,9 @@ internal class ProofsIrCodegen(
         val proofCall = givenProofCall(ProofAnnotationsFqName.ProviderAnnotation, targetKotlinType)
         replacementCall.putValueArgument(0, proofCall)
         val remaining = body.remainingStatementsAfterCall(contextCall)
+        val paramSymbol = IrValueParameterSymbolImpl()
         val nestedBody: IrFunctionExpression =
-          createLambdaExpression(declarationParent, targetType, returningBlockType, withFunction) {
+          createLambdaExpression(declarationParent, targetType, returningBlockType, withFunction, paramSymbol) {
             val body = blockBody {
             }
 
@@ -372,7 +373,7 @@ internal class ProofsIrCodegen(
             IrGetValueImpl(
               UNDEFINED_OFFSET,
               UNDEFINED_OFFSET,
-              withFunReceiverParameter(nestedBody.function, targetType).symbol
+              paramSymbol
             )
           } else errorExpression
         }
@@ -384,13 +385,14 @@ internal class ProofsIrCodegen(
 
   private fun <D> withFunReceiverParameter(
     dec: D,
-    targetType: IrType
+    targetType: IrType,
+    paramSymbol: IrValueParameterSymbol
   ): IrValueParameter where D : IrDeclaration, D : IrDeclarationParent =
     irFactory.createValueParameter(
       startOffset = UNDEFINED_OFFSET,
       endOffset = UNDEFINED_OFFSET,
       origin = IrDeclarationOrigin.DEFINED,
-      symbol = IrValueParameterSymbolImpl(),
+      symbol = paramSymbol,
       name = Name.identifier("${'$'}this${'$'}contextual"),
       index = -1,
       type = targetType,
@@ -423,6 +425,7 @@ internal class ProofsIrCodegen(
     type: IrType,
     returningBlockType: IrType,
     withFunction: IrSimpleFunctionSymbol,
+    paramSymbol: IrValueParameterSymbol,
     bodyGen: IrBlockBodyBuilder.() -> Unit
   ): IrFunctionExpression {
     val function = irFactory.buildFun {
@@ -441,7 +444,7 @@ internal class ProofsIrCodegen(
       )
     function.parent = parent
     //$receiver: VALUE_PARAMETER name:$this$with type:foo.bar.Persistence
-    function.extensionReceiverParameter = withFunReceiverParameter(function, type)
+    function.extensionReceiverParameter = withFunReceiverParameter(function, type, paramSymbol)
 
     return IrFunctionExpressionImpl(
       UNDEFINED_OFFSET,
