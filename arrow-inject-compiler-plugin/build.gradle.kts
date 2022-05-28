@@ -71,6 +71,7 @@ tasks.test {
     setLibraryProperty("org.jetbrains.kotlin.test.kotlin-annotations-jvm", "kotlin-annotations-jvm")
   }
 
+  dependsOn("generateTests")
   dependsOn(":arrow-inject-annotations:jar")
 }
 
