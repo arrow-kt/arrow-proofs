@@ -28,6 +28,7 @@ import org.jetbrains.kotlin.ir.expressions.IrErrorExpression
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
+import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrReturn
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrFunctionExpressionImpl
@@ -60,7 +61,14 @@ internal class ProofsIrContextReceiversCodegen(
   ProofsIrAbstractCodegen {
 
   fun generateContextReceivers() {
-    irTransformBlockBodies { parent, body -> replacementContextCall(parent, body) }
+    irTransformBlockBodies { parent, body ->
+      val contextCall = body.contextCall()
+      if (contextCall != null) {
+        replacementContextCall(parent, body)
+      } else {
+        body
+      }
+    }
   }
 
   private fun replacementContextCall(
@@ -97,7 +105,8 @@ internal class ProofsIrContextReceiversCodegen(
     if (contextCall != null && targetType != null) {
       val targetKotlinType = targetType.toIrBasedKotlinType()
       val paramSymbol = IrValueParameterSymbolImpl()
-      putSubjectValueArgument(targetKotlinType)
+        processContextReceiver(0, targetType, this)
+      //      putSubjectValueArgument(targetKotlinType)
       putReceiverLambdaValueArgument(
         declarationParent,
         targetType,
@@ -159,7 +168,30 @@ internal class ProofsIrContextReceiversCodegen(
   }
 
   private fun IrCall.putSubjectValueArgument(targetKotlinType: KotlinType) {
-    putValueArgument(0, givenProofCall(ProviderAnnotation, targetKotlinType))
+    val givenProofCall: IrExpression? = givenProofCall(ProviderAnnotation, targetKotlinType)
+    putValueArgument(0, givenProofCall)
+  }
+
+  private fun processContextReceiver(
+    index: Int,
+    irType: IrType?,
+    replacementCall: IrMemberAccessExpression<*>?
+  ) {
+    val type = irType?.toIrBasedKotlinType()
+    if (type != null) {
+      givenProofCall(ProviderAnnotation, type)?.apply {
+        if (this is IrCall) {
+          symbol.owner.contextReceiversValueParameters.forEachIndexed { index, param ->
+            val targetType = targetType(irType, param.type)
+            val resolvedType = targetType ?: param.type
+            processContextReceiver(index, resolvedType, this)
+          }
+        }
+        if (replacementCall != null && replacementCall.valueArgumentsCount > index) {
+          replacementCall.putValueArgument(index, this)
+        }
+      }
+    }
   }
 
   private fun createNestedLambdaBody(
@@ -297,8 +329,7 @@ internal class ProofsIrContextReceiversCodegen(
   }
 
   private val IrFunctionAccessExpression.isCallToContextSyntheticFunction
-    get() =
-      symbol.owner.fqNameWhenAvailable == FqName("arrow.inject.annotations.ResolveKt.context")
+    get() = symbol.owner.fqNameWhenAvailable == FqName("arrow.inject.annotations.ResolveKt.context")
 
   private fun IrElement.contextCall(): IrFunctionAccessExpression? =
     if (this is IrCall && isCallToContextSyntheticFunction) this
@@ -309,6 +340,8 @@ internal class ProofsIrContextReceiversCodegen(
           override fun visitElement(element: IrElement) {
             if (element is IrCall && element.isCallToContextSyntheticFunction) {
               expression = element
+            } else {
+              element.acceptChildrenVoid(this)
             }
           }
         }
@@ -341,3 +374,14 @@ internal class ProofsIrContextReceiversCodegen(
       Unit
     )
 }
+
+internal val IrFunctionAccessExpression.substitutedContextReceivers: Map<IrValueParameter, IrType?>
+  get() = symbol.owner.substitutedContextReceivers(this).toMap()
+
+val IrFunction.contextReceiversValueParameters: List<IrValueParameter>
+  get() = valueParameters.subList(0, contextReceiverParametersCount)
+
+internal fun IrFunction.substitutedContextReceivers(
+  call: IrFunctionAccessExpression
+): List<Pair<IrValueParameter, IrType?>> =
+  contextReceiversValueParameters.map { substitutedTypeParameters(it, call) }

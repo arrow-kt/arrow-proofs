@@ -39,6 +39,7 @@ import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.dumpKotlinLike
 import org.jetbrains.kotlin.ir.util.getPackageFragment
+import org.jetbrains.kotlin.ir.util.isTypeParameter
 import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.ir.util.render
 import org.jetbrains.kotlin.name.FqName
@@ -74,7 +75,7 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
     if (contextFqName != null && type != null) {
       givenProofCall(contextFqName, type)?.apply {
         if (this is IrCall) {
-          symbol.owner.valueParameters.forEachIndexed { index, param ->
+          symbol.owner.explicitValueParameters.forEachIndexed { index, param ->
             val targetType = targetType(irType, param.type)
             val resolvedType = targetType ?: param.type
             processValueParameter(index, param, resolvedType, this)
@@ -145,7 +146,7 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
     (type.toIrBasedKotlinType().constructor.declarationDescriptor as? ClassDescriptor)
       ?.declaredTypeParameters.orEmpty()
 
-  private fun targetType(type: IrType, expressionType: IrType): IrType? {
+  fun targetType(type: IrType, expressionType: IrType): IrType? {
     val typeArgs = typeArgs(type)
     val typeArgIndex = typeArgIndex(typeArgs, expressionType)
     return if (typeArgIndex >= 0) type.getArgument(typeArgIndex) as? IrType else null
@@ -297,4 +298,18 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
 
     return replacementCall
   }
+}
+
+fun IrFunction.substitutedTypeParameters(
+  it: IrValueParameter,
+  call: IrFunctionAccessExpression
+): Pair<IrValueParameter, IrType> {
+  val type = it.type
+  return it to
+    (type.takeIf { t -> !t.isTypeParameter() }
+      ?: typeParameters
+        .firstOrNull { typeParam -> typeParam.defaultType == type }
+        ?.let { typeParam -> call.getTypeArgument(typeParam.index) }
+        ?: type // Could not resolve the substituted KotlinType
+    )
 }

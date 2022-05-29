@@ -1,4 +1,4 @@
-FILE fqName:foo.bar fileName:/a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt
+FILE fqName:foo.bar fileName:/a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved2.kt
   FUN name:intProvider visibility:internal modality:FINAL <> () returnType:kotlin.Int
     annotations:
       Provider
@@ -121,19 +121,28 @@ FILE fqName:foo.bar fileName:/a_polymorphic_provider_may_have_injection_argument
       CALL 'public final fun println (message: kotlin.Any?): kotlin.Unit [inline] declared in kotlin.io.ConsoleKt' type=kotlin.Unit origin=null
         message: CONST String type=kotlin.String value="will drop from nested body"
       RETURN type=kotlin.Nothing from='public final fun f2 (): kotlin.Int declared in foo.bar'
-        CALL 'public final fun contextual <T, R> (ev: T of arrow.inject.annotations.contextual, f: @[ExtensionFunctionType] kotlin.Function1<T of arrow.inject.annotations.contextual, R of arrow.inject.annotations.contextual>): R of arrow.inject.annotations.contextual [inline] declared in arrow.inject.annotations' type=kotlin.Int origin=null
-          <T>: foo.bar.Foo<kotlin.Int>
+        CALL 'public final fun contextual <T, R> (ev: T of arrow.inject.annotations.RunKt.contextual, f: @[ExtensionFunctionType] kotlin.Function1<T of arrow.inject.annotations.RunKt.contextual, R of arrow.inject.annotations.RunKt.contextual>): R of arrow.inject.annotations.RunKt.contextual [inline] declared in arrow.inject.annotations.RunKt' type=kotlin.Int origin=null
+          <T>: kotlin.Int
           <R>: kotlin.Int
-          ev: CALL 'internal final fun fooProvider <A> (_context_receiver_0: A of foo.bar.fooProvider): foo.bar.Foo<A of foo.bar.fooProvider> declared in foo.bar' type=foo.bar.Foo<A of foo.bar.fooProvider> origin=null
-            <A>: A of foo.bar.fooProvider
-            _context_receiver_0: CALL 'internal final fun intProvider (): kotlin.Int declared in foo.bar' type=kotlin.Int origin=null
-          f: FUN_EXPR type=@[ExtensionFunctionType] kotlin.Function1<foo.bar.Foo<kotlin.Int>, kotlin.Int> origin=LAMBDA
-            FUN LOCAL_FUNCTION_FOR_LAMBDA name:<anonymous> visibility:local modality:FINAL <> ($receiver:foo.bar.Foo<kotlin.Int>) returnType:kotlin.Int
-              $receiver: VALUE_PARAMETER name:$this$contextual type:foo.bar.Foo<kotlin.Int>
+          ev: CALL 'internal final fun intProvider (): kotlin.Int declared in foo.bar' type=kotlin.Int origin=null
+          f: FUN_EXPR type=@[ExtensionFunctionType] kotlin.Function1<kotlin.Int, kotlin.Int> origin=LAMBDA
+            FUN LOCAL_FUNCTION_FOR_LAMBDA name:<anonymous> visibility:local modality:FINAL <> ($receiver:kotlin.Int) returnType:kotlin.Int
+              $receiver: VALUE_PARAMETER name:$this$contextual type:kotlin.Int
               BLOCK_BODY
-                RETURN type=kotlin.Nothing from='public final fun f2 (): kotlin.Int declared in foo.bar'
-                  CALL 'public final fun <get-n> (): A of foo.bar.Foo declared in foo.bar.Foo' type=kotlin.Int origin=GET_PROPERTY
-                    $this: GET_VAR '$this$contextual: foo.bar.Foo<kotlin.Int> declared in foo.bar.f2.<anonymous>' type=foo.bar.Foo<kotlin.Int> origin=null
+                RETURN type=kotlin.Nothing from='local final fun <anonymous> (): kotlin.Int declared in foo.bar.f2'
+                  CALL 'public final fun contextual <T, R> (ev: T of arrow.inject.annotations.RunKt.contextual, f: @[ExtensionFunctionType] kotlin.Function1<T of arrow.inject.annotations.RunKt.contextual, R of arrow.inject.annotations.RunKt.contextual>): R of arrow.inject.annotations.RunKt.contextual [inline] declared in arrow.inject.annotations.RunKt' type=kotlin.Int origin=null
+                    <T>: foo.bar.Foo<kotlin.Int>
+                    <R>: kotlin.Int
+                    ev: CALL 'internal final fun fooProvider <A> (_context_receiver_0: A of foo.bar.fooProvider): foo.bar.Foo<A of foo.bar.fooProvider> declared in foo.bar' type=foo.bar.Foo<kotlin.Int> origin=null
+                      <A>: kotlin.Int
+                      _context_receiver_0: GET_VAR '$this$contextual: kotlin.Int declared in foo.bar.f2.<anonymous>' type=kotlin.Int origin=null
+                    f: FUN_EXPR type=@[ExtensionFunctionType] kotlin.Function1<foo.bar.Foo<kotlin.Int>, kotlin.Int> origin=LAMBDA
+                      FUN LOCAL_FUNCTION_FOR_LAMBDA name:<anonymous> visibility:local modality:FINAL <> ($receiver:foo.bar.Foo<kotlin.Int>) returnType:kotlin.Int
+                        $receiver: VALUE_PARAMETER name:$this$contextual type:foo.bar.Foo<kotlin.Int>
+                        BLOCK_BODY
+                          RETURN type=kotlin.Nothing from='public final fun f2 (): kotlin.Int declared in foo.bar'
+                            CALL 'public final fun <get-n> (): A of foo.bar.Foo declared in foo.bar.Foo' type=kotlin.Int origin=GET_PROPERTY
+                              $this: GET_VAR '$this$contextual: foo.bar.Foo<kotlin.Int> declared in foo.bar.f2.<anonymous>.<anonymous>' type=foo.bar.Foo<kotlin.Int> origin=null
   FUN name:box visibility:public modality:FINAL <> () returnType:kotlin.String
     BLOCK_BODY
       VAR name:n type:kotlin.Int [val]

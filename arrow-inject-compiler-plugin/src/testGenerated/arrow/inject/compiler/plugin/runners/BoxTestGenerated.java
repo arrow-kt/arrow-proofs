@@ -168,6 +168,12 @@ public class BoxTestGenerated extends AbstractBoxTest {
         }
 
         @Test
+        @TestMetadata("a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved2.kt")
+        public void testA_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved2() throws Exception {
+            runTest("src/testData/box/context-receivers/a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved2.kt");
+        }
+
+        @Test
         public void testAllFilesPresentInContext_receivers() throws Exception {
             KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("src/testData/box/context-receivers"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM_IR, true);
         }

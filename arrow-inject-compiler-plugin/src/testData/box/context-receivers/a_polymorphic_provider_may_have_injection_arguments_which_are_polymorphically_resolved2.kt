@@ -13,8 +13,11 @@ context(A)
 
 fun f2(): Int {
   println("will drop from nested body")
-  context<Foo<Int>>()
-  return n
+  return contextual<Int, Int>(intProvider()) {
+    contextual<Foo<Int>, Int>(fooProvider<Int>()) {
+      return n
+    }
+  }
 }
 
 fun box(): String {

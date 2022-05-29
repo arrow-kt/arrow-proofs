@@ -43,9 +43,7 @@ internal class ProofsIrArgumentsCodegen(
     if (call.symbol.owner.annotations.hasAnnotation(InjectAnnotation)) insertGivenCall(call)
     else call
 
-  private fun irFunctionAccessExpression(
-    call: (IrFunctionAccessExpression) -> IrElement?
-  ): Unit =
+  private fun irFunctionAccessExpression(call: (IrFunctionAccessExpression) -> IrElement?): Unit =
     moduleFragment.transformChildren(
       object : IrElementTransformer<Unit> {
         override fun visitFunctionAccess(
@@ -81,19 +79,13 @@ internal val IrFunctionAccessExpression.valueArguments: Map<Int, IrExpression?>
 internal val IrFunctionAccessExpression.substitutedValueParameters: Map<IrValueParameter, IrType?>
   get() = symbol.owner.substitutedValueParameters(this).toMap()
 
+val IrFunction.explicitValueParameters: List<IrValueParameter>
+  get() = valueParameters.subList(contextReceiverParametersCount, valueParameters.lastIndex)
+
 internal fun IrFunction.substitutedValueParameters(
   call: IrFunctionAccessExpression
 ): List<Pair<IrValueParameter, IrType?>> =
-  valueParameters.map {
-    val type = it.type
-    it to
-      (type.takeIf { t -> !t.isTypeParameter() }
-        ?: typeParameters
-          .firstOrNull { typeParam -> typeParam.defaultType == type }
-          ?.let { typeParam -> call.getTypeArgument(typeParam.index) }
-          ?: type // Could not resolve the substituted KotlinType
-      )
-  }
+  explicitValueParameters.map { substitutedTypeParameters(it, call) }
 
 internal val IrAnnotationContainer.metaContextAnnotations: List<IrConstructorCall>
   get() =

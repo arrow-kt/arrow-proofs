@@ -1,4 +1,4 @@
-FILE: a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt
+FILE: a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved2.kt
     package foo.bar
 
     @R|arrow/inject/annotations/Provider|() internal final fun intProvider(): R|kotlin/Int| {
@@ -23,8 +23,13 @@ FILE: a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphica
     }
     public final fun f2(): R|kotlin/Int| {
         R|kotlin/io/println|(String(will drop from nested body))
-        R|arrow/inject/annotations/context|<R|foo/bar/Foo<kotlin/Int>|>()
-        ^f2 this@R|foo/bar/f2|.R|SubstitutionOverride<foo/bar/Foo.n: R|kotlin/Int|>|
+        ^f2 R|arrow/inject/annotations/contextual|<R|kotlin/Int|, R|kotlin/Int|>(R|foo/bar/intProvider|(), <L> = contextual@fun R|kotlin/Int|.<anonymous>(): R|kotlin/Int| <inline=Inline, kind=UNKNOWN>  {
+            ^ R|arrow/inject/annotations/contextual|<R|foo/bar/Foo<kotlin/Int>|, R|kotlin/Int|>(R|foo/bar/fooProvider|<R|kotlin/Int|>(), <L> = contextual@fun R|foo/bar/Foo<kotlin/Int>|.<anonymous>(): R|kotlin/Int| <inline=Inline, kind=UNKNOWN>  {
+                ^f2 this@R|special/anonymous|.R|SubstitutionOverride<foo/bar/Foo.n: R|kotlin/Int|>|
+            }
+            )
+        }
+        )
     }
     public final fun box(): R|kotlin/String| {
         lval n: R|kotlin/Int| = R|foo/bar/f2|()
