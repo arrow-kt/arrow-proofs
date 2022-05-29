@@ -1,4 +1,4 @@
-FILE: report_unresolved_given_proofs.kt
+FILE: unresolved_given_callsite_inductive.kt
     package foo.bar
 
     @R|arrow/inject/annotations/Inject|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A|): R|A| {

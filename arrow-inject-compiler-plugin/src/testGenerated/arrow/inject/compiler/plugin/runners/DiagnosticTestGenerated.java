@@ -78,12 +78,6 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
         }
 
         @Test
-        @TestMetadata("report_unresolved_given_proofs.kt")
-        public void testReport_unresolved_given_proofs() throws Exception {
-            runTest("src/testData/diagnostics/value-arguments/report_unresolved_given_proofs.kt");
-        }
-
-        @Test
         @TestMetadata("simple.kt")
         public void testSimple() throws Exception {
             runTest("src/testData/diagnostics/value-arguments/simple.kt");
@@ -93,6 +87,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
         @TestMetadata("unresolved_given_callsite.kt")
         public void testUnresolved_given_callsite() throws Exception {
             runTest("src/testData/diagnostics/value-arguments/unresolved_given_callsite.kt");
+        }
+
+        @Test
+        @TestMetadata("unresolved_given_callsite_inductive.kt")
+        public void testUnresolved_given_callsite_inductive() throws Exception {
+            runTest("src/testData/diagnostics/value-arguments/unresolved_given_callsite_inductive.kt");
         }
     }
 
