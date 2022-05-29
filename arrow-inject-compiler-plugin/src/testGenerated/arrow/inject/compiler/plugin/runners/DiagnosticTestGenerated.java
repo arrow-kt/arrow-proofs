@@ -130,6 +130,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
         }
 
         @Test
+        @TestMetadata("circular_proofs_cycle_rule.kt")
+        public void testCircular_proofs_cycle_rule() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/circular_proofs_cycle_rule.kt");
+        }
+
+        @Test
         @TestMetadata("context_receivers.kt")
         public void testContext_receivers() throws Exception {
             runTest("src/testData/diagnostics/context-receivers/context_receivers.kt");
@@ -139,6 +145,24 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
         @TestMetadata("inductive.kt")
         public void testInductive() throws Exception {
             runTest("src/testData/diagnostics/context-receivers/inductive.kt");
+        }
+
+        @Test
+        @TestMetadata("prohibited_public_proof_of_non_user_types.kt")
+        public void testProhibited_public_proof_of_non_user_types() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/prohibited_public_proof_of_non_user_types.kt");
+        }
+
+        @Test
+        @TestMetadata("prohibited_public_proof_over_polymorphic_type_parameter.kt")
+        public void testProhibited_public_proof_over_polymorphic_type_parameter() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/prohibited_public_proof_over_polymorphic_type_parameter.kt");
+        }
+
+        @Test
+        @TestMetadata("prohibited_published_internal_orphan.kt")
+        public void testProhibited_published_internal_orphan() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/prohibited_published_internal_orphan.kt");
         }
 
         @Test
