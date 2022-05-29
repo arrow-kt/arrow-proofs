@@ -1,4 +1,4 @@
-@file:OptIn(SymbolInternals::class, DfaInternals::class, DfaInternals::class)
+@file:OptIn(SymbolInternals::class, DfaInternals::class, DfaInternals::class, PrivateForInline::class)
 
 package arrow.inject.compiler.plugin.fir.resolution.resolver
 
@@ -8,8 +8,8 @@ import arrow.inject.compiler.plugin.fir.ProofKey
 import arrow.inject.compiler.plugin.fir.contextReceiverValue
 import arrow.inject.compiler.plugin.fir.contextReceivers
 import arrow.inject.compiler.plugin.model.Proof
-import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.PrivateForInline
 import org.jetbrains.kotlin.fir.analysis.checkers.typeParameterSymbols
 import org.jetbrains.kotlin.fir.builder.buildPackageDirective
 import org.jetbrains.kotlin.fir.declarations.FirContextReceiver
@@ -27,6 +27,7 @@ import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
+import org.jetbrains.kotlin.fir.resolve.FirRegularTowerDataContexts
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.fir.resolve.calls.CallInfo
 import org.jetbrains.kotlin.fir.resolve.calls.CallKind
@@ -34,26 +35,31 @@ import org.jetbrains.kotlin.fir.resolve.calls.Candidate
 import org.jetbrains.kotlin.fir.resolve.calls.CandidateFactory
 import org.jetbrains.kotlin.fir.resolve.calls.ContextReceiverValue
 import org.jetbrains.kotlin.fir.resolve.calls.FirNamedReferenceWithCandidate
+import org.jetbrains.kotlin.fir.resolve.calls.ResolutionContext
 import org.jetbrains.kotlin.fir.resolve.calls.ResolutionStageRunner
 import org.jetbrains.kotlin.fir.resolve.dfa.DfaInternals
 import org.jetbrains.kotlin.fir.resolve.firClassLike
 import org.jetbrains.kotlin.fir.resolve.inference.FirCallCompleter
+import org.jetbrains.kotlin.fir.resolve.substitution.ConeSubstitutor
+import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.BodyResolveContext
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.FirBodyResolveTransformer
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
-import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.FirTypeProjection
+import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildTypeProjectionWithVariance
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.toFirResolvedTypeRef
+import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
 import org.jetbrains.kotlin.resolve.calls.tower.CandidateApplicability
+import org.jetbrains.kotlin.types.Variance
 
 internal class ProofResolutionStageRunner(
   override val session: FirSession,
@@ -79,31 +85,44 @@ internal class ProofResolutionStageRunner(
 
   fun List<Proof>.matchingCandidates(
     type: ConeKotlinType,
-    currentType: ConeKotlinType?,
   ): ProofResolutionResult {
     val resolveCallInfo = resolveCallInfo()
-    forEach {
-      val receiverGroup = it.buildCallInfoContextReceiverValues()
-      firBodyResolveTransformer.resolutionContext.bodyResolveContext.towerDataContext
-        .addContextReceiverGroup(receiverGroup)
-    }
-    val candidateFactory =
-      CandidateFactory(firBodyResolveTransformer.resolutionContext, resolveCallInfo)
+//    val resolutionContext = firBodyResolveTransformer.resolutionContext
+//    val bodyResolveComponents = resolutionContext.bodyResolveComponents
+//    val bodyResolveContext = BodyResolveContext(
+//      resolutionContext.bodyResolveContext.returnTypeCalculator,
+//      resolutionContext.bodyResolveContext.dataFlowAnalyzerContext,
+//      resolutionContext.bodyResolveContext.targetedLocalClasses,
+//      resolutionContext.bodyResolveContext.outerLocalClassForNested
+//    )
 
 
     return ProofResolutionResult.Candidates(
       mapNotNull { proof ->
-          val proofDeclaration: FirDeclaration = proof.declaration
-          when (val callInfoResult = proof.proofCallInfo(proofDeclaration, type, currentType)) {
-            is CallInfoResult.Info -> {
-              if (currentType == type) return ProofResolutionResult.CyclesFound(proof)
-              callInfoResult.completedCandidate(candidateFactory, proof, type, currentType)
-            }
-            is CallInfoResult.CyclesFound ->
-              return ProofResolutionResult.CyclesFound(callInfoResult.proof)
-            is CallInfoResult.FunctionCall -> TODO()
+        val proofDeclaration: FirDeclaration = proof.declaration
+        when (val callInfoResult = proof.proofCallInfo(proofDeclaration, type)) {
+          is CallInfoResult.Info -> {
+            val previousTowerContext = firBodyResolveTransformer.resolutionContext.bodyResolveContext.regularTowerDataContexts
+            firBodyResolveTransformer.resolutionContext.bodyResolveContext.regularTowerDataContexts =
+              FirRegularTowerDataContexts(
+                firBodyResolveTransformer.resolutionContext.bodyResolveContext.towerDataContext.addContextReceiverGroup(
+                  flatMap {
+                    it.buildCallInfoContextReceiverValues()
+                  }
+                )
+              )
+            val candidateFactory =
+              CandidateFactory(firBodyResolveTransformer.resolutionContext, resolveCallInfo)
+            val completedCandidate = callInfoResult.completedCandidate(candidateFactory, proof, type)
+            firBodyResolveTransformer.resolutionContext.bodyResolveContext.regularTowerDataContexts =
+              previousTowerContext
+            completedCandidate
           }
+          is CallInfoResult.CyclesFound ->
+            return ProofResolutionResult.CyclesFound(callInfoResult.proof)
+          is CallInfoResult.FunctionCall -> TODO()
         }
+      }
         .toSet()
     )
   }
@@ -112,11 +131,9 @@ internal class ProofResolutionStageRunner(
     candidateFactory: CandidateFactory,
     proof: Proof,
     type: ConeKotlinType,
-    currentType: ConeKotlinType?
   ): Candidate? {
     val candidate = candidate(candidateFactory, callInfo, proof)
     return when {
-      type == currentType -> candidate
       candidate.isApplicable -> candidate.createAndCompleteCall(proof, type)
       else -> null
     }
@@ -141,15 +158,7 @@ internal class ProofResolutionStageRunner(
     buildFunctionCall {
       contextReceiverArguments +=
         declaration.contextReceivers.map { contextReceiver ->
-          buildFunctionCall {
-            this.typeRef = contextReceiver.typeRef
-            this.calleeReference = buildResolvedNamedReference {
-              contextReceiver.labelNameFromTypeRef?.let { this.name = it }
-              contextReceiver.typeRef.firClassLike(session)?.symbol?.let {
-                this.resolvedSymbol = it
-              }
-            }
-          }
+          contextReceiver.buildContextReceiverCall(type)
         }
       argumentList = buildResolvedArgumentList(LinkedHashMap())
       typeArguments += buildFirCallTypeArguments(type)
@@ -191,10 +200,12 @@ internal class ProofResolutionStageRunner(
     return candidateFactory.createCandidate(
       callInfo = proofCallInfo,
       symbol = proof.declaration.symbol,
-      explicitReceiverKind = ExplicitReceiverKind.NO_EXPLICIT_RECEIVER,
+      explicitReceiverKind =
+      if (proof.declaration.contextReceivers.isEmpty()) ExplicitReceiverKind.NO_EXPLICIT_RECEIVER
+      else ExplicitReceiverKind.EXTENSION_RECEIVER,
       scope = null,
       dispatchReceiverValue = null,
-      givenExtensionReceiverOptions = emptyList() /*proof.buildCallInfoContextReceiverValues()*/,
+      givenExtensionReceiverOptions = proof.buildCallInfoContextReceiverValues(),
       objectsByName = false,
     )
   }
@@ -212,45 +223,23 @@ internal class ProofResolutionStageRunner(
   private fun Proof.proofCallInfo(
     proofDeclaration: FirDeclaration,
     type: ConeKotlinType,
-    currentType: ConeKotlinType?,
   ): CallInfoResult {
-    val explicitReceiverResult = buildCallInfoExplicitReceiver(type, currentType)
-    return when (explicitReceiverResult) {
-      is CallInfoResult.CyclesFound -> explicitReceiverResult
-      is CallInfoResult.Info -> explicitReceiverResult
-      is CallInfoResult.FunctionCall ->
-        CallInfoResult.Info(
-          CallInfo(
-            callSite = declaration,
-            callKind = buildCallKind(),
-            name = declarationName,
-            explicitReceiver = explicitReceiverResult.call,
-            argumentList = proofDeclaration.buildCallInfoArgumentList(type),
-            isImplicitInvoke = false,
-            typeArguments = buildCallInfoTypeArguments(type),
-            session = session,
-            containingFile = fakeFirFile,
-            containingDeclarations = emptyList(),
-            origin = FirFunctionCallOrigin.Regular,
-          )
-        )
-      null ->
-        CallInfoResult.Info(
-          CallInfo(
-            callSite = declaration,
-            callKind = buildCallKind(),
-            name = declarationName,
-            explicitReceiver = null,
-            argumentList = proofDeclaration.buildCallInfoArgumentList(type),
-            isImplicitInvoke = false,
-            typeArguments = buildCallInfoTypeArguments(type),
-            session = session,
-            containingFile = fakeFirFile,
-            containingDeclarations = emptyList(),
-            origin = FirFunctionCallOrigin.Regular,
-          )
-        )
-    }
+    val explicitReceiverResult = buildCallInfoExplicitReceiver(type)
+    return CallInfoResult.Info(
+      CallInfo(
+        callSite = declaration,
+        callKind = buildCallKind(),
+        name = declarationName,
+        explicitReceiver = explicitReceiverResult,
+        argumentList = proofDeclaration.buildCallInfoArgumentList(type),
+        isImplicitInvoke = false,
+        typeArguments = buildCallInfoTypeArguments(type),
+        session = session,
+        containingFile = fakeFirFile,
+        containingDeclarations = emptyList(),
+        origin = FirFunctionCallOrigin.Regular,
+      )
+    )
   }
 
   private fun Proof.buildCallInfoTypeArguments(type: ConeKotlinType) =
@@ -268,37 +257,29 @@ internal class ProofResolutionStageRunner(
     } else FirEmptyArgumentList
 
   private fun Proof.buildCallInfoExplicitReceiver(
-    type: ConeKotlinType,
-    currentType: ConeKotlinType?
-  ): CallInfoResult? =
+    type: ConeKotlinType
+  ): FirFunctionCall? =
     declaration.contextReceivers
       .mapNotNull { contextReceiver ->
-        val targetType =
-          if (type.typeArguments.isEmpty() &&
-              contextReceiver.typeRef.coneType is ConeTypeParameterType
-          ) {
-            type
-          } else {
-            targetType(type, contextReceiver.typeRef.coneType) ?: contextReceiver.typeRef.coneType
-          }
-        val proofResolutionResult = if (targetType != currentType)
-          firResolutionProof.resolveProof(
-            contextFqName = ProviderAnnotation,
-            type = targetType,
-            currentType = type
-          ) else null
 
-        when (val result = proofResolutionResult?.result) {
-          is ProofResolutionResult.Candidates -> {
-            if (proofResolutionResult.proof != null) null
-            else contextReceiver.buildContextReceiverCall()
-          }
-          is ProofResolutionResult.CyclesFound -> return CallInfoResult.CyclesFound(result.proof)
-          else -> null
-        }
+//        println()
+//        val proofResolutionResult = // TODO
+//          firResolutionProof.resolveProof(
+//            contextFqName = ProviderAnnotation,
+//            type = targetType,
+//          )
+
+//        when (val result = proofResolutionResult.result) {
+//          is ProofResolutionResult.Candidates -> {
+//            if (proofResolutionResult.proof != null) null
+//            else contextReceiver.buildContextReceiverCall()
+//          }
+//          is ProofResolutionResult.CyclesFound -> return CallInfoResult.CyclesFound(result.proof)
+//          else -> null
+//        }
+        contextReceiver.buildContextReceiverCall(type)
       }
       .firstOrNull()
-      ?.let { CallInfoResult.FunctionCall(it) }
 
   private fun FirFunction.buildValueArgumentCalls(type: ConeKotlinType): List<FirFunctionCall> =
     symbol.valueParameterSymbols.map { valueParameter ->
@@ -317,6 +298,20 @@ internal class ProofResolutionStageRunner(
       resolvedSymbol = resolve.symbol
     }
 
+  private fun FirTypeRef.buildContextReceiversTypeProjections(
+    type: ConeKotlinType
+  ): List<FirTypeProjection> =
+    coneType.typeArguments.map {
+      buildTypeProjectionWithVariance {
+        val typeArgType = it.type
+        if (typeArgType != null) {
+          val targetTypeRefArg = targetTypeRef(type, typeArgType)
+          typeRef = targetTypeRefArg
+          variance = Variance.OUT_VARIANCE
+        }
+      }
+    }
+
   private fun FirValueParameterSymbol.buildValueArgumentTypeProjections(
     type: ConeKotlinType
   ): List<FirTypeProjection> =
@@ -328,18 +323,14 @@ internal class ProofResolutionStageRunner(
       }
     }
 
-  private fun FirContextReceiver.buildContextReceiverCall(): FirFunctionCall? {
-    val symbol = this@buildContextReceiverCall.typeRef.firClassLike(session)?.symbol
-    val label = labelNameFromTypeRef
-    return if (symbol != null && label != null) {
-      buildFunctionCall {
-        this.typeRef = this@buildContextReceiverCall.typeRef
-        this.calleeReference = buildResolvedNamedReference {
-          this.name = label
-          this.resolvedSymbol = symbol
-        }
-      }
-    } else null
+  private fun FirContextReceiver.buildContextReceiverCall(type: ConeKotlinType): FirFunctionCall {
+    val targetTypeRef = targetTypeRef(type, typeRef.coneType)
+    return buildFunctionCall {
+      typeRef = targetTypeRef
+      argumentList = buildResolvedArgumentList(LinkedHashMap())
+      typeArguments += targetTypeRef.buildContextReceiversTypeProjections(type)
+      calleeReference = buildSyntheticResolveCalleeReference()
+    }
   }
 
   private fun Proof.buildCallKind() =

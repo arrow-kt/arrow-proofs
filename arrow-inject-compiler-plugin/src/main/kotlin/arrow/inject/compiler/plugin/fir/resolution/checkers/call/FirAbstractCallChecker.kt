@@ -50,7 +50,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
         val targetType = call.typeArguments.firstOrNull()?.toConeTypeProjection()?.type
         if (targetType != null) {
           val contextProofResolution =
-            resolveProof(ProviderAnnotation, targetType, null)
+            resolveProof(ProviderAnnotation, targetType)
           mapOf(contextProofResolution to call)
         } else emptyMap()
       } else
@@ -104,7 +104,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
         else -> coneType
       }
 
-    val proofResolution = resolveProof(contextFqName, type, null)
+    val proofResolution = resolveProof(contextFqName, type)
     return if (proofResolution.proof == null) {
       null to this
     } else proofResolution to this

@@ -36,13 +36,15 @@ internal interface FirResolutionProof : FirProofIdSignature {
 
   fun resolveProof(
     contextFqName: FqName,
-    type: ConeKotlinType,
-    currentType: ConeKotlinType?
+    type: ConeKotlinType
   ): ProofResolution {
-    return when (val resolutionResult = resolutionResult(contextFqName, type, currentType)) {
+    val resolutionResult = resolutionResult(contextFqName, type)
+    return when (resolutionResult) {
       is ProofResolutionResult.Candidates -> {
         val candidates = resolutionResult.candidates
         val proofResolution = proofCandidate(candidates, type, resolutionResult)
+        val candidateProof = proofResolution.proof
+        // TODO if (candidateProof in cycles) ProofResolution(candidateProof, type, emptyList(), resolutionResult)
         return proofResolution.apply {
           proofCache.putProofIntoCache(type.asProofCacheKey(contextFqName), this)
         }
@@ -56,12 +58,11 @@ internal interface FirResolutionProof : FirProofIdSignature {
   private fun resolutionResult(
     contextFqName: FqName,
     type: ConeKotlinType,
-    currentType: ConeKotlinType?,
   ): ProofResolutionResult =
     proofResolutionStageRunner.run {
       allProofs
         .filter { contextFqName in it.declaration.contextFqNames }
-        .matchingCandidates(type, currentType)
+        .matchingCandidates(type)
     }
 
   private fun proofCandidate(

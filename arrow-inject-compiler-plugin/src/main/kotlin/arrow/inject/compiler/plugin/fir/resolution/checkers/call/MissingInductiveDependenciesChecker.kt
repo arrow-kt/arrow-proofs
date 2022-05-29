@@ -63,13 +63,13 @@ internal class MissingInductiveDependenciesChecker(
                   expression.typeArguments[index].toConeTypeProjection().type
 
                 if (substitutedType != null) {
-                  resolveProof(metaContextAnnotation, substitutedType, null)
+                  resolveProof(metaContextAnnotation, substitutedType)
                 } else error("Unexpected type argument index")
               } else {
                 error("Unexpected type argument index")
               }
             } else {
-              resolveProof(metaContextAnnotation, valueParameter.resolutionTargetType(), null)
+              resolveProof(metaContextAnnotation, valueParameter.resolutionTargetType())
             }
 
           val proofResolutionProof = proofResolution.proof
@@ -100,7 +100,7 @@ internal class MissingInductiveDependenciesChecker(
 
               val parameterResolveProof =
                 if (contextAnnotationFqName != null) {
-                  resolveProof(contextAnnotationFqName, targetType.type, null)
+                  resolveProof(contextAnnotationFqName, targetType.type)
                 } else {
                   null
                 }
