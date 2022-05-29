@@ -36,9 +36,10 @@ internal interface FirResolutionProof : FirProofIdSignature {
 
   fun resolveProof(
     contextFqName: FqName,
-    type: ConeKotlinType
+    type: ConeKotlinType,
+    previousProofs: MutableList<Proof>
   ): ProofResolution {
-    val resolutionResult = resolutionResult(contextFqName, type)
+    val resolutionResult = resolutionResult(contextFqName, type, previousProofs)
     return when (resolutionResult) {
       is ProofResolutionResult.Candidates -> {
         val candidates = resolutionResult.candidates
@@ -58,11 +59,12 @@ internal interface FirResolutionProof : FirProofIdSignature {
   private fun resolutionResult(
     contextFqName: FqName,
     type: ConeKotlinType,
+    previousProofs: MutableList<Proof>
   ): ProofResolutionResult =
     proofResolutionStageRunner.run {
       allProofs
         .filter { contextFqName in it.declaration.contextFqNames }
-        .matchingCandidates(type)
+        .matchingCandidates(type, previousProofs)
     }
 
   private fun proofCandidate(

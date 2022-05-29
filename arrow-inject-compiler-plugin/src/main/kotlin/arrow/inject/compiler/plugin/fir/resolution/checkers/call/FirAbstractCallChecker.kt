@@ -23,10 +23,12 @@ import org.jetbrains.kotlin.fir.resolvedSymbol
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
+import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.render
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
+import org.jetbrains.kotlin.fir.types.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
@@ -41,27 +43,52 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
       ((call as? FirResolvable)?.calleeReference?.resolvedSymbol as? FirFunctionSymbol<*>)?.fir
 
     return if (call is FirQualifiedAccess && originalFunction?.isCompileTimeAnnotated == true) {
-      val unresolvedValueParameters: List<FirValueParameter> =
-        originalFunction.valueParameters.filter {
-          val defaultValue: FirFunctionCall? = (it.defaultValue as? FirFunctionCall)
-          defaultValue?.calleeReference?.resolvedSymbol == resolve.symbol
-        }
       if (originalFunction.isContextSyntheticFunction()) {
-        val targetType = call.typeArguments.firstOrNull()?.toConeTypeProjection()?.type
-        if (targetType != null) {
-          val contextProofResolution =
-            resolveProof(ProviderAnnotation, targetType)
-          mapOf(contextProofResolution to call)
-        } else emptyMap()
-      } else
-        resolvedValueParametersMap(
-          call,
-          unresolvedValueParameters,
-          originalFunction.contextReceivers
-        )
+        call.contextReceiversResolutionMap()
+
+      } else {
+        call.valueParametersResolutionMap(originalFunction)
+      }
     } else {
       emptyMap()
     }
+  }
+  fun FirQualifiedAccess.contextReceiversResolutionMap(): Map<ProofResolution?, FirElement> {
+    val targetType = typeArguments.firstOrNull()?.toConeTypeProjection()?.type
+    return if (targetType != null) {
+      val contextProofResolution =
+        resolveProof(ProviderAnnotation, targetType, mutableListOf())
+      mapOf(contextProofResolution to this)
+    } else emptyMap()
+  }
+
+  fun FirQualifiedAccess.contextReceiversResolutionMap2(): Map<ProofResolution?, FirElement> {
+    val targetType = typeArguments.firstOrNull()?.toConeTypeProjection()?.type
+    val unresolvedContextReceivers: List<FirContextReceiver> =
+      targetType?.toRegularClassSymbol(session)?.fir?.contextReceivers.orEmpty()
+//        .filter {
+//        val defaultValue: FirFunctionCall? = (it.defaultValue as? FirFunctionCall)
+//        defaultValue?.calleeReference?.resolvedSymbol == resolve.symbol
+//      }
+    return resolvedContextReceiversMap(
+      this,
+      unresolvedContextReceivers
+    )
+  }
+
+
+  fun FirQualifiedAccess.valueParametersResolutionMap(
+    originalFunction: FirFunction
+  ): Map<ProofResolution?, FirElement> {
+    val unresolvedValueParameters: List<FirValueParameter> =
+      originalFunction.valueParameters.filter {
+        val defaultValue: FirFunctionCall? = (it.defaultValue as? FirFunctionCall)
+        defaultValue?.calleeReference?.resolvedSymbol == resolve.symbol
+      }
+    return resolvedValueParametersMap(
+      this,
+      unresolvedValueParameters
+    )
   }
 
   private fun FirFunction.isContextSyntheticFunction() =
@@ -69,14 +96,25 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
 
   private fun resolvedValueParametersMap(
     call: FirQualifiedAccess,
-    unresolvedValueParameters: List<FirValueParameter>,
-    unresolvedContextReceivers: List<FirContextReceiver>
-  ): Map<ProofResolution?, FirElement> =
-    (unresolvedContextReceivers + unresolvedValueParameters)
+    unresolvedValueParameters: List<FirValueParameter>
+  ): Map<ProofResolution?, FirElement> {
+    val resolvedParams = unresolvedValueParameters
       .mapNotNull { valueParameter ->
         valueParameter.contextAnnotation()?.let { valueParameter.proofResolution(call, it) }
       }
-      .toMap()
+    return resolvedParams.toMap()
+  }
+
+  private fun resolvedContextReceiversMap(
+    call: FirQualifiedAccess,
+    unresolvedContextReceivers: List<FirContextReceiver>
+  ): Map<ProofResolution?, FirElement> {
+    val resolvedReceivers = unresolvedContextReceivers
+      .map { receiverParameter ->
+        receiverParameter.proofResolution(call, ProviderAnnotation)
+      }
+    return resolvedReceivers.toMap()
+  }
 
   fun FirElement.proofResolution(
     call: FirQualifiedAccess,
@@ -104,7 +142,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
         else -> coneType
       }
 
-    val proofResolution = resolveProof(contextFqName, type)
+    val proofResolution = resolveProof(contextFqName, type, mutableListOf())
     return if (proofResolution.proof == null) {
       null to this
     } else proofResolution to this

@@ -91,7 +91,8 @@ internal class CyclesDetectionChecker(
       valueParameter.metaContextAnnotations.firstOrNull()?.fqName(session)
     val type = valueParameter.coneType
     if (contextFqName != null && type !is ConeTypeParameterType) {
-      val resolvedProof: Proof? = resolveProof(contextFqName, type).proof
+      val resolvedProof: Proof? = resolveProof(contextFqName, type, mutableListOf()).proof
+      //TODO cycles or empty mutable?
       if (resolvedProof != null) {
         val encountered = cycles.count { it == resolvedProof }
         if (encountered <= 1) {
@@ -106,7 +107,7 @@ internal class CyclesDetectionChecker(
     val type = typeRef.coneType
     if (type !is ConeTypeParameterType) {
       val resolvedProof: Proof? =
-        resolveProof(contextFqName = ProviderAnnotation, type = type).proof
+        resolveProof(contextFqName = ProviderAnnotation, type = type, mutableListOf()).proof
       if (resolvedProof != null) {
         val encountered = cycles.count { it == resolvedProof }
         if (encountered <= 1) {

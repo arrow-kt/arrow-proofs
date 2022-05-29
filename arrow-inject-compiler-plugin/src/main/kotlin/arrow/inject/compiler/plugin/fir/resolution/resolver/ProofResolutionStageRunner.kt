@@ -8,6 +8,7 @@ import arrow.inject.compiler.plugin.fir.ProofKey
 import arrow.inject.compiler.plugin.fir.contextReceiverValue
 import arrow.inject.compiler.plugin.fir.contextReceivers
 import arrow.inject.compiler.plugin.model.Proof
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.PrivateForInline
 import org.jetbrains.kotlin.fir.analysis.checkers.typeParameterSymbols
@@ -24,6 +25,7 @@ import org.jetbrains.kotlin.fir.expressions.FirFunctionCallOrigin
 import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
 import org.jetbrains.kotlin.fir.expressions.builder.buildArgumentList
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
+import org.jetbrains.kotlin.fir.extensions.predicate.has
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
@@ -85,46 +87,65 @@ internal class ProofResolutionStageRunner(
 
   fun List<Proof>.matchingCandidates(
     type: ConeKotlinType,
+    previousProofs: MutableList<Proof>
   ): ProofResolutionResult {
     val resolveCallInfo = resolveCallInfo()
-//    val resolutionContext = firBodyResolveTransformer.resolutionContext
-//    val bodyResolveComponents = resolutionContext.bodyResolveComponents
-//    val bodyResolveContext = BodyResolveContext(
-//      resolutionContext.bodyResolveContext.returnTypeCalculator,
-//      resolutionContext.bodyResolveContext.dataFlowAnalyzerContext,
-//      resolutionContext.bodyResolveContext.targetedLocalClasses,
-//      resolutionContext.bodyResolveContext.outerLocalClassForNested
-//    )
-
-
     return ProofResolutionResult.Candidates(
       mapNotNull { proof ->
         val proofDeclaration: FirDeclaration = proof.declaration
-        when (val callInfoResult = proof.proofCallInfo(proofDeclaration, type)) {
-          is CallInfoResult.Info -> {
-            val previousTowerContext = firBodyResolveTransformer.resolutionContext.bodyResolveContext.regularTowerDataContexts
-            firBodyResolveTransformer.resolutionContext.bodyResolveContext.regularTowerDataContexts =
-              FirRegularTowerDataContexts(
-                firBodyResolveTransformer.resolutionContext.bodyResolveContext.towerDataContext.addContextReceiverGroup(
-                  flatMap {
-                    it.buildCallInfoContextReceiverValues()
-                  }
-                )
-              )
-            val candidateFactory =
-              CandidateFactory(firBodyResolveTransformer.resolutionContext, resolveCallInfo)
-            val completedCandidate = callInfoResult.completedCandidate(candidateFactory, proof, type)
-            firBodyResolveTransformer.resolutionContext.bodyResolveContext.regularTowerDataContexts =
-              previousTowerContext
-            completedCandidate
+        //val hasCycles = proof.hasCycle(type, previousProofs)
+        //if (hasCycles) null
+        //else
+          when (val callInfoResult = proof.proofCallInfo(proofDeclaration, type)) {
+            is CallInfoResult.Info -> {
+              val completedCandidate = createAndCompleteCandidate(resolveCallInfo, callInfoResult, proof, type)
+              completedCandidate
+            }
+            is CallInfoResult.CyclesFound ->
+              return ProofResolutionResult.CyclesFound(callInfoResult.proof)
+            is CallInfoResult.FunctionCall -> TODO()
           }
-          is CallInfoResult.CyclesFound ->
-            return ProofResolutionResult.CyclesFound(callInfoResult.proof)
-          is CallInfoResult.FunctionCall -> TODO()
-        }
       }
         .toSet()
     )
+  }
+
+  private fun List<Proof>.createAndCompleteCandidate(
+    resolveCallInfo: CallInfo,
+    callInfoResult: CallInfoResult.Info,
+    proof: Proof,
+    type: ConeKotlinType
+  ): Candidate? {
+    val previousTowerContext =
+      firBodyResolveTransformer.resolutionContext.bodyResolveContext.regularTowerDataContexts
+    firBodyResolveTransformer.resolutionContext.bodyResolveContext.regularTowerDataContexts =
+      FirRegularTowerDataContexts(
+        firBodyResolveTransformer.resolutionContext.bodyResolveContext.towerDataContext.addContextReceiverGroup(
+          flatMap {
+            it.buildCallInfoContextReceiverValues()
+          }
+        )
+      )
+    val candidateFactory =
+      CandidateFactory(firBodyResolveTransformer.resolutionContext, resolveCallInfo)
+    val completedCandidate = callInfoResult.completedCandidate(candidateFactory, proof, type)
+    firBodyResolveTransformer.resolutionContext.bodyResolveContext.regularTowerDataContexts =
+      previousTowerContext
+
+    return completedCandidate
+  }
+
+  private fun Proof.hasCycle(type: ConeKotlinType, previousProofs: MutableList<Proof>): Boolean {
+    return if (this in previousProofs) true
+    else {
+      previousProofs.add(this)
+      declaration.contextReceivers.any {
+        val targetType = targetType(type, it.typeRef.coneType) ?: it.typeRef.coneType
+        val receiverProofResolution =
+          firResolutionProof.resolveProof(ProofAnnotationsFqName.ProviderAnnotation, targetType.type, previousProofs)
+        receiverProofResolution.proof == this
+      }
+    }
   }
 
   private fun CallInfoResult.Info.completedCandidate(
