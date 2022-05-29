@@ -22,6 +22,7 @@ internal class ContextProvidersResolutionExtension(
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
   override fun addNewImplicitReceivers(functionCall: FirFunctionCall): List<ConeKotlinType> {
+    //TODO add resolve proof here instead and iterate over all contexts in the proof
     return functionCall.contextSyntheticFunctionTypeArguments.mapNotNull {
       it.toConeTypeProjection().type
     }

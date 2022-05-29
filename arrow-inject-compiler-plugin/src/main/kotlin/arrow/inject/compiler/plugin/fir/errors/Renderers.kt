@@ -9,7 +9,7 @@ internal val RenderProof: DiagnosticParameterRenderer<Proof> =
   object : DiagnosticParameterRenderer<Proof> {
     override fun render(obj: Proof, renderingContext: RenderingContext): String =
       """
-        ${obj.declarationName()}
+        ${obj.declarationName.asString()}
       """.trimIndent()
   }
 

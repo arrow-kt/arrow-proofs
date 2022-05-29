@@ -1,5 +1,6 @@
 package arrow.inject.compiler.plugin.model
 
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionResult
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
@@ -13,6 +14,7 @@ import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.ir.util.IdSignature
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.SimpleType
@@ -24,11 +26,11 @@ internal sealed class Proof {
 
   abstract val declaration: FirDeclaration
 
-  fun declarationName(): String =
-    when (val decl = declaration) {
-      is FirSimpleFunction -> decl.name.asString()
-      is FirProperty -> decl.name.asString()
-      is FirClass -> decl.symbol.name.asString()
+  val declarationName: Name
+    get() = when (val decl = declaration) {
+      is FirSimpleFunction -> decl.name
+      is FirProperty -> decl.name
+      is FirClass -> decl.symbol.name
       else -> error("Unsupported declaration ${decl.renderWithType()}")
     }
 
@@ -47,6 +49,7 @@ internal data class ProofResolution(
   val proof: Proof?,
   val targetType: KotlinTypeMarker,
   val ambiguousProofs: List<Proof>,
+  val result: ProofResolutionResult
 ) {
 
   val isAmbiguous: Boolean

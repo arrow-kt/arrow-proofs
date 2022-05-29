@@ -5,6 +5,7 @@ package arrow.inject.compiler.plugin.fir
 import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
 import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionResult
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionStageRunner
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofResolution
@@ -38,25 +39,25 @@ internal interface FirResolutionProof : FirProofIdSignature {
     type: ConeKotlinType,
     currentType: ConeKotlinType?
   ): ProofResolution {
-    return when (val candidatesOrCycles = candidates(contextFqName, type, currentType)) {
-      is ProofResolutionStageRunner.CandidatesOrCycles.Candidates -> {
-        val candidates = candidatesOrCycles.candidates
-        val proofResolution = proofCandidate(candidates, type)
+    return when (val resolutionResult = resolutionResult(contextFqName, type, currentType)) {
+      is ProofResolutionResult.Candidates -> {
+        val candidates = resolutionResult.candidates
+        val proofResolution = proofCandidate(candidates, type, resolutionResult)
         return proofResolution.apply {
           proofCache.putProofIntoCache(type.asProofCacheKey(contextFqName), this)
         }
       }
-      is ProofResolutionStageRunner.CandidatesOrCycles.CyclesFound -> {
-        ProofResolution(candidatesOrCycles.proof, type, emptyList())
+      is ProofResolutionResult.CyclesFound -> {
+        ProofResolution(resolutionResult.proof, type, emptyList(), resolutionResult)
       }
     }
   }
 
-  private fun candidates(
+  private fun resolutionResult(
     contextFqName: FqName,
     type: ConeKotlinType,
     currentType: ConeKotlinType?,
-  ): ProofResolutionStageRunner.CandidatesOrCycles =
+  ): ProofResolutionResult =
     proofResolutionStageRunner.run {
       allProofs
         .filter { contextFqName in it.declaration.contextFqNames }
@@ -66,6 +67,7 @@ internal interface FirResolutionProof : FirProofIdSignature {
   private fun proofCandidate(
     candidates: Set<Candidate>,
     type: ConeKotlinType,
+    resolutionResult: ProofResolutionResult.Candidates,
   ): ProofResolution {
     val candidate: Candidate? = candidates.firstOrNull()
 
@@ -74,6 +76,7 @@ internal interface FirResolutionProof : FirProofIdSignature {
       targetType = type,
       ambiguousProofs =
         candidates.map { Proof.Implication(it.symbol.fir.idSignature, it.symbol.fir) },
+      result = resolutionResult
     )
   }
 
