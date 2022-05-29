@@ -188,31 +188,3 @@ val FirDeclaration.contextReceivers: List<FirContextReceiver>
       is FirProperty -> contextReceivers
       else -> emptyList()
     }
-
-fun FirDeclaration.contextReceiverValue(
-  session: FirSession,
-  scopeSession: ScopeSession,
-  receiver: FirContextReceiver,
-  index: Int
-): ContextReceiverValue<*>? =
-  when (this) {
-    is FirCallableDeclaration ->
-      ContextReceiverValueForCallable(
-        symbol,
-        receiver.typeRef.coneType,
-        receiver.labelName,
-        session,
-        scopeSession,
-        contextReceiverNumber = index,
-      )
-    is FirRegularClass ->
-      ContextReceiverValueForClass(
-        symbol,
-        receiver.typeRef.coneType,
-        receiver.labelName,
-        session,
-        scopeSession,
-        contextReceiverNumber = index,
-      )
-    else -> null
-  }
