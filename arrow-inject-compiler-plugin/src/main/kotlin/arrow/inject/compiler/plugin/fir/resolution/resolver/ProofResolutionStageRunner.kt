@@ -44,6 +44,7 @@ import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
+import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.FirTypeProjection
 import org.jetbrains.kotlin.fir.types.builder.buildResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildTypeProjectionWithVariance
@@ -95,7 +96,8 @@ internal class ProofResolutionStageRunner(
           when (val callInfoResult = proof.proofCallInfo(proofDeclaration, type, currentType)) {
             is CallInfoResult.Info ->
               callInfoResult.completedCandidate(candidateFactory, proof, type, currentType)
-            is CallInfoResult.CyclesFound -> return ProofResolutionResult.CyclesFound(proof)
+            is CallInfoResult.CyclesFound ->
+              return ProofResolutionResult.CyclesFound(callInfoResult.proof)
             is CallInfoResult.FunctionCall -> TODO()
           }
         }
@@ -268,20 +270,28 @@ internal class ProofResolutionStageRunner(
   ): CallInfoResult? =
     declaration.contextReceivers
       .mapNotNull { contextReceiver ->
-        when (contextReceiver.typeRef.coneType) {
-          currentType -> return CallInfoResult.CyclesFound
-          else -> {
-            val proofResolutionResult =
-              firResolutionProof.resolveProof(
-                contextFqName = ProviderAnnotation,
-                type = contextReceiver.typeRef.coneType,
-                currentType = type
-              )
+        val targetType =
+          if (type.typeArguments.isEmpty() &&
+              contextReceiver.typeRef.coneType is ConeTypeParameterType
+          ) {
+            type
+          } else {
+            targetType(type, contextReceiver.typeRef.coneType) ?: contextReceiver.typeRef.coneType
+          }
+        val proofResolutionResult = if (targetType != currentType)
+          firResolutionProof.resolveProof(
+            contextFqName = ProviderAnnotation,
+            type = targetType,
+            currentType = type
+          ) else null
+
+        when (val result = proofResolutionResult?.result) {
+          is ProofResolutionResult.Candidates -> {
             if (proofResolutionResult.proof != null) null
             else contextReceiver.buildContextReceiverCall()
           }
-        //        type != contextReceiver.typeRef.coneType -> null
-        //        else -> null
+          is ProofResolutionResult.CyclesFound -> return CallInfoResult.CyclesFound(result.proof)
+          else -> null
         }
       }
       .firstOrNull()

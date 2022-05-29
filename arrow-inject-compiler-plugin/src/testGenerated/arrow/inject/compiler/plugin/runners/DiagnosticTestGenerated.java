@@ -101,6 +101,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     @TestDataPath("$PROJECT_ROOT")
     public class Context_receivers {
         @Test
+        @TestMetadata("a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt")
+        public void testA_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved() throws Exception {
+            runTest("src/testData/diagnostics/context-receivers/a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt");
+        }
+
+        @Test
         public void testAllFilesPresentInContext_receivers() throws Exception {
             KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("src/testData/diagnostics/context-receivers"), Pattern.compile("^(.+)\\.kt$"), null, true);
         }
