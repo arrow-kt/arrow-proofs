@@ -1,5 +1,3 @@
-@file:OptIn(SymbolInternals::class)
-
 package arrow.inject.compiler.plugin.fir.codegen
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
@@ -36,7 +34,6 @@ import org.jetbrains.kotlin.fir.originalForSubstitutionOverrideAttr
 import org.jetbrains.kotlin.fir.references.builder.buildResolvedNamedReference
 import org.jetbrains.kotlin.fir.resolve.constructType
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
-import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.ConeClassLikeLookupTagImpl
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
@@ -60,10 +57,7 @@ import org.jetbrains.kotlin.util.collectionUtils.filterIsInstanceAnd
 internal class ResolvedFunctionGenerationExtension(
   override val proofCache: ProofCache,
   session: FirSession,
-) :
-  FirDeclarationGenerationExtension(session),
-  FirAbstractProofComponent,
-  FirResolutionProof {
+) : FirDeclarationGenerationExtension(session), FirAbstractProofComponent, FirResolutionProof {
 
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 

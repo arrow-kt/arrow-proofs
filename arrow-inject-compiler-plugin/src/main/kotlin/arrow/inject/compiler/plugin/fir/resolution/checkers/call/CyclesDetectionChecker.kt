@@ -1,5 +1,3 @@
-@file:OptIn(InternalDiagnosticFactoryMethod::class, SymbolInternals::class)
-
 package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
 import arrow.inject.compiler.plugin.fir.coneType
@@ -10,7 +8,6 @@ import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotat
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
-import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.declarations.FirClass
@@ -22,7 +19,6 @@ import org.jetbrains.kotlin.fir.declarations.primaryConstructorIfAny
 import org.jetbrains.kotlin.fir.expressions.FirCall
 import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.fir.resolve.fqName
-import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.name.FqName
@@ -92,7 +88,7 @@ internal class CyclesDetectionChecker(
     val type = valueParameter.coneType
     if (contextFqName != null && type !is ConeTypeParameterType) {
       val resolvedProof: Proof? = resolveProof(contextFqName, type, mutableListOf()).proof
-      //TODO cycles or empty mutable?
+      // TODO cycles or empty mutable?
       if (resolvedProof != null) {
         val encountered = cycles.count { it == resolvedProof }
         if (encountered <= 1) {

@@ -1,5 +1,3 @@
-@file:OptIn(SymbolInternals::class)
-
 package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
@@ -21,9 +19,7 @@ import org.jetbrains.kotlin.fir.expressions.FirResolvable
 import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.resolvedSymbol
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
-import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
-import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.render
@@ -45,7 +41,6 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
     return if (call is FirQualifiedAccess && originalFunction?.isCompileTimeAnnotated == true) {
       if (originalFunction.isContextSyntheticFunction()) {
         call.contextReceiversResolutionMap()
-
       } else {
         call.valueParametersResolutionMap(originalFunction)
       }
@@ -56,8 +51,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
   fun FirQualifiedAccess.contextReceiversResolutionMap(): Map<ProofResolution?, FirElement> {
     val targetType = typeArguments.firstOrNull()?.toConeTypeProjection()?.type
     return if (targetType != null) {
-      val contextProofResolution =
-        resolveProof(ProviderAnnotation, targetType, mutableListOf())
+      val contextProofResolution = resolveProof(ProviderAnnotation, targetType, mutableListOf())
       mapOf(contextProofResolution to this)
     } else emptyMap()
   }
@@ -66,16 +60,12 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
     val targetType = typeArguments.firstOrNull()?.toConeTypeProjection()?.type
     val unresolvedContextReceivers: List<FirContextReceiver> =
       targetType?.toRegularClassSymbol(session)?.fir?.contextReceivers.orEmpty()
-//        .filter {
-//        val defaultValue: FirFunctionCall? = (it.defaultValue as? FirFunctionCall)
-//        defaultValue?.calleeReference?.resolvedSymbol == resolve.symbol
-//      }
-    return resolvedContextReceiversMap(
-      this,
-      unresolvedContextReceivers
-    )
+    //        .filter {
+    //        val defaultValue: FirFunctionCall? = (it.defaultValue as? FirFunctionCall)
+    //        defaultValue?.calleeReference?.resolvedSymbol == resolve.symbol
+    //      }
+    return resolvedContextReceiversMap(this, unresolvedContextReceivers)
   }
-
 
   fun FirQualifiedAccess.valueParametersResolutionMap(
     originalFunction: FirFunction
@@ -85,10 +75,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
         val defaultValue: FirFunctionCall? = (it.defaultValue as? FirFunctionCall)
         defaultValue?.calleeReference?.resolvedSymbol == resolve.symbol
       }
-    return resolvedValueParametersMap(
-      this,
-      unresolvedValueParameters
-    )
+    return resolvedValueParametersMap(this, unresolvedValueParameters)
   }
 
   private fun FirFunction.isContextSyntheticFunction() =
@@ -98,8 +85,8 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
     call: FirQualifiedAccess,
     unresolvedValueParameters: List<FirValueParameter>
   ): Map<ProofResolution?, FirElement> {
-    val resolvedParams = unresolvedValueParameters
-      .mapNotNull { valueParameter ->
+    val resolvedParams =
+      unresolvedValueParameters.mapNotNull { valueParameter ->
         valueParameter.contextAnnotation()?.let { valueParameter.proofResolution(call, it) }
       }
     return resolvedParams.toMap()
@@ -109,8 +96,8 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
     call: FirQualifiedAccess,
     unresolvedContextReceivers: List<FirContextReceiver>
   ): Map<ProofResolution?, FirElement> {
-    val resolvedReceivers = unresolvedContextReceivers
-      .map { receiverParameter ->
+    val resolvedReceivers =
+      unresolvedContextReceivers.map { receiverParameter ->
         receiverParameter.proofResolution(call, ProviderAnnotation)
       }
     return resolvedReceivers.toMap()

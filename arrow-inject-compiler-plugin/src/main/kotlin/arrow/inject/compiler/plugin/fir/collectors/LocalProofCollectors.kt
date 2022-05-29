@@ -1,5 +1,3 @@
-@file:OptIn(SymbolInternals::class)
-
 package arrow.inject.compiler.plugin.fir.collectors
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
@@ -12,7 +10,6 @@ import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.extensions.predicate.metaHas
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.resolve.providers.impl.FirProviderImpl
-import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.visitors.FirVisitorVoid
 import org.jetbrains.kotlin.name.CallableId

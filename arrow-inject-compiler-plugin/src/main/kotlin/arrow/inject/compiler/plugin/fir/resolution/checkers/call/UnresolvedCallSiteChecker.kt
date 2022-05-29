@@ -1,5 +1,3 @@
-@file:OptIn(InternalDiagnosticFactoryMethod::class)
-
 package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
@@ -9,7 +7,6 @@ import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
-import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
@@ -25,8 +22,7 @@ internal class UnresolvedCallSiteChecker(
   override val allProofs: List<Proof> by lazy { allCollectedProofs }
 
   override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
-    proofResolutionList(expression).let {
-      resolvedParameters: Map<ProofResolution?, FirElement> ->
+    proofResolutionList(expression).let { resolvedParameters: Map<ProofResolution?, FirElement> ->
       resolvedParameters.forEach { (proofResolution, valueParameter) ->
         val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
 

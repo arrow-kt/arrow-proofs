@@ -1,5 +1,3 @@
-@file:OptIn(InternalDiagnosticFactoryMethod::class)
-
 package arrow.inject.compiler.plugin.fir.resolution.checkers.declaration
 
 import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
@@ -10,7 +8,6 @@ import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
-import org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.caches.FirLazyValue

@@ -1,10 +1,3 @@
-@file:OptIn(
-  SymbolInternals::class,
-  DfaInternals::class,
-  DfaInternals::class,
-  PrivateForInline::class
-)
-
 package arrow.inject.compiler.plugin.fir.resolution.resolver
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
@@ -14,7 +7,6 @@ import arrow.inject.compiler.plugin.fir.contextReceivers
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.PrivateForInline
 import org.jetbrains.kotlin.fir.analysis.checkers.typeParameterSymbols
 import org.jetbrains.kotlin.fir.builder.buildPackageDirective
 import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
@@ -46,11 +38,9 @@ import org.jetbrains.kotlin.fir.resolve.calls.ContextReceiverValueForCallable
 import org.jetbrains.kotlin.fir.resolve.calls.ContextReceiverValueForClass
 import org.jetbrains.kotlin.fir.resolve.calls.FirNamedReferenceWithCandidate
 import org.jetbrains.kotlin.fir.resolve.calls.ResolutionStageRunner
-import org.jetbrains.kotlin.fir.resolve.dfa.DfaInternals
 import org.jetbrains.kotlin.fir.resolve.inference.FirCallCompleter
 import org.jetbrains.kotlin.fir.resolve.transformers.body.resolve.FirBodyResolveTransformer
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
-import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.types.ConeKotlinType

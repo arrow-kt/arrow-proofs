@@ -1,5 +1,3 @@
-@file:OptIn(SymbolInternals::class)
-
 package arrow.inject.compiler.plugin.fir
 
 import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
@@ -11,7 +9,6 @@ import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofResolution
 import arrow.inject.compiler.plugin.model.asProofCacheKey
 import org.jetbrains.kotlin.fir.resolve.calls.Candidate
-import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.name.FqName
 
@@ -45,7 +42,8 @@ internal interface FirResolutionProof : FirProofIdSignature {
         val candidates = resolutionResult.candidates
         val proofResolution = proofCandidate(candidates, type, resolutionResult)
         val candidateProof = proofResolution.proof
-        // TODO if (candidateProof in cycles) ProofResolution(candidateProof, type, emptyList(), resolutionResult)
+        // TODO if (candidateProof in cycles) ProofResolution(candidateProof, type, emptyList(),
+        // resolutionResult)
         return proofResolution.apply {
           proofCache.putProofIntoCache(type.asProofCacheKey(contextFqName), this)
         }
