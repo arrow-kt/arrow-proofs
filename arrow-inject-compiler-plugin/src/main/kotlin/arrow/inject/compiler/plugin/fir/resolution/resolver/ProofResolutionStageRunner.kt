@@ -90,12 +90,15 @@ internal class ProofResolutionStageRunner(
     val candidateFactory =
       CandidateFactory(firBodyResolveTransformer.resolutionContext, resolveCallInfo)
 
+
     return ProofResolutionResult.Candidates(
       mapNotNull { proof ->
           val proofDeclaration: FirDeclaration = proof.declaration
           when (val callInfoResult = proof.proofCallInfo(proofDeclaration, type, currentType)) {
-            is CallInfoResult.Info ->
+            is CallInfoResult.Info -> {
+              if (currentType == type) return ProofResolutionResult.CyclesFound(proof)
               callInfoResult.completedCandidate(candidateFactory, proof, type, currentType)
+            }
             is CallInfoResult.CyclesFound ->
               return ProofResolutionResult.CyclesFound(callInfoResult.proof)
             is CallInfoResult.FunctionCall -> TODO()
