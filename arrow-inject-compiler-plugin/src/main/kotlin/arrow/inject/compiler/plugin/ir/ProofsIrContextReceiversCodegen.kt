@@ -70,15 +70,10 @@ internal class ProofsIrContextReceiversCodegen(
   ProofsIrAbstractCodegen {
 
   fun generateContextReceivers() {
-    irTransformBlockBodies { parent, body ->
-      insertContextCall(parent, body)
-    }
+    irTransformBlockBodies { parent, body -> insertContextCall(parent, body) }
   }
 
-  fun insertContextCall(
-    parent: IrDeclarationParent,
-    body: IrBlockBody
-  ): IrBody {
+  fun insertContextCall(parent: IrDeclarationParent, body: IrBlockBody): IrBody {
     val contextCall = body.findNestedContextCall()
     return if (contextCall != null) {
       contextReplacementCall(contextCall, parent, body)
@@ -102,15 +97,19 @@ internal class ProofsIrContextReceiversCodegen(
     val returningBlockType = declarationParent.returningBlockType()
     val targetType = contextCall.getTypeArgument(0)
 
+    val allTypes = getAllContextReceiversTypes(targetType, mutableListOf())
+
     replacementCall.addReplacedTypeArguments(targetType, returningBlockType)
 
-    return if (targetType != null) replacementCall.transformedBody(
-      contextCall,
-      targetType,
-      body,
-      declarationParent,
-      returningBlockType
-    ) ?: body
+    return if (targetType != null)
+      replacementCall.transformedBody(
+        contextCall,
+        targetType,
+        body,
+        declarationParent,
+        returningBlockType
+      )
+        ?: body
     else body
   }
 
@@ -210,6 +209,25 @@ internal class ProofsIrContextReceiversCodegen(
     )
   }
 
+  private fun getAllContextReceiversTypes(
+    irType: IrType?,
+    previousIrTypes: MutableList<IrType>,
+  ): MutableList<IrType> {
+    val type = irType?.toIrBasedKotlinType()
+    if (type != null) {
+      previousIrTypes.add(irType)
+      val expression = contextProofCall(type)
+      if (expression is IrCall) {
+        expression.symbol.owner.contextReceiversValueParameters.flatMap { param ->
+          val targetType = targetType(irType, param.type)
+          val resolvedType = targetType ?: param.type
+          getAllContextReceiversTypes(resolvedType, previousIrTypes)
+        }
+      }
+    }
+    return previousIrTypes
+  }
+
   private fun processContextReceiver(
     index: Int,
     irType: IrType?,
@@ -232,9 +250,9 @@ internal class ProofsIrContextReceiversCodegen(
     }
   }
 
-  fun contextProofCall(kotlinType: KotlinType): IrExpression? =
-    proofCache.getProofFromCache(kotlinType.asProofCacheKey(ProviderAnnotation))?.let { proofResolution
-      ->
+  private fun contextProofCall(kotlinType: KotlinType): IrExpression? =
+    proofCache.getProofFromCache(kotlinType.asProofCacheKey(ProviderAnnotation))?.let {
+      proofResolution ->
       substitutedResolvedContextCall(proofResolution, kotlinType)
     }
 
@@ -248,7 +266,8 @@ internal class ProofsIrContextReceiversCodegen(
       ambiguousProofs.firstOrNull {
         (it.declaration as? FirMemberDeclaration)?.visibility == Visibilities.Internal
       }
-    return if (proof != null) substitutedContextProofCall(internalProof ?: proof, kotlinType) else null
+    return if (proof != null) substitutedContextProofCall(internalProof ?: proof, kotlinType)
+    else null
   }
 
   private fun substitutedContextProofCall(proof: Proof, kotlinType: KotlinType): IrExpression =
@@ -289,11 +308,7 @@ internal class ProofsIrContextReceiversCodegen(
     }
   }
 
-  /**
-   * contextual(arg) [createNestedLambdaBody]{
-   *   [createLambdaExpression]
-   * }
-   */
+  /** contextual(arg) [createNestedLambdaBody]{ [createLambdaExpression] } */
   private fun createNestedLambdaBody(
     declarationParent: IrDeclarationParent,
     targetType: IrType,
@@ -354,12 +369,12 @@ internal class ProofsIrContextReceiversCodegen(
     function.extensionReceiverParameter = withFunReceiverParameter(function, type, paramSymbol)
 
     return IrFunctionExpressionImpl(
-      UNDEFINED_OFFSET,
-      UNDEFINED_OFFSET,
-      irBuiltIns.nothingType,
-      function,
-      IrStatementOrigin.LAMBDA
-    )
+        UNDEFINED_OFFSET,
+        UNDEFINED_OFFSET,
+        irBuiltIns.nothingType,
+        function,
+        IrStatementOrigin.LAMBDA
+      )
       .also {
         val extensionAnnotation =
           irBuiltIns.findClass(Name.identifier("ExtensionFunctionType"), "kotlin")
@@ -417,7 +432,6 @@ internal class ProofsIrContextReceiversCodegen(
 
   private val IrFunctionAccessExpression.isCallToContextSyntheticFunction
     get() = symbol.owner.fqNameWhenAvailable == FqName("arrow.inject.annotations.ResolveKt.context")
-
 
   private fun irTransformBlockBodies(
     transformBody: (IrDeclarationParent, IrBlockBody) -> IrBody?
