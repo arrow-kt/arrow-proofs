@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.SimpleType
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 
-internal sealed class Proof {
+sealed class Proof {
 
   abstract val idSignature: IdSignature
 
