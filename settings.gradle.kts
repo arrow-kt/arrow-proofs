@@ -19,5 +19,5 @@ include(
   ":arrow-inject-annotations",
   ":arrow-inject-compiler-plugin",
   ":arrow-inject-gradle-plugin",
-  ":sandbox",
+  //":sandbox",
 )

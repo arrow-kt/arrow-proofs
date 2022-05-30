@@ -80,7 +80,7 @@ internal val IrFunctionAccessExpression.substitutedValueParameters: Map<IrValueP
   get() = symbol.owner.substitutedValueParameters(this).toMap()
 
 val IrFunction.explicitValueParameters: List<IrValueParameter>
-  get() = valueParameters.subList(contextReceiverParametersCount, valueParameters.lastIndex)
+  get() = valueParameters.subList(contextReceiverParametersCount, valueParameters.size)
 
 internal fun IrFunction.substitutedValueParameters(
   call: IrFunctionAccessExpression
