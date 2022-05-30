@@ -97,20 +97,21 @@ internal class ProofsIrContextReceiversCodegen(
     val returningBlockType = declarationParent.returningBlockType()
     val targetType = contextCall.getTypeArgument(0)
 
-    val allTypes = getAllContextReceiversTypes(targetType, mutableListOf())
+    val allTypes = getAllContextReceiversTypes(targetType, mutableListOf()).reversed()
 
     replacementCall.addReplacedTypeArguments(targetType, returningBlockType)
 
-    return if (targetType != null)
-      replacementCall.transformedBody(
+    val finalBody = allTypes.foldIndexed(declarationParent to body) { index, (currentParent, currentBody), currentType ->
+      val parentedBody = replacementCall.transformedBody(
         contextCall,
-        targetType,
-        body,
-        declarationParent,
+        currentType,
+        currentBody,
+        currentParent,
         returningBlockType
       )
-        ?: body
-    else body
+      parentedBody
+    }
+    return finalBody.second
   }
 
   private fun IrDeclarationParent.returningBlockType() =
@@ -146,10 +147,10 @@ internal class ProofsIrContextReceiversCodegen(
     body: IrBlockBody,
     declarationParent: IrDeclarationParent,
     returningBlockType: IrType
-  ): IrBody {
+  ): Pair<IrDeclarationParent, IrBlockBody> {
     val paramSymbol = IrValueParameterSymbolImpl()
     processContextReceiver(0, targetType, this)
-    putReceiverLambdaValueArgument(
+    val nestedLambda = createNestedLambdaBody(
       declarationParent,
       targetType,
       contextCall,
@@ -157,11 +158,15 @@ internal class ProofsIrContextReceiversCodegen(
       paramSymbol,
       body
     )
+    putValueArgument(
+      1,
+      nestedLambda
+    )
     val statementsBeforeContext = body.statements.takeWhile { it.findNestedContextCall() == null }
-    val newStatements = statementsBeforeContext + declarationParent.createIrReturn(this)
+    val newStatements = statementsBeforeContext + nestedLambda.function.createIrReturn(this)
     val transformedBody = createBlockBody(newStatements)
     replaceErrorExpressionsWithReceiverValues(transformedBody, targetType, paramSymbol)
-    return transformedBody
+    return nestedLambda.function to transformedBody
   }
 
   private fun createBlockBody(newStatements: List<IrStatement>): IrBlockBody =
@@ -187,27 +192,6 @@ internal class ProofsIrContextReceiversCodegen(
       (this as IrReturnTarget).symbol,
       expression
     )
-
-  private fun IrCall.putReceiverLambdaValueArgument(
-    declarationParent: IrDeclarationParent,
-    targetType: IrType,
-    contextCall: IrFunctionAccessExpression,
-    returningBlockType: IrType,
-    paramSymbol: IrValueParameterSymbolImpl,
-    body: IrBlockBody
-  ) {
-    putValueArgument(
-      1,
-      createNestedLambdaBody(
-        declarationParent,
-        targetType,
-        contextCall,
-        returningBlockType,
-        paramSymbol,
-        body
-      )
-    )
-  }
 
   private fun getAllContextReceiversTypes(
     irType: IrType?,
@@ -251,8 +235,7 @@ internal class ProofsIrContextReceiversCodegen(
   }
 
   private fun contextProofCall(kotlinType: KotlinType): IrExpression? =
-    proofCache.getProofFromCache(kotlinType.asProofCacheKey(ProviderAnnotation))?.let {
-      proofResolution ->
+    proofCache.getProofFromCache(kotlinType.asProofCacheKey(ProviderAnnotation))?.let { proofResolution ->
       substitutedResolvedContextCall(proofResolution, kotlinType)
     }
 
@@ -369,12 +352,12 @@ internal class ProofsIrContextReceiversCodegen(
     function.extensionReceiverParameter = withFunReceiverParameter(function, type, paramSymbol)
 
     return IrFunctionExpressionImpl(
-        UNDEFINED_OFFSET,
-        UNDEFINED_OFFSET,
-        irBuiltIns.nothingType,
-        function,
-        IrStatementOrigin.LAMBDA
-      )
+      UNDEFINED_OFFSET,
+      UNDEFINED_OFFSET,
+      irBuiltIns.nothingType,
+      function,
+      IrStatementOrigin.LAMBDA
+    )
       .also {
         val extensionAnnotation =
           irBuiltIns.findClass(Name.identifier("ExtensionFunctionType"), "kotlin")
