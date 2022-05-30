@@ -19,5 +19,14 @@ include(
   ":arrow-inject-annotations",
   ":arrow-inject-compiler-plugin",
   ":arrow-inject-gradle-plugin",
-  //":sandbox",
 )
+
+val localProperties =
+  java.util.Properties().apply {
+    val localPropertiesFile = file("local.properties").apply { createNewFile() }
+    load(localPropertiesFile.inputStream())
+  }
+
+val isSandboxEnabled = localProperties.getProperty("sandbox.enabled", "false").toBoolean()
+
+if (isSandboxEnabled) include(":sandbox")
