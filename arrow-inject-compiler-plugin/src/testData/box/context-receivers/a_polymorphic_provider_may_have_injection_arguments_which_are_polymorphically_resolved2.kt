@@ -15,7 +15,7 @@ fun f2(): Int {
   println("will drop from nested body")
   return contextual<Int, Int>(intProvider()) {
     contextual<Foo<Int>, Int>(fooProvider<Int>()) {
-      return n
+      n
     }
   }
 }

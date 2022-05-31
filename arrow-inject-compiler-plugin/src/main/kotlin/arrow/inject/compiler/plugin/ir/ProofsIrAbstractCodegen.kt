@@ -63,7 +63,9 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
       is IrTypeParametersContainer -> {
         typeParameters.map { irTypeParameter ->
           typeArguments
-            .find { key -> key.toString() == irTypeParameter.defaultType.toString() }
+            .find {
+              it == irTypeParameter.defaultType
+            }
             ?.getType()
             ?.toIrType()
         }
