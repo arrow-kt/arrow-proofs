@@ -183,5 +183,11 @@ public class BoxTestGenerated extends AbstractBoxTest {
         public void testContext_receivers() throws Exception {
             runTest("src/testData/box/context-receivers/context_receivers.kt");
         }
+
+        @Test
+        @TestMetadata("context_receivers_2.kt")
+        public void testContext_receivers_2() throws Exception {
+            runTest("src/testData/box/context-receivers/context_receivers_2.kt");
+        }
     }
 }

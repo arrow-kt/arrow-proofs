@@ -16,7 +16,7 @@ public class IrArrowInjectExtensionRegistrar(
   override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
     ProofsIrArgumentsCodegen(proofCache, moduleFragment, pluginContext).generateArguments()
 
-    ProofsIrContextReceiversCodegen(proofCache, moduleFragment, pluginContext)
+    ProofsIrContextReceiversRecCodegen(proofCache, moduleFragment, pluginContext)
       .generateContextReceivers()
 
     moduleFragment.removeCompileTimeDeclarations()

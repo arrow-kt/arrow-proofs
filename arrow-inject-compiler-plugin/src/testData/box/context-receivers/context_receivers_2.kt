@@ -12,8 +12,9 @@ class Repo(val x: Int)
 
 fun f2(): Int {
   println("will drop from nested body")
-  context<Persistence>()
-  return Repo(0).x
+  return contextual<Persistence, Int>(Persistence()) {
+    Repo(0).x
+  }
 }
 
 fun box(): String {
