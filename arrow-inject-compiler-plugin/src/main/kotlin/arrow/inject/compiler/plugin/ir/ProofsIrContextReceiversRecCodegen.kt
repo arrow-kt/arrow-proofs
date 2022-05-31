@@ -73,7 +73,7 @@ internal class ProofsIrContextReceiversRecCodegen(
   fun generateContextReceivers() {
     irTransformBlockBodies { parent, body ->
       val steps = buildProcessSteps(body)
-      if (steps.isNotEmpty()) processBodiesRecursive(parent, body, steps, null)
+      if (steps.isNotEmpty()) processBodiesRecursive(parent, body, steps, null, emptyList())
       else body
     }
   }
@@ -111,7 +111,8 @@ internal class ProofsIrContextReceiversRecCodegen(
     declarationParent: IrDeclarationParent,
     body: IrBlockBody,
     steps: List<ReceiverProcessStep>,
-    previousStepLambda: IrFunctionExpression?
+    previousStepLambda: IrFunctionExpression?,
+    remainingStatements: List<IrStatement>
   ): IrBody =
     when {
       steps.isEmpty() -> body //done processing
@@ -138,8 +139,7 @@ internal class ProofsIrContextReceiversRecCodegen(
         )
         val lambdaBlockBody = nestedLambda.function.body
         if (lambdaBlockBody is IrBlockBody && steps.size == 1) {  //last processing nests the remaining
-          val remaining = body.remainingStatementsAfterCall(currentStep.contextCall)
-          remaining.forEach {
+          remainingStatements.forEach {
             val patchedStatement =
               if (it is IrReturn)
                 nestedLambda.function.createIrReturn(it.value)
@@ -149,12 +149,18 @@ internal class ProofsIrContextReceiversRecCodegen(
         }
         val statementsBeforeContext = body.statementsBeforeContextCall()
         val newReturn = declarationParent.createIrReturn(currentStep.replacementCall)
-        val newStatements = statementsBeforeContext + newReturn
+        val newStatements =
+          if (steps.size != 1)
+            statementsBeforeContext + newReturn
+          else
+            statementsBeforeContext
         val transformedBody = createBlockBody(newStatements)
         replaceErrorExpressionsWithReceiverValues(transformedBody, currentStep.type, paramSymbol)
         // TODO nest body with other recursive function
         val nextSteps = steps.drop(1)
-        processBodiesRecursive(nestedLambda.function, transformedBody, nextSteps, nestedLambda)
+        val remaining = body.remainingStatementsAfterCall(currentStep.contextCall)
+        transformedBody.statements.removeIf { it in remaining }
+        processBodiesRecursive(nestedLambda.function, transformedBody, nextSteps, nestedLambda, remaining + remainingStatements)
       }
     }
 
