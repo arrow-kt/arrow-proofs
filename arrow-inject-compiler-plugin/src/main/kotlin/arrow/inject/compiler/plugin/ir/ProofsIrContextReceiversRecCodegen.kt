@@ -129,13 +129,15 @@ internal class ProofsIrContextReceiversRecCodegen(
           val previousLambdaBody = (previousStepLambda.function.body as? IrBlockBody)
           previousLambdaBody?.statements?.add(returned)
         }
-        processContextReceiver(0, currentStep.type, currentStep.replacementCall)
         val nestedLambda =
           createLambdaExpressionWithoutParent(currentStep.type, returningBlockType, paramSymbol) {
             blockBody {
             }
           }
         nestedLambda.function.parent = declarationParent
+        val extensionReceiverParam = nestedLambda.function.extensionReceiverParameter
+        if (extensionReceiverParam != null)
+          processContextReceiver(0, currentStep.type, currentStep.replacementCall, previousStepLambda?.function?.extensionReceiverParameter)
         currentStep.replacementCall.putValueArgument(
           1,
           nestedLambda
@@ -248,7 +250,8 @@ internal class ProofsIrContextReceiversRecCodegen(
   private fun processContextReceiver(
     index: Int,
     irType: IrType?,
-    replacementCall: IrMemberAccessExpression<*>?
+    replacementCall: IrMemberAccessExpression<*>?,
+    receiverParam: IrValueParameter?
   ) {
     if (irType != null) {
       contextProofCall(irType)?.apply {
@@ -256,10 +259,16 @@ internal class ProofsIrContextReceiversRecCodegen(
           symbol.owner.contextReceiversValueParameters.forEachIndexed { index, param ->
             val targetType = targetType(irType, param.type)
             val resolvedType = targetType ?: param.type
-            processContextReceiver(index, resolvedType, this)
+            processContextReceiver(index, resolvedType, this, param)
           }
         }
         if (replacementCall != null && replacementCall.valueArgumentsCount > index) {
+          if (this is IrMemberAccessExpression<*>) {
+            if (receiverParam != null && this.valueArgumentsCount > index) {
+              val valueArg = receiverParam.irCall()
+              this.putValueArgument(index, valueArg)
+            }
+          }
           replacementCall.putValueArgument(index, this)
         }
       }

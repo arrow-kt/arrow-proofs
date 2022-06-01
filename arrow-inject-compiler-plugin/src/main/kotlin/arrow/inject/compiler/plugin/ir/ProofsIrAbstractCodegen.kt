@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetObjectValueImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.defaultType
@@ -129,6 +130,14 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
           startOffset = UNDEFINED_OFFSET,
           endOffset = UNDEFINED_OFFSET,
           type = symbol.owner.defaultType,
+          symbol = symbol
+        )
+      }
+      is IrValueParameter -> {
+        IrGetValueImpl(
+          startOffset = UNDEFINED_OFFSET,
+          endOffset = UNDEFINED_OFFSET,
+          type = symbol.owner.type,
           symbol = symbol
         )
       }
