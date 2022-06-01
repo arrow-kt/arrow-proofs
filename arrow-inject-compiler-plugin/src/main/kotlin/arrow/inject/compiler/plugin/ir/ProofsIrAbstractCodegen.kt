@@ -74,8 +74,7 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
     }
 
   fun Proof.typeArgumentSubstitutor(otherType: KotlinType): List<TypeArgumentMarker> {
-    return irDeclaration().type().typeArguments(otherType) +
-      irBuiltIns.nothingType.toIrBasedKotlinType().asTypeProjection()
+    return irDeclaration().type().typeArguments(otherType)
   }
 
   private fun KotlinTypeMarker.typeArguments(other: KotlinType): List<TypeArgumentMarker> =

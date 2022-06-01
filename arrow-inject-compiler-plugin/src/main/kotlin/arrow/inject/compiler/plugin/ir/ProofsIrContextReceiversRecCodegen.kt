@@ -44,9 +44,12 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrReturnImpl
 import org.jetbrains.kotlin.ir.symbols.IrValueParameterSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.IrValueParameterSymbolImpl
 import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.types.IrTypeArgument
+import org.jetbrains.kotlin.ir.types.IrTypeSubstitutor
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContextImpl
 import org.jetbrains.kotlin.ir.types.addAnnotations
 import org.jetbrains.kotlin.ir.types.classFqName
+import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.typeWith
 import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.ir.util.dumpKotlinLike
@@ -228,10 +231,9 @@ internal class ProofsIrContextReceiversRecCodegen(
     irType: IrType?,
     previousIrTypes: MutableList<IrType>,
   ): List<IrType> {
-    val type = irType?.toIrBasedKotlinType()
-    if (type != null) {
+    if (irType != null) {
       previousIrTypes.add(irType)
-      val expression = contextProofCall(type)
+      val expression = contextProofCall(irType)
       if (expression is IrCall) {
         expression.symbol.owner.contextReceiversValueParameters.flatMap { param ->
           val targetType = targetType(irType, param.type)
@@ -248,9 +250,8 @@ internal class ProofsIrContextReceiversRecCodegen(
     irType: IrType?,
     replacementCall: IrMemberAccessExpression<*>?
   ) {
-    val type = irType?.toIrBasedKotlinType()
-    if (type != null) {
-      contextProofCall(type)?.apply {
+    if (irType != null) {
+      contextProofCall(irType)?.apply {
         if (this is IrCall) {
           symbol.owner.contextReceiversValueParameters.forEachIndexed { index, param ->
             val targetType = targetType(irType, param.type)
@@ -265,14 +266,14 @@ internal class ProofsIrContextReceiversRecCodegen(
     }
   }
 
-  private fun contextProofCall(kotlinType: KotlinType): IrExpression? =
-    proofCache.getProofFromCache(kotlinType.asProofCacheKey(ProviderAnnotation))?.let { proofResolution ->
-      substitutedResolvedContextCall(proofResolution, kotlinType)
+  private fun contextProofCall(irType: IrType): IrExpression? =
+    proofCache.getProofFromCache(irType.toIrBasedKotlinType().asProofCacheKey(ProviderAnnotation))?.let { proofResolution ->
+      substitutedResolvedContextCall(proofResolution, irType)
     }
 
   private fun substitutedResolvedContextCall(
     proofResolution: ProofResolution,
-    kotlinType: KotlinType
+    irType: IrType
   ): IrExpression? {
     val proof = proofResolution.proof
     val ambiguousProofs = proofResolution.ambiguousProofs
@@ -280,26 +281,32 @@ internal class ProofsIrContextReceiversRecCodegen(
       ambiguousProofs.firstOrNull {
         (it.declaration as? FirMemberDeclaration)?.visibility == Visibilities.Internal
       }
-    return if (proof != null) substitutedContextProofCall(internalProof ?: proof, kotlinType)
+    return if (proof != null) substitutedContextProofCall(internalProof ?: proof, irType)
     else null
   }
 
-  private fun substitutedContextProofCall(proof: Proof, kotlinType: KotlinType): IrExpression =
-    matchedContextCandidateProofCall(
+  private fun substitutedContextProofCall(proof: Proof, irType: IrType): IrExpression {
+    val proofIrDeclaration = proof.irDeclaration() as? IrFunction
+    return matchedContextCandidateProofCall(
       declaration = proof.irDeclaration(),
-      typeArguments = proof.typeArgumentSubstitutor(kotlinType)
+      typeSubstitutor = IrTypeSubstitutor(
+        proofIrDeclaration?.typeParameters.orEmpty().map { it.symbol },
+        irType.getArguments().filterIsInstance<IrTypeArgument>(),
+        irBuiltIns
+      )
     )
+  }
 
   private fun matchedContextCandidateProofCall(
     declaration: IrDeclaration,
-    typeArguments: List<TypeArgumentMarker>
+    typeSubstitutor: IrTypeSubstitutor
   ): IrExpression {
-    val irTypes = declaration.substitutedIrTypes(typeArguments).filterNotNull()
     return declaration.irCall().apply {
       if (this is IrMemberAccessExpression<*>) {
         if (declaration is IrTypeParametersContainer) {
-          declaration.typeParameters.forEachIndexed { index, _ ->
-            putTypeArgument(index, irTypes.getOrElse(index) { irBuiltIns.nothingType })
+          declaration.typeParameters.forEachIndexed { index, typeParam ->
+            val newType = typeSubstitutor.substitute(typeParam.defaultType)
+            putTypeArgument(index, newType)
           }
         }
 
@@ -308,10 +315,9 @@ internal class ProofsIrContextReceiversRecCodegen(
             val contextFqName: FqName? =
               valueParameter.metaContextAnnotations.firstOrNull()?.type?.classFqName
             if (contextFqName != null) {
+              val newType = typeSubstitutor.substitute(valueParameter.type)
               val argumentProvedExpression =
-                contextProofCall(
-                  irTypes.getOrElse(index) { irBuiltIns.nothingType }.toIrBasedKotlinType()
-                )
+                contextProofCall(newType)
               if (argumentProvedExpression != null) {
                 putValueArgument(index, argumentProvedExpression)
               }
@@ -319,6 +325,7 @@ internal class ProofsIrContextReceiversRecCodegen(
           }
         }
       }
+      this.type = typeSubstitutor.substitute(this.type)
     }
   }
 
@@ -460,7 +467,3 @@ internal class ProofsIrContextReceiversRecCodegen(
 val IrFunction.contextReceiversValueParameters: List<IrValueParameter>
   get() = valueParameters.subList(0, contextReceiverParametersCount)
 
-internal fun IrFunction.substitutedContextReceivers(
-  call: IrFunctionAccessExpression
-): List<Pair<IrValueParameter, IrType?>> =
-  contextReceiversValueParameters.map { substitutedTypeParameters(it, call) }
