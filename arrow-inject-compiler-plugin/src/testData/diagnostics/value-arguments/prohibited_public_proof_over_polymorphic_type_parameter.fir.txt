@@ -1,0 +1,6 @@
+FILE: prohibited_public_proof_over_polymorphic_type_parameter.kt
+    package foo.bar
+
+    @R|foo/bar/annotations/Given|() public final fun <A> list(): R|kotlin/collections/List<kotlin/collections/Iterable<A>>| {
+        ^list R|kotlin/collections/emptyList|<R|kotlin/collections/Iterable<A>|>()
+    }

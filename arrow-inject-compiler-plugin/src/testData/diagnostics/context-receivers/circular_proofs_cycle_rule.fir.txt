@@ -1,0 +1,14 @@
+FILE: circular_proofs_cycle_rule.kt
+    package foo.bar
+
+    context(R|kotlin/String|)
+    @R|arrow/inject/annotations/Provider|() internal final fun n(): R|kotlin/Int| {
+        ^n this@R|foo/bar/n|.R|kotlin/text/toInt|()
+    }
+    context(R|kotlin/Int|)
+    @R|arrow/inject/annotations/Provider|() internal final fun s(): R|kotlin/String| {
+        ^s this@R|foo/bar/s|.R|kotlin/Int.toString|()
+    }
+    public final fun main(): R|kotlin/Unit| {
+        R|arrow/inject/annotations/context|<R|kotlin/String|>()
+    }

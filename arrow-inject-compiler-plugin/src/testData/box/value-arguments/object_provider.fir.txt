@@ -1,0 +1,31 @@
+FILE: object_provider.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Inject|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A|): R|A| {
+        ^given R|<local>/a|
+    }
+    @R|foo/bar/annotations/Given|() public final object X : R|kotlin/Any| {
+        private constructor(): R|foo/bar/X| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val value: R|kotlin/String| = String(yes!)
+            public get(): R|kotlin/String|
+
+    }
+    public final fun box(): R|kotlin/String| {
+        lval result: <ERROR TYPE REF: Unresolved name: value> = R|SubstitutionOverride<foo/bar/given: R|A|>|<R|foo/bar/X|>().<Unresolved name: value>#
+        ^box when () {
+            ==(R|<local>/result|, String(yes!)) ->  {
+                String(OK)
+            }
+            else ->  {
+                <strcat>(String(Fail: ), R|<local>/result|)
+            }
+        }
+
+    }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/CompileTime|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A| = R|arrow/inject/annotations/resolve|(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|A|

@@ -1,0 +1,41 @@
+FILE: a_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt
+    package foo.bar
+
+    @R|foo/bar/annotations/Given|() internal final fun intProvider(): R|kotlin/Int| {
+        ^intProvider Int(42)
+    }
+    public final data class Foo : R|kotlin/Any| {
+        public constructor(n: R|kotlin/Int|): R|foo/bar/Foo| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val n: R|kotlin/Int| = R|<local>/n|
+            public get(): R|kotlin/Int|
+
+        public final operator fun component1(): R|kotlin/Int|
+
+        public final fun copy(n: R|kotlin/Int| = this@R|foo/bar/Foo|.R|foo/bar/Foo.n|): R|foo/bar/Foo|
+
+    }
+    @R|foo/bar/annotations/Given|() internal final fun fooProvider(@R|foo/bar/annotations/Given|() x: R|kotlin/Int|): R|foo/bar/Foo| {
+        ^fooProvider R|foo/bar/Foo.Foo|(R|<local>/x|)
+    }
+    @R|arrow/inject/annotations/Inject|() public final fun <A> given(@R|foo/bar/annotations/Given|() value: R|A|): R|A| {
+        ^given R|<local>/value|
+    }
+    public final fun box(): R|kotlin/String| {
+        lval result: R|A| = R|SubstitutionOverride<foo/bar/given: R|A|>|<R|foo/bar/Foo|>()
+        ^box when () {
+            ==(R|<local>/result|, R|foo/bar/Foo.Foo|(Int(42))) ->  {
+                String(OK)
+            }
+            else ->  {
+                <strcat>(String(Fail: ), R|<local>/result|)
+            }
+        }
+
+    }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/CompileTime|() public final fun <A> given(@R|foo/bar/annotations/Given|() value: R|A| = R|arrow/inject/annotations/resolve|(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|A|

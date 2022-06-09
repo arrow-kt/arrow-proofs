@@ -1,0 +1,20 @@
+FILE: unresolved_given_callsite.kt
+    package foo.bar
+
+    public final class Persistence : R|kotlin/Any| {
+        public constructor(): R|foo/bar/Persistence| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    context(R|foo/bar/Persistence|)
+    @R|arrow/inject/annotations/Provider|() public final class Repo : R|kotlin/Any| {
+        public constructor(): R|foo/bar/Repo| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    public final fun main(): R|kotlin/Unit| {
+        R|arrow/inject/annotations/context|<R|foo/bar/Persistence|>()
+        lval repo: R|foo/bar/Repo| = R|foo/bar/Repo.Repo|()
+    }
