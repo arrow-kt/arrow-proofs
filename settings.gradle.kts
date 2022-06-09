@@ -21,6 +21,10 @@ include(
   ":arrow-inject-gradle-plugin",
 )
 
+// Docs
+include(":arrow-inject-docs")
+project(":arrow-inject-docs").projectDir = File("docs")
+
 val localProperties =
   java.util.Properties().apply {
     val localPropertiesFile = file("local.properties").apply { createNewFile() }
