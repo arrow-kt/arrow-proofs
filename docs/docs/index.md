@@ -1,6 +1,6 @@
 ---
 layout: docs-inject
-title: Analysis - Quick Start
+title: Inject - Quick Start
 permalink: /
 ---
 
