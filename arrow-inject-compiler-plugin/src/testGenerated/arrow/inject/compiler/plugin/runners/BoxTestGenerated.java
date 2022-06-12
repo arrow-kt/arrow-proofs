@@ -191,6 +191,12 @@ public class BoxTestGenerated extends AbstractBoxTest {
         }
 
         @Test
+        @TestMetadata("context_receivers_with_more_than_two_type_parameters.kt")
+        public void testContext_receivers_with_more_than_two_type_parameters() throws Exception {
+            runTest("src/testData/box/context-receivers/context_receivers_with_more_than_two_type_parameters.kt");
+        }
+
+        @Test
         @TestMetadata("context_receivers_with_two_type_parameters.kt")
         public void testContext_receivers_with_two_type_parameters() throws Exception {
             runTest("src/testData/box/context-receivers/context_receivers_with_two_type_parameters.kt");
