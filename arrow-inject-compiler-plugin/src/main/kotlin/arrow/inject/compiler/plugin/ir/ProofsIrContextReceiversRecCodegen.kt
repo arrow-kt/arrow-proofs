@@ -76,7 +76,7 @@ internal class ProofsIrContextReceiversRecCodegen(
   fun generateContextReceivers() {
     irTransformBlockBodies { parent, body ->
       val steps = buildProcessSteps(body)
-      if (steps.isNotEmpty()) processBodiesRecursive(parent, body, steps, null, emptyList())
+      if (steps.isNotEmpty()) processBodiesRecursive(parent, body, steps, null, emptyList(), steps.size)
       else body
     }
   }
@@ -95,11 +95,8 @@ internal class ProofsIrContextReceiversRecCodegen(
     val contextCall = body.findNestedContextCall()
     return if (contextCall == null) emptyList()
     else {
-      val targetType = contextCall.getTypeArgument(0)
-      val allTypes = if (targetType != null)
-        getAllContextReceiversTypes(targetType, mutableListOf())
-      else emptyList()
-      allTypes.map { type ->
+      val targetTypes: List<IrType> = contextCall.typeArguments.values.flatMap { getAllContextReceiversTypes(it, mutableListOf()) }
+      targetTypes.map { type ->
         ReceiverProcessStep(
           contextCall,
           contextualFunction.owner.irCall() as IrCall,
@@ -115,7 +112,9 @@ internal class ProofsIrContextReceiversRecCodegen(
     body: IrBlockBody,
     steps: List<ReceiverProcessStep>,
     previousStepLambda: IrFunctionExpression?,
-    remainingStatements: List<IrStatement>
+    remainingStatements: List<IrStatement>,
+    originalStepsSize: Int,
+    paramSymbols: MutableMap<IrType, IrValueParameterSymbolImpl> = mutableMapOf()
   ): IrBody =
     when {
       steps.isEmpty() -> body //done processing
@@ -154,18 +153,15 @@ internal class ProofsIrContextReceiversRecCodegen(
         }
         val statementsBeforeContext = body.statementsBeforeContextCall()
         val newReturn = declarationParent.createIrReturn(currentStep.replacementCall)
-        val newStatements =
-          if (steps.size != 1)
-            statementsBeforeContext + newReturn
-          else
-            statementsBeforeContext
+        val newStatements = if (steps.size == originalStepsSize) statementsBeforeContext + newReturn else statementsBeforeContext
         val transformedBody = createBlockBody(newStatements)
-        replaceErrorExpressionsWithReceiverValues(transformedBody, currentStep.type, paramSymbol)
+        paramSymbols[currentStep.type] = paramSymbol
+        replaceErrorExpressionsWithReceiverValues(transformedBody, paramSymbols)
         // TODO nest body with other recursive function
         val nextSteps = steps.drop(1)
         val remaining = body.remainingStatementsAfterCall(currentStep.contextCall)
         transformedBody.statements.removeIf { it in remaining }
-        processBodiesRecursive(nestedLambda.function, transformedBody, nextSteps, nestedLambda, remaining + remainingStatements)
+        processBodiesRecursive(nestedLambda.function, transformedBody, nextSteps, nestedLambda, remaining + remainingStatements, originalStepsSize, paramSymbols)
       }
     }
 
@@ -210,12 +206,12 @@ internal class ProofsIrContextReceiversRecCodegen(
 
   private fun replaceErrorExpressionsWithReceiverValues(
     transformedBody: IrBlockBody,
-    targetType: IrType?,
-    paramSymbol: IrValueParameterSymbolImpl
+    paramSymbol: Map<IrType, IrValueParameterSymbolImpl>
   ) {
     transformedBody.transformNestedErrorExpressions { errorExpression ->
-      if (errorExpression.type == targetType) {
-        IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, paramSymbol)
+      val symbol = paramSymbol[errorExpression.type]
+      if (symbol != null) {
+        IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, symbol)
       } else errorExpression
     }
   }

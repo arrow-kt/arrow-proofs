@@ -49,10 +49,11 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
     }
   }
   fun FirQualifiedAccess.contextReceiversResolutionMap(): Map<ProofResolution?, FirElement> {
-    val targetType = typeArguments.firstOrNull()?.toConeTypeProjection()?.type
-    return if (targetType != null) {
-      val contextProofResolution = resolveProof(ProviderAnnotation, targetType, mutableListOf())
-      mapOf(contextProofResolution to this)
+    val targetTypes = typeArguments.map { it.toConeTypeProjection().type }
+    return if (targetTypes.isNotEmpty()) {
+      targetTypes.fold(mutableMapOf()) { map, type -> map.also {
+        if(type != null) it[resolveProof(ProviderAnnotation, type, mutableListOf())] = this
+      }}
     } else emptyMap()
   }
 
