@@ -22,6 +22,13 @@ FILE: context_receivers.kt
         R|arrow/inject/annotations/context|<R|foo/bar/Persistence|>()
         ^f2 R|foo/bar/Repo.Repo|(Int(0)).R|foo/bar/Repo.x|
     }
+    public final fun workaround(): R|kotlin/Int| {
+        R|kotlin/io/println|(String(will drop from nested body))
+        ^workaround R|arrow/inject/annotations/contextual|<R|foo/bar/Persistence|, R|kotlin/Int|>(R|foo/bar/Persistence.Persistence|(), <L> = contextual@fun R|foo/bar/Persistence|.<anonymous>(): R|kotlin/Int| <inline=Inline, kind=UNKNOWN>  {
+            ^ R|foo/bar/Repo.Repo|(Int(0)).R|foo/bar/Repo.x|
+        }
+        )
+    }
     public final fun box(): R|kotlin/String| {
         lval result: R|kotlin/Int| = R|foo/bar/f2|()
         ^box when () {
