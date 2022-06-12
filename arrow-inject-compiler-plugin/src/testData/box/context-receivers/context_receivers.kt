@@ -16,6 +16,13 @@ fun f2(): Int {
   return Repo(0).x
 }
 
+fun workaround(): Int {
+  println("will drop from nested body")
+  return contextual<Persistence, Int>(Persistence()) {
+    Repo(0).x
+  }
+}
+
 fun box(): String {
   val result = f2()
   return if (result == 0) {

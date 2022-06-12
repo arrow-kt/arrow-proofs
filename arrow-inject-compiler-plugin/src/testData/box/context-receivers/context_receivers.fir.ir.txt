@@ -60,6 +60,33 @@ FILE fqName:foo.bar fileName:/context_receivers.kt
     BLOCK_BODY
       CALL 'public final fun println (message: kotlin.Any?): kotlin.Unit [inline] declared in kotlin.io.ConsoleKt' type=kotlin.Unit origin=null
         message: CONST String type=kotlin.String value="will drop from nested body"
+      RETURN type=kotlin.Nothing from='public final fun f2 (): kotlin.Int declared in foo.bar'
+        CALL 'public final fun contextual <T, R> (ev: T of arrow.inject.annotations.RunKt.contextual, f: @[ExtensionFunctionType] kotlin.Function1<T of arrow.inject.annotations.RunKt.contextual, R of arrow.inject.annotations.RunKt.contextual>): R of arrow.inject.annotations.RunKt.contextual [inline] declared in arrow.inject.annotations.RunKt' type=kotlin.Int origin=null
+          <T>: foo.bar.Persistence
+          <R>: kotlin.Int
+          ev: CONSTRUCTOR_CALL 'public constructor <init> () [primary] declared in foo.bar.Persistence' type=foo.bar.Persistence origin=null
+          f: FUN_EXPR type=@[ExtensionFunctionType] kotlin.Function1<foo.bar.Persistence, kotlin.Int> origin=LAMBDA
+            FUN LOCAL_FUNCTION_FOR_LAMBDA name:<anonymous> visibility:local modality:FINAL <> ($receiver:foo.bar.Persistence) returnType:kotlin.Int
+              $receiver: VALUE_PARAMETER name:$this$contextual type:foo.bar.Persistence
+              BLOCK_BODY
+  FUN name:workaround visibility:public modality:FINAL <> () returnType:kotlin.Int
+    BLOCK_BODY
+      CALL 'public final fun println (message: kotlin.Any?): kotlin.Unit [inline] declared in kotlin.io.ConsoleKt' type=kotlin.Unit origin=null
+        message: CONST String type=kotlin.String value="will drop from nested body"
+      RETURN type=kotlin.Nothing from='public final fun workaround (): kotlin.Int declared in foo.bar'
+        CALL 'public final fun contextual <T, R> (ev: T of arrow.inject.annotations.RunKt.contextual, f: @[ExtensionFunctionType] kotlin.Function1<T of arrow.inject.annotations.RunKt.contextual, R of arrow.inject.annotations.RunKt.contextual>): R of arrow.inject.annotations.RunKt.contextual [inline] declared in arrow.inject.annotations.RunKt' type=kotlin.Int origin=null
+          <T>: foo.bar.Persistence
+          <R>: kotlin.Int
+          ev: CONSTRUCTOR_CALL 'public constructor <init> () [primary] declared in foo.bar.Persistence' type=foo.bar.Persistence origin=null
+          f: FUN_EXPR type=@[ExtensionFunctionType] kotlin.Function1<foo.bar.Persistence, kotlin.Int> origin=LAMBDA
+            FUN LOCAL_FUNCTION_FOR_LAMBDA name:<anonymous> visibility:local modality:FINAL <> ($receiver:foo.bar.Persistence) returnType:kotlin.Int
+              $receiver: VALUE_PARAMETER name:$this$contextual type:foo.bar.Persistence
+              BLOCK_BODY
+                RETURN type=kotlin.Nothing from='local final fun <anonymous> (): kotlin.Int declared in foo.bar.workaround'
+                  CALL 'public final fun <get-x> (): kotlin.Int declared in foo.bar.Repo' type=kotlin.Int origin=GET_PROPERTY
+                    $this: CONSTRUCTOR_CALL 'public constructor <init> (_context_receiver_0: foo.bar.Persistence, x: kotlin.Int) [primary] declared in foo.bar.Repo' type=foo.bar.Repo origin=null
+                      _context_receiver_0: GET_VAR '$this$contextual: foo.bar.Persistence declared in foo.bar.workaround.<anonymous>' type=foo.bar.Persistence origin=null
+                      x: CONST Int type=kotlin.Int value=0
   FUN name:box visibility:public modality:FINAL <> () returnType:kotlin.String
     BLOCK_BODY
       VAR name:result type:kotlin.Int [val]
