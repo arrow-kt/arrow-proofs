@@ -1,5 +1,5 @@
 package arrow.inject.compiler.plugin.fir
 
-import org.jetbrains.kotlin.fir.declarations.FirPluginKey
+import org.jetbrains.kotlin.GeneratedDeclarationKey
 
-internal object ProofKey : FirPluginKey()
+internal object ProofKey : GeneratedDeclarationKey()

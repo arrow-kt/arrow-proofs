@@ -7,7 +7,7 @@ import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
-import org.jetbrains.kotlin.fir.extensions.predicate.metaHas
+import org.jetbrains.kotlin.fir.extensions.predicate.hasMetaAnnotated
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.resolve.providers.impl.FirProviderImpl
 import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
@@ -23,7 +23,7 @@ internal class LocalProofCollectors(
 
   fun collectLocalProofsIde(): List<Proof> =
     session.predicateBasedProvider
-      .getSymbolsByPredicate(metaHas(ProofAnnotationsFqName.ContextAnnotation))
+      .getSymbolsByPredicate(hasMetaAnnotated(ProofAnnotationsFqName.ContextAnnotation))
       .map { Proof.Implication(it.fir.idSignature, it.fir) }
 
   private fun collectLocalProofsCLI(): List<Proof> =

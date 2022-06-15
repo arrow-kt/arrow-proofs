@@ -41,26 +41,30 @@ import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrFunctionExpressionImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrReturnImpl
+import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrValueParameterSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.IrValueParameterSymbolImpl
 import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.types.IrTypeArgument
+import org.jetbrains.kotlin.ir.types.IrTypeSubstitutor
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContextImpl
 import org.jetbrains.kotlin.ir.types.addAnnotations
 import org.jetbrains.kotlin.ir.types.classFqName
+import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.typeWith
 import org.jetbrains.kotlin.ir.util.constructors
+import org.jetbrains.kotlin.ir.util.dumpKotlinLike
 import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
 import org.jetbrains.kotlin.ir.util.statements
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
+import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.model.TypeArgumentMarker
 import org.jetbrains.kotlin.types.model.TypeSystemContext
 
-internal class ProofsIrContextReceiversCodegen(
+internal class ProofsIrContextReceiversRecCodegen(
   override val proofCache: ProofCache,
   override val moduleFragment: IrModuleFragment,
   private val irPluginContext: IrPluginContext
@@ -70,50 +74,109 @@ internal class ProofsIrContextReceiversCodegen(
   ProofsIrAbstractCodegen {
 
   fun generateContextReceivers() {
-    irTransformBlockBodies { parent, body -> insertContextCall(parent, body) }
-  }
-
-  fun insertContextCall(parent: IrDeclarationParent, body: IrBlockBody): IrBody {
-    val contextCall = body.findNestedContextCall()
-    return if (contextCall != null) {
-      contextReplacementCall(contextCall, parent, body)
-    } else {
-      body
+    irTransformBlockBodies { parent, body ->
+      val steps = buildProcessSteps(body)
+      if (steps.isNotEmpty()) processBodiesRecursive(parent, body, steps, null, emptyList(), steps.size)
+      else body
     }
   }
 
-  private val contextualFunction
-    get() =
-      irBuiltIns
-        .findFunctions(Name.identifier("contextual"), FqName("arrow.inject.annotations"))
-        .first()
-
-  fun contextReplacementCall(
-    contextCall: IrFunctionAccessExpression,
-    declarationParent: IrDeclarationParent,
-    body: IrBlockBody
-  ): IrBody {
-    val replacementCall = contextualFunction.owner.irCall() as IrCall
-    val returningBlockType = declarationParent.returningBlockType()
-    val targetType = contextCall.getTypeArgument(0)
-
-    val allTypes = getAllContextReceiversTypes(targetType, mutableListOf()).reversed()
-
-    replacementCall.addReplacedTypeArguments(targetType, returningBlockType)
-
-    val finalBody =
-      allTypes.foldIndexed(declarationParent to body) { index, (currentParent, currentBody), currentType ->
-        val parentedBody = replacementCall.transformedBody(
-          contextCall,
-          currentType,
-          currentBody,
-          currentParent,
-          returningBlockType
-        )
-        parentedBody
-      }
-    return finalBody.second
+  data class ReceiverProcessStep(
+    val contextCall: IrFunctionAccessExpression,
+    val replacementCall: IrCall,
+    val type: IrType
+  ) {
+    override fun toString(): String {
+      return "step: ${type.dumpKotlinLike()}"
+    }
   }
+
+  fun buildProcessSteps(body: IrBlockBody): List<ReceiverProcessStep> {
+    val contextCall = body.findNestedContextCall()
+    return if (contextCall == null) emptyList()
+    else {
+      val targetTypes: List<IrType> = contextCall.typeArguments.values.flatMap { getAllContextReceiversTypes(it, mutableListOf()) }
+      targetTypes.map { type ->
+        ReceiverProcessStep(
+          contextCall,
+          contextualFunction.owner.irCall() as IrCall,
+          type
+        )
+      }
+    }
+  }
+
+
+  fun processBodiesRecursive(
+    declarationParent: IrDeclarationParent,
+    body: IrBlockBody,
+    steps: List<ReceiverProcessStep>,
+    previousStepLambda: IrFunctionExpression?,
+    remainingStatements: List<IrStatement>,
+    originalStepsSize: Int,
+    paramSymbols: MutableMap<IrType, IrValueParameterSymbolImpl> = mutableMapOf()
+  ): IrBody =
+    when {
+      steps.isEmpty() -> body //done processing
+      else -> {
+        val currentStep = steps.first()
+        val returningBlockType = declarationParent.returningBlockType()
+        currentStep.replacementCall.addReplacedTypeArguments(currentStep.type, returningBlockType)
+        val paramSymbol = IrValueParameterSymbolImpl()
+        if (previousStepLambda != null) {
+          val returned = previousStepLambda.function.createIrReturn(currentStep.replacementCall)
+          val previousLambdaBody = (previousStepLambda.function.body as? IrBlockBody)
+          previousLambdaBody?.statements?.add(returned)
+        }
+        val nestedLambda =
+          createLambdaExpressionWithoutParent(currentStep.type, returningBlockType, paramSymbol) {
+            blockBody {
+            }
+          }
+        nestedLambda.function.parent = declarationParent
+        val extensionReceiverParam = nestedLambda.function.extensionReceiverParameter
+        if (extensionReceiverParam != null)
+          processContextReceiver(0, currentStep.type, currentStep.replacementCall, previousStepLambda?.function?.extensionReceiverParameter)
+        currentStep.replacementCall.putValueArgument(
+          1,
+          nestedLambda
+        )
+        val lambdaBlockBody = nestedLambda.function.body
+        if (lambdaBlockBody is IrBlockBody && steps.size == 1) {  //last processing nests the remaining
+          remainingStatements.forEach {
+            val patchedStatement =
+              if (it is IrReturn)
+                nestedLambda.function.createIrReturn(it.value)
+              else it
+            lambdaBlockBody.statements.add(patchedStatement)
+          }
+        }
+        val statementsBeforeContext = body.statementsBeforeContextCall()
+        val newReturn = declarationParent.createIrReturn(currentStep.replacementCall)
+        val newStatements = if (steps.size == originalStepsSize) statementsBeforeContext + newReturn else statementsBeforeContext
+        val transformedBody = createBlockBody(newStatements)
+        paramSymbols[currentStep.type] = paramSymbol
+        replaceErrorExpressionsWithReceiverValues(transformedBody, paramSymbols)
+        // TODO nest body with other recursive function
+        val nextSteps = steps.drop(1)
+        val remaining = body.remainingStatementsAfterCall(currentStep.contextCall)
+        transformedBody.statements.removeIf { it in remaining }
+        processBodiesRecursive(nestedLambda.function, transformedBody, nextSteps, nestedLambda, remaining + remainingStatements, originalStepsSize, paramSymbols)
+      }
+    }
+
+  private fun IrBlockBody.statementsBeforeContextCall() =
+    statements.takeWhile { it.findNestedContextCall() == null }
+
+  private val contextualFunction: IrSimpleFunctionSymbol
+    get() =
+      referenceFunctions(
+        CallableId(
+          packageName = FqName("arrow.inject.annotations"),
+          className = null,
+          callableName =Name.identifier("contextual")
+        )
+      ).first()
 
   private fun IrDeclarationParent.returningBlockType() =
     (this as? IrFunction)?.returnType ?: irBuiltIns.nothingType
@@ -142,45 +205,17 @@ internal class ProofsIrContextReceiversCodegen(
       expression
     }
 
-  private fun IrCall.transformedBody(
-    contextCall: IrFunctionAccessExpression,
-    targetType: IrType,
-    body: IrBlockBody,
-    declarationParent: IrDeclarationParent,
-    returningBlockType: IrType
-  ): Pair<IrDeclarationParent, IrBlockBody> {
-    val paramSymbol = IrValueParameterSymbolImpl()
-    processContextReceiver(0, targetType, this)
-    val nestedLambda = createNestedLambdaBody(
-      declarationParent,
-      targetType,
-      contextCall,
-      returningBlockType,
-      paramSymbol,
-      body
-    )
-    putValueArgument(
-      1,
-      nestedLambda
-    )
-    val statementsBeforeContext = body.statements.takeWhile { it.findNestedContextCall() == null }
-    val newStatements = statementsBeforeContext + nestedLambda.function.createIrReturn(this)
-    val transformedBody = createBlockBody(newStatements)
-    replaceErrorExpressionsWithReceiverValues(transformedBody, targetType, paramSymbol)
-    return nestedLambda.function to transformedBody
-  }
-
   private fun createBlockBody(newStatements: List<IrStatement>): IrBlockBody =
     irFactory.createBlockBody(UNDEFINED_OFFSET, UNDEFINED_OFFSET, newStatements)
 
   private fun replaceErrorExpressionsWithReceiverValues(
     transformedBody: IrBlockBody,
-    targetType: IrType?,
-    paramSymbol: IrValueParameterSymbolImpl
+    paramSymbol: Map<IrType, IrValueParameterSymbolImpl>
   ) {
     transformedBody.transformNestedErrorExpressions { errorExpression ->
-      if (errorExpression.type == targetType) {
-        IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, paramSymbol)
+      val symbol = paramSymbol[errorExpression.type]
+      if (symbol != null) {
+        IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, symbol)
       } else errorExpression
     }
   }
@@ -197,11 +232,10 @@ internal class ProofsIrContextReceiversCodegen(
   private fun getAllContextReceiversTypes(
     irType: IrType?,
     previousIrTypes: MutableList<IrType>,
-  ): MutableList<IrType> {
-    val type = irType?.toIrBasedKotlinType()
-    if (type != null) {
+  ): List<IrType> {
+    if (irType != null) {
       previousIrTypes.add(irType)
-      val expression = contextProofCall(type)
+      val expression = contextProofCall(irType)
       if (expression is IrCall) {
         expression.symbol.owner.contextReceiversValueParameters.flatMap { param ->
           val targetType = targetType(irType, param.type)
@@ -210,39 +244,45 @@ internal class ProofsIrContextReceiversCodegen(
         }
       }
     }
-    return previousIrTypes
+    return previousIrTypes.reversed()
   }
 
   private fun processContextReceiver(
     index: Int,
     irType: IrType?,
-    replacementCall: IrMemberAccessExpression<*>?
+    replacementCall: IrMemberAccessExpression<*>?,
+    receiverParam: IrValueParameter?
   ) {
-    val type = irType?.toIrBasedKotlinType()
-    if (type != null) {
-      contextProofCall(type)?.apply {
+    if (irType != null) {
+      contextProofCall(irType)?.apply {
         if (this is IrCall) {
           symbol.owner.contextReceiversValueParameters.forEachIndexed { index, param ->
             val targetType = targetType(irType, param.type)
             val resolvedType = targetType ?: param.type
-            processContextReceiver(index, resolvedType, this)
+            processContextReceiver(index, resolvedType, this, param)
           }
         }
         if (replacementCall != null && replacementCall.valueArgumentsCount > index) {
+          if (this is IrMemberAccessExpression<*>) {
+            if (receiverParam != null && this.valueArgumentsCount > index) {
+              val valueArg = receiverParam.irCall()
+              this.putValueArgument(index, valueArg)
+            }
+          }
           replacementCall.putValueArgument(index, this)
         }
       }
     }
   }
 
-  private fun contextProofCall(kotlinType: KotlinType): IrExpression? =
-    proofCache.getProofFromCache(kotlinType.asProofCacheKey(ProviderAnnotation))?.let { proofResolution ->
-      substitutedResolvedContextCall(proofResolution, kotlinType)
+  private fun contextProofCall(irType: IrType): IrExpression? =
+    proofCache.getProofFromCache(irType.toIrBasedKotlinType().asProofCacheKey(ProviderAnnotation))?.let { proofResolution ->
+      substitutedResolvedContextCall(proofResolution, irType)
     }
 
   private fun substitutedResolvedContextCall(
     proofResolution: ProofResolution,
-    kotlinType: KotlinType
+    irType: IrType
   ): IrExpression? {
     val proof = proofResolution.proof
     val ambiguousProofs = proofResolution.ambiguousProofs
@@ -250,26 +290,32 @@ internal class ProofsIrContextReceiversCodegen(
       ambiguousProofs.firstOrNull {
         (it.declaration as? FirMemberDeclaration)?.visibility == Visibilities.Internal
       }
-    return if (proof != null) substitutedContextProofCall(internalProof ?: proof, kotlinType)
+    return if (proof != null) substitutedContextProofCall(internalProof ?: proof, irType)
     else null
   }
 
-  private fun substitutedContextProofCall(proof: Proof, kotlinType: KotlinType): IrExpression =
-    matchedContextCandidateProofCall(
+  private fun substitutedContextProofCall(proof: Proof, irType: IrType): IrExpression {
+    val proofIrDeclaration = proof.irDeclaration() as? IrFunction
+    return matchedContextCandidateProofCall(
       declaration = proof.irDeclaration(),
-      typeArguments = proof.typeArgumentSubstitutor(kotlinType)
+      typeSubstitutor = IrTypeSubstitutor(
+        proofIrDeclaration?.typeParameters.orEmpty().map { it.symbol },
+        irType.getArguments().filterIsInstance<IrTypeArgument>(),
+        irBuiltIns
+      )
     )
+  }
 
   private fun matchedContextCandidateProofCall(
     declaration: IrDeclaration,
-    typeArguments: List<TypeArgumentMarker>
+    typeSubstitutor: IrTypeSubstitutor
   ): IrExpression {
-    val irTypes = declaration.substitutedIrTypes(typeArguments).filterNotNull()
     return declaration.irCall().apply {
       if (this is IrMemberAccessExpression<*>) {
         if (declaration is IrTypeParametersContainer) {
-          declaration.typeParameters.forEachIndexed { index, _ ->
-            putTypeArgument(index, irTypes.getOrElse(index) { irBuiltIns.nothingType })
+          declaration.typeParameters.forEachIndexed { index, typeParam ->
+            val newType = typeSubstitutor.substitute(typeParam.defaultType)
+            putTypeArgument(index, newType)
           }
         }
 
@@ -278,10 +324,9 @@ internal class ProofsIrContextReceiversCodegen(
             val contextFqName: FqName? =
               valueParameter.metaContextAnnotations.firstOrNull()?.type?.classFqName
             if (contextFqName != null) {
+              val newType = typeSubstitutor.substitute(valueParameter.type)
               val argumentProvedExpression =
-                contextProofCall(
-                  irTypes.getOrElse(index) { irBuiltIns.nothingType }.toIrBasedKotlinType()
-                )
+                contextProofCall(newType)
               if (argumentProvedExpression != null) {
                 putValueArgument(index, argumentProvedExpression)
               }
@@ -289,23 +334,9 @@ internal class ProofsIrContextReceiversCodegen(
           }
         }
       }
+      this.type = typeSubstitutor.substitute(this.type)
     }
   }
-
-  /** contextual(arg) [createNestedLambdaBody]{ [createLambdaExpression] } */
-  private fun createNestedLambdaBody(
-    declarationParent: IrDeclarationParent,
-    targetType: IrType,
-    contextCall: IrFunctionAccessExpression,
-    returningBlockType: IrType,
-    paramSymbol: IrValueParameterSymbolImpl,
-    blockBody: IrBlockBody
-  ) =
-    createLambdaExpression(declarationParent, targetType, returningBlockType, paramSymbol) {
-      val newBlockBody = blockBody {}
-      val remaining = blockBody.remainingStatementsAfterCall(contextCall)
-      remaining.forEach { newBlockBody.statements.add(it) }
-    }
 
   private fun <D> withFunReceiverParameter(
     dec: D,
@@ -329,8 +360,7 @@ internal class ProofsIrContextReceiversCodegen(
       )
       .also { it.parent = dec }
 
-  private fun createLambdaExpression(
-    parent: IrDeclarationParent,
+  private fun createLambdaExpressionWithoutParent(
     type: IrType,
     returningBlockType: IrType,
     paramSymbol: IrValueParameterSymbol,
@@ -348,7 +378,6 @@ internal class ProofsIrContextReceiversCodegen(
     function.body =
       DeclarationIrBuilder(irPluginContext, function.symbol, UNDEFINED_OFFSET, UNDEFINED_OFFSET)
         .irBlockBody(UNDEFINED_OFFSET, UNDEFINED_OFFSET, bodyGen)
-    function.parent = parent
 
     function.extensionReceiverParameter = withFunReceiverParameter(function, type, paramSymbol)
 
@@ -443,3 +472,6 @@ internal class ProofsIrContextReceiversCodegen(
     )
 }
 
+
+val IrFunction.contextReceiversValueParameters: List<IrValueParameter>
+  get() = valueParameters.subList(0, contextReceiverParametersCount)

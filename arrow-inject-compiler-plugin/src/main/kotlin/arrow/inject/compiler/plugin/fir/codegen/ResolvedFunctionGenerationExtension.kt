@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
+import org.jetbrains.kotlin.fir.declarations.origin
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotation
@@ -28,6 +29,7 @@ import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
 import org.jetbrains.kotlin.fir.expressions.impl.FirEmptyAnnotationArgumentMapping
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationGenerationExtension
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationPredicateRegistrar
+import org.jetbrains.kotlin.fir.extensions.MemberGenerationContext
 import org.jetbrains.kotlin.fir.extensions.predicateBasedProvider
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.originalForSubstitutionOverrideAttr
@@ -87,15 +89,15 @@ internal class ResolvedFunctionGenerationExtension(
     register(injectPredicate)
   }
 
-  override fun generateConstructors(owner: FirClassSymbol<*>): List<FirConstructorSymbol> =
+  override fun generateConstructors(context: MemberGenerationContext): List<FirConstructorSymbol> =
     session.predicateBasedProvider
       .getSymbolsByPredicate(injectPredicate)
-      .filterIsInstanceAnd<FirConstructorSymbol> { it.callableId.classId == owner.classId }
-      .map { firConstructorSymbol -> buildConstructorSymbol(owner, firConstructorSymbol) }
+      .filterIsInstanceAnd<FirConstructorSymbol> { it.callableId.classId == context.owner.classId }
+      .map { firConstructorSymbol -> buildConstructorSymbol(context.owner, firConstructorSymbol) }
 
   override fun generateFunctions(
     callableId: CallableId,
-    owner: FirClassSymbol<*>?
+    context: MemberGenerationContext?
   ): List<FirNamedFunctionSymbol> =
     session.predicateBasedProvider
       .getSymbolsByPredicate(injectPredicate)

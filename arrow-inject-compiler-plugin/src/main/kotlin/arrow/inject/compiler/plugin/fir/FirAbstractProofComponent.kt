@@ -21,10 +21,11 @@ import org.jetbrains.kotlin.fir.declarations.FirValueParameter
 import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
+import org.jetbrains.kotlin.fir.declarations.origin
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.extensions.predicate.DeclarationPredicate
-import org.jetbrains.kotlin.fir.extensions.predicate.has
-import org.jetbrains.kotlin.fir.extensions.predicate.metaHas
+import org.jetbrains.kotlin.fir.extensions.predicate.hasAnnotated
+import org.jetbrains.kotlin.fir.extensions.predicate.hasMetaAnnotated
 import org.jetbrains.kotlin.fir.extensions.predicate.or
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.resolve.defaultType
@@ -50,11 +51,11 @@ internal interface FirAbstractProofComponent {
 
   val contextPredicate: DeclarationPredicate
     get() =
-      has(ProofAnnotationsFqName.ContextAnnotation)
-        .or(metaHas(ProofAnnotationsFqName.ContextAnnotation))
+      hasAnnotated(ProofAnnotationsFqName.ContextAnnotation)
+        .or(hasMetaAnnotated(ProofAnnotationsFqName.ContextAnnotation))
 
   val injectPredicate: DeclarationPredicate
-    get() = has(ProofAnnotationsFqName.InjectAnnotation)
+    get() = hasAnnotated(ProofAnnotationsFqName.InjectAnnotation)
 
   val resolve: FirSimpleFunction
     get() {
