@@ -168,12 +168,6 @@ public class BoxTestGenerated extends AbstractBoxTest {
         }
 
         @Test
-        @TestMetadata("a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved2.kt")
-        public void testA_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved2() throws Exception {
-            runTest("src/testData/box/context-receivers/a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved2.kt");
-        }
-
-        @Test
         public void testAllFilesPresentInContext_receivers() throws Exception {
             KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("src/testData/box/context-receivers"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM_IR, true);
         }
@@ -182,12 +176,6 @@ public class BoxTestGenerated extends AbstractBoxTest {
         @TestMetadata("context_receivers.kt")
         public void testContext_receivers() throws Exception {
             runTest("src/testData/box/context-receivers/context_receivers.kt");
-        }
-
-        @Test
-        @TestMetadata("context_receivers_2.kt")
-        public void testContext_receivers_2() throws Exception {
-            runTest("src/testData/box/context-receivers/context_receivers_2.kt");
         }
 
         @Test

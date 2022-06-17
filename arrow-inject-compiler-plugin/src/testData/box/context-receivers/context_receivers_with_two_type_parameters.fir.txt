@@ -1,44 +1,33 @@
 FILE: context_receivers_with_two_type_parameters.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/Provider|() public final class Persistence : R|kotlin/Any| {
-        public constructor(): R|foo/bar/Persistence| {
+    @R|arrow/inject/annotations/Provider|() public final class A : R|kotlin/Any| {
+        public constructor(): R|foo/bar/A| {
             super<R|kotlin/Any|>()
         }
+
+        public final val a: R|kotlin/Int| = Int(1)
+            public get(): R|kotlin/Int|
 
     }
-    @R|arrow/inject/annotations/Provider|() public final class X : R|kotlin/Any| {
-        public constructor(): R|foo/bar/X| {
+    @R|arrow/inject/annotations/Provider|() public final class B : R|kotlin/Any| {
+        public constructor(): R|foo/bar/B| {
             super<R|kotlin/Any|>()
         }
 
-    }
-    context(R|foo/bar/Persistence|, R|foo/bar/X|)
-    public final class Repo : R|kotlin/Any| {
-        public constructor(x: R|kotlin/Int|): R|foo/bar/Repo| {
-            super<R|kotlin/Any|>()
-        }
-
-        public final val x: R|kotlin/Int| = R|<local>/x|
+        public final val b: R|kotlin/Int| = Int(2)
             public get(): R|kotlin/Int|
 
     }
     public final fun f(): R|kotlin/Int| {
         R|kotlin/io/println|(String(123))
-        R|arrow/inject/annotations/context|<R|foo/bar/Persistence|, R|foo/bar/X|>()
-        ^f R|foo/bar/Repo.Repo|(Int(0)).R|foo/bar/Repo.x|
-    }
-    public final fun f2(): R|kotlin/Int| {
-        R|kotlin/io/println|(String(will drop from nested body))
-        ^f2 R|arrow/inject/annotations/contextual|<R|foo/bar/Persistence|, R|kotlin/Int|>(R|foo/bar/Persistence.Persistence|(), <L> = contextual@fun R|foo/bar/Persistence|.<anonymous>(): R|kotlin/Int| <inline=Inline, kind=UNKNOWN>  {
-            ^ Int(2)
-        }
-        )
+        R|arrow/inject/annotations/context|<R|foo/bar/A|, R|foo/bar/B|>()
+        ^f this@R|foo/bar/f|.R|foo/bar/A.a|.R|kotlin/Int.plus|(this@R|foo/bar/f|.R|foo/bar/B.b|)
     }
     public final fun box(): R|kotlin/String| {
         lval result: R|kotlin/Int| = R|foo/bar/f|()
         ^box when () {
-            ==(R|<local>/result|, Int(0)) ->  {
+            ==(R|<local>/result|, Int(3)) ->  {
                 String(OK)
             }
             else ->  {

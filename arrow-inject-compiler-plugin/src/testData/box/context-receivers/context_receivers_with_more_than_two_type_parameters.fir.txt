@@ -1,62 +1,60 @@
 FILE: context_receivers_with_more_than_two_type_parameters.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/Provider|() public final class Persistence : R|kotlin/Any| {
-        public constructor(): R|foo/bar/Persistence| {
+    @R|arrow/inject/annotations/Provider|() public final class A : R|kotlin/Any| {
+        public constructor(): R|foo/bar/A| {
             super<R|kotlin/Any|>()
         }
+
+        public final val a: R|kotlin/Int| = Int(1)
+            public get(): R|kotlin/Int|
 
     }
-    @R|arrow/inject/annotations/Provider|() public final class X : R|kotlin/Any| {
-        public constructor(): R|foo/bar/X| {
+    @R|arrow/inject/annotations/Provider|() public final class B : R|kotlin/Any| {
+        public constructor(): R|foo/bar/B| {
             super<R|kotlin/Any|>()
         }
+
+        public final val b: R|kotlin/Int| = Int(2)
+            public get(): R|kotlin/Int|
 
     }
-    @R|arrow/inject/annotations/Provider|() public final class Y : R|kotlin/Any| {
-        public constructor(): R|foo/bar/Y| {
+    @R|arrow/inject/annotations/Provider|() public final class C : R|kotlin/Any| {
+        public constructor(): R|foo/bar/C| {
             super<R|kotlin/Any|>()
         }
+
+        public final val c: R|kotlin/Int| = Int(3)
+            public get(): R|kotlin/Int|
 
     }
-    @R|arrow/inject/annotations/Provider|() public final class Z : R|kotlin/Any| {
-        public constructor(): R|foo/bar/Z| {
+    @R|arrow/inject/annotations/Provider|() public final class D : R|kotlin/Any| {
+        public constructor(): R|foo/bar/D| {
             super<R|kotlin/Any|>()
         }
+
+        public final val d: R|kotlin/Int| = Int(5)
+            public get(): R|kotlin/Int|
 
     }
-    @R|arrow/inject/annotations/Provider|() public final class W : R|kotlin/Any| {
-        public constructor(): R|foo/bar/W| {
+    @R|arrow/inject/annotations/Provider|() public final class E : R|kotlin/Any| {
+        public constructor(): R|foo/bar/E| {
             super<R|kotlin/Any|>()
         }
 
-    }
-    context(R|foo/bar/Persistence|, R|foo/bar/X|, R|foo/bar/Y|, R|foo/bar/Z|, R|foo/bar/W|)
-    public final class Repo : R|kotlin/Any| {
-        public constructor(x: R|kotlin/Int|): R|foo/bar/Repo| {
-            super<R|kotlin/Any|>()
-        }
-
-        public final val x: R|kotlin/Int| = R|<local>/x|
+        public final val e: R|kotlin/Int| = Int(8)
             public get(): R|kotlin/Int|
 
     }
     public final fun f(): R|kotlin/Int| {
         R|kotlin/io/println|(String(123))
-        R|arrow/inject/annotations/context|<R|foo/bar/Persistence|, R|foo/bar/X|, R|foo/bar/Y|, R|foo/bar/Z|, R|foo/bar/W|>()
-        ^f R|foo/bar/Repo.Repo|(Int(0)).R|foo/bar/Repo.x|
-    }
-    public final fun f2(): R|kotlin/Int| {
-        R|kotlin/io/println|(String(will drop from nested body))
-        ^f2 R|arrow/inject/annotations/contextual|<R|foo/bar/Persistence|, R|kotlin/Int|>(R|foo/bar/Persistence.Persistence|(), <L> = contextual@fun R|foo/bar/Persistence|.<anonymous>(): R|kotlin/Int| <inline=Inline, kind=UNKNOWN>  {
-            ^ Int(2)
-        }
-        )
+        R|arrow/inject/annotations/context|<R|foo/bar/A|, R|foo/bar/B|, R|foo/bar/C|, R|foo/bar/D|, R|foo/bar/E|>()
+        ^f this@R|foo/bar/f|.R|foo/bar/A.a|.R|kotlin/Int.plus|(this@R|foo/bar/f|.R|foo/bar/B.b|).R|kotlin/Int.plus|(this@R|foo/bar/f|.R|foo/bar/C.c|).R|kotlin/Int.plus|(this@R|foo/bar/f|.R|foo/bar/D.d|).R|kotlin/Int.plus|(this@R|foo/bar/f|.R|foo/bar/E.e|)
     }
     public final fun box(): R|kotlin/String| {
         lval result: R|kotlin/Int| = R|foo/bar/f|()
         ^box when () {
-            ==(R|<local>/result|, Int(0)) ->  {
+            ==(R|<local>/result|, Int(19)) ->  {
                 String(OK)
             }
             else ->  {

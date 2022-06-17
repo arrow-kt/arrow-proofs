@@ -1,29 +1,27 @@
 package foo.bar
 
-import arrow.inject.annotations.context
 import arrow.inject.annotations.Provider
-import arrow.inject.annotations.contextual
+import arrow.inject.annotations.context
 
-@Provider class Persistence
-@Provider class X
+@Provider
+class A {
+  val a = 1
+}
 
-context(Persistence, X)
-class Repo(val x: Int)
+@Provider
+class B {
+  val b = 2
+}
 
 fun f(): Int {
   println("123")
-  context<Persistence, X>()
-  return Repo(0).x
-}
-
-fun f2(): Int {
-  println("will drop from nested body")
-  return contextual<Persistence, Int>(Persistence()) { 2 }
+  context<A, B>()
+  return a + b
 }
 
 fun box(): String {
   val result = f()
-  return if (result == 0) {
+  return if (result == 3) {
     "OK"
   } else {
     "Fail: $result"
