@@ -1,31 +1,36 @@
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-enableFeaturePreview("VERSION_CATALOGS")
-
 pluginManagement {
   repositories {
-    gradlePluginPortal()
     mavenCentral()
+    gradlePluginPortal()
+    maven(url = "https://oss.sonatype.org/content/repositories/snapshots")
+    maven(url = "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
   }
 }
 
 dependencyResolutionManagement {
-  versionCatalogs {
-    create("libs") {
-      from(files("gradle/projects.libs.versions.toml"))
-      val kotlinVersion: String? by settings
-      kotlinVersion?.let { version("kotlin", it) }
-    }
+  repositories {
+    mavenCentral()
+    maven(url = "https://oss.sonatype.org/content/repositories/snapshots")
+    maven(url = "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
   }
 }
 
-rootProject.name = "arrow-proof"
+include(
+  ":arrow-inject-annotations",
+  ":arrow-inject-compiler-plugin",
+  ":arrow-inject-gradle-plugin",
+)
 
-// Proofs
-include(":arrow-proofs-plugin")
-project(":arrow-proofs-plugin").projectDir = File("proofs/proofs-plugin")
+// Docs
+include(":arrow-inject-docs")
+project(":arrow-inject-docs").projectDir = File("docs")
 
-include(":arrow-proofs-gradle-plugin")
-project(":arrow-proofs-gradle-plugin").projectDir = File("proofs/proofs-gradle-plugin")
+val localProperties =
+  java.util.Properties().apply {
+    val localPropertiesFile = file("local.properties").apply { createNewFile() }
+    load(localPropertiesFile.inputStream())
+  }
 
-include(":arrow-meta-prelude")
-project(":arrow-meta-prelude").projectDir = File("proofs/prelude")
+val isSandboxEnabled = localProperties.getProperty("sandbox.enabled", "false").toBoolean()
+
+if (isSandboxEnabled) include(":sandbox")

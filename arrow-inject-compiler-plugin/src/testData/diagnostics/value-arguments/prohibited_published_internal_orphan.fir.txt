@@ -1,0 +1,15 @@
+FILE: prohibited_published_internal_orphan.kt
+    package foo.bar
+
+    @R|foo/bar/annotations/Given|() @R|kotlin/PublishedApi|() internal final fun n(): R|kotlin/Int| {
+        ^n Int(0)
+    }
+    @R|arrow/inject/annotations/Inject|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A|): R|A| {
+        ^given R|<local>/a|
+    }
+    public final val result: R|A| = R|SubstitutionOverride<foo/bar/given: R|A|>|<R|kotlin/Int|>()
+        public get(): R|A|
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/CompileTime|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A| = R|arrow/inject/annotations/resolve|(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|A|

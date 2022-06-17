@@ -1,0 +1,65 @@
+FILE: context_receivers_with_more_than_two_type_parameters.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Provider|() public final class A : R|kotlin/Any| {
+        public constructor(): R|foo/bar/A| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val a: R|kotlin/Int| = Int(1)
+            public get(): R|kotlin/Int|
+
+    }
+    @R|arrow/inject/annotations/Provider|() public final class B : R|kotlin/Any| {
+        public constructor(): R|foo/bar/B| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val b: R|kotlin/Int| = Int(2)
+            public get(): R|kotlin/Int|
+
+    }
+    @R|arrow/inject/annotations/Provider|() public final class C : R|kotlin/Any| {
+        public constructor(): R|foo/bar/C| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val c: R|kotlin/Int| = Int(3)
+            public get(): R|kotlin/Int|
+
+    }
+    @R|arrow/inject/annotations/Provider|() public final class D : R|kotlin/Any| {
+        public constructor(): R|foo/bar/D| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val d: R|kotlin/Int| = Int(5)
+            public get(): R|kotlin/Int|
+
+    }
+    @R|arrow/inject/annotations/Provider|() public final class E : R|kotlin/Any| {
+        public constructor(): R|foo/bar/E| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val e: R|kotlin/Int| = Int(8)
+            public get(): R|kotlin/Int|
+
+    }
+    public final fun f(): R|kotlin/Int| {
+        R|kotlin/io/println|(String(123))
+        R|arrow/inject/annotations/context|<R|foo/bar/A|, R|foo/bar/B|, R|foo/bar/C|, R|foo/bar/D|, R|foo/bar/E|>()
+        ^f this@R|foo/bar/f|.R|foo/bar/A.a|.R|kotlin/Int.plus|(this@R|foo/bar/f|.R|foo/bar/B.b|).R|kotlin/Int.plus|(this@R|foo/bar/f|.R|foo/bar/C.c|).R|kotlin/Int.plus|(this@R|foo/bar/f|.R|foo/bar/D.d|).R|kotlin/Int.plus|(this@R|foo/bar/f|.R|foo/bar/E.e|)
+    }
+    public final fun box(): R|kotlin/String| {
+        lval result: R|kotlin/Int| = R|foo/bar/f|()
+        ^box when () {
+            ==(R|<local>/result|, Int(19)) ->  {
+                String(OK)
+            }
+            else ->  {
+                <strcat>(String(Fail: ), R|<local>/result|)
+            }
+        }
+
+    }

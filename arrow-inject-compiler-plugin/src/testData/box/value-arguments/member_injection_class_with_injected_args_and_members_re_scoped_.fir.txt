@@ -1,0 +1,36 @@
+FILE: member_injection_class_with_injected_args_and_members_re_scoped_.kt
+    package foo.bar
+
+    @R|foo/bar/annotations/Given|() internal final fun n(): R|kotlin/Int| {
+        ^n Int(42)
+    }
+    @R|foo/bar/annotations/Given|() public final class Foo : R|kotlin/Any| {
+        @R|arrow/inject/annotations/Inject|() public constructor(@R|foo/bar/annotations/Given|() y: R|kotlin/Int|): R|foo/bar/Foo| {
+            super<R|kotlin/Any|>()
+        }
+
+        @R|foo/bar/annotations/Given|() public final val y: R|kotlin/Int| = R|<local>/y|
+            public get(): R|kotlin/Int|
+
+        @R|arrow/inject/annotations/Inject|() public final fun foo(@R|foo/bar/annotations/Given|() x: R|kotlin/Int|): R|kotlin/Int| {
+            ^foo R|<local>/x|.R|kotlin/Int.plus|(this@R|foo/bar/Foo|.R|foo/bar/Foo.y|)
+        }
+
+    }
+    public final fun t(foo: R|foo/bar/Foo| = R|SubstitutionOverride<foo/bar/Foo>|()): R|foo/bar/Foo| {
+        ^t R|<local>/foo|
+    }
+    public final fun box(): R|kotlin/String| {
+        lval result: R|kotlin/Int| = R|foo/bar/t|().R|SubstitutionOverride<foo/bar/Foo.foo: R|kotlin/Int|>|()
+        ^box when () {
+            ==(R|<local>/result|, Int(42).R|kotlin/Int.times|(Int(2))) ->  {
+                String(OK)
+            }
+            else ->  {
+                <strcat>(String(Fail: ), R|<local>/result|)
+            }
+        }
+
+    }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar

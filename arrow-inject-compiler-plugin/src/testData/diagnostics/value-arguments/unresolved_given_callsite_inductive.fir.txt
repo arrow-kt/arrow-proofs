@@ -1,0 +1,21 @@
+FILE: unresolved_given_callsite_inductive.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Inject|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A|): R|A| {
+        ^given R|<local>/a|
+    }
+    @R|foo/bar/annotations/Given|() public final class X : R|kotlin/Any| {
+        public constructor(@R|foo/bar/annotations/Given|() value: R|kotlin/String|): R|foo/bar/X| {
+            super<R|kotlin/Any|>()
+        }
+
+        @R|foo/bar/annotations/Given|() public final val value: R|kotlin/String| = R|<local>/value|
+            public get(): R|kotlin/String|
+
+    }
+    public final val result: R|A| = R|SubstitutionOverride<foo/bar/given: R|A|>|<R|foo/bar/X|>()
+        public get(): R|A|
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/CompileTime|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A| = R|arrow/inject/annotations/resolve|(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|A|

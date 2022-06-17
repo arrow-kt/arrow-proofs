@@ -1,0 +1,25 @@
+FILE: primitive_internal_orphan_override.kt
+    package foo.bar
+
+    @R|foo/bar/annotations/Given|() internal final fun n(): R|kotlin/Int| {
+        ^n Int(42)
+    }
+    @R|arrow/inject/annotations/Inject|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A|): R|A| {
+        ^given R|<local>/a|
+    }
+    public final fun box(): R|kotlin/String| {
+        lval result: R|A| = R|SubstitutionOverride<foo/bar/given: R|A|>|<R|kotlin/Int|>()
+        ^box when () {
+            ==(R|<local>/result|, Int(42)) ->  {
+                String(OK)
+            }
+            else ->  {
+                <strcat>(String(Fail: ), R|<local>/result|)
+            }
+        }
+
+    }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/CompileTime|() public final fun <A> given(@R|foo/bar/annotations/Given|() a: R|A| = R|arrow/inject/annotations/resolve|(), _unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|A|

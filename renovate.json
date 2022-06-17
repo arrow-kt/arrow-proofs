@@ -2,27 +2,5 @@
   "extends": [
     "config:base"
   ],
-  "commitBodyTable": true,
-  "packageRules": [
-    {
-      "matchPackagePatterns": [
-        "*"
-      ],
-      "excludePackageNames": [
-        "io.arrow-kt:arrow-ank-gradle",
-        "org.jetbrains.kotlin.multiplatform",
-        "org.jetbrains.kotlin.jvm",
-        "org.jetbrains.kotlin:kotlin-stdlib-jdk8",
-        "org.jetbrains.kotlin:kotlin-stdlib-common",
-        "org.jetbrains.dokka"
-      ],
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "patch"
-      ],
-      "groupName": "all dependencies",
-      "groupSlug": "all"
-    }
-  ]
+  "commitBodyTable": true
 }
