@@ -3,6 +3,7 @@ package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.FirResolutionProof
 import arrow.inject.compiler.plugin.fir.coneType
+import arrow.inject.compiler.plugin.fir.resolution.contexts.contextsOfSyntheticFunctionProviders
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
 import arrow.inject.compiler.plugin.model.ProofResolution
@@ -20,11 +21,11 @@ import org.jetbrains.kotlin.fir.resolve.fqName
 import org.jetbrains.kotlin.fir.resolvedSymbol
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
+import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.render
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
-import org.jetbrains.kotlin.fir.types.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
@@ -38,34 +39,40 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
     val originalFunction: FirFunction? =
       ((call as? FirResolvable)?.calleeReference?.resolvedSymbol as? FirFunctionSymbol<*>)?.fir
 
-    return if (call is FirQualifiedAccess && originalFunction?.isCompileTimeAnnotated == true) {
-      if (originalFunction.isContextSyntheticFunction()) {
-        call.contextReceiversResolutionMap()
-      } else {
-        call.valueParametersResolutionMap(originalFunction)
+    return if (call is FirFunctionCall && originalFunction?.isCompileTimeAnnotated == true) {
+      when {
+        originalFunction.isContextSyntheticFunction() -> {
+          call.contextReceiversResolutionMap()
+        }
+        originalFunction.isContextsOfSyntheticFunction() -> {
+          call.contextsOfReceiversResolutionMap()
+        }
+        else -> {
+          call.valueParametersResolutionMap(originalFunction)
+        }
       }
     } else {
       emptyMap()
     }
   }
-  fun FirQualifiedAccess.contextReceiversResolutionMap(): Map<ProofResolution?, FirElement> {
+  fun FirFunctionCall.contextReceiversResolutionMap(): Map<ProofResolution?, FirElement> {
     val targetTypes = typeArguments.map { it.toConeTypeProjection().type }
-    return if (targetTypes.isNotEmpty()) {
-      targetTypes.fold(mutableMapOf()) { map, type -> map.also {
-        if(type != null) it[resolveProof(ProviderAnnotation, type, mutableListOf())] = this
-      }}
-    } else emptyMap()
+    return resolveReceiversTypesMap(targetTypes)
   }
 
-  fun FirQualifiedAccess.contextReceiversResolutionMap2(): Map<ProofResolution?, FirElement> {
-    val targetType = typeArguments.firstOrNull()?.toConeTypeProjection()?.type
-    val unresolvedContextReceivers: List<FirContextReceiver> =
-      targetType?.toRegularClassSymbol(session)?.fir?.contextReceivers.orEmpty()
-    //        .filter {
-    //        val defaultValue: FirFunctionCall? = (it.defaultValue as? FirFunctionCall)
-    //        defaultValue?.calleeReference?.resolvedSymbol == resolve.symbol
-    //      }
-    return resolvedContextReceiversMap(this, unresolvedContextReceivers)
+  fun FirFunctionCall.contextsOfReceiversResolutionMap(): Map<ProofResolution?, FirElement> {
+    val types = contextsOfSyntheticFunctionProviders(session)
+    return resolveReceiversTypesMap(types.map { it.typeRef.coneType })
+  }
+
+  fun FirFunctionCall.resolveReceiversTypesMap(targetTypes: List<ConeKotlinType?>): Map<ProofResolution?, FirElement> {
+    return if (targetTypes.isNotEmpty()) {
+      targetTypes.fold(mutableMapOf()) { map, type ->
+        map.also {
+          if (type != null) it[resolveProof(ProviderAnnotation, type, mutableListOf())] = this
+        }
+      }
+      } else emptyMap()
   }
 
   fun FirQualifiedAccess.valueParametersResolutionMap(
@@ -81,6 +88,10 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
 
   private fun FirFunction.isContextSyntheticFunction() =
     symbol.callableId == CallableId(FqName("arrow.inject.annotations"), Name.identifier("context"))
+
+  private fun FirFunction.isContextsOfSyntheticFunction() =
+    symbol.callableId ==
+      CallableId(FqName("arrow.inject.annotations"), Name.identifier("contextsOf"))
 
   private fun resolvedValueParametersMap(
     call: FirQualifiedAccess,

@@ -189,5 +189,23 @@ public class BoxTestGenerated extends AbstractBoxTest {
         public void testContext_receivers_with_two_type_parameters() throws Exception {
             runTest("src/testData/box/context-receivers/context_receivers_with_two_type_parameters.kt");
         }
+
+        @Test
+        @TestMetadata("contexts_of.kt")
+        public void testContexts_of() throws Exception {
+            runTest("src/testData/box/context-receivers/contexts_of.kt");
+        }
+
+        @Test
+        @TestMetadata("contexts_of_polymorphic_provider.kt")
+        public void testContexts_of_polymorphic_provider() throws Exception {
+            runTest("src/testData/box/context-receivers/contexts_of_polymorphic_provider.kt");
+        }
+
+        @Test
+        @TestMetadata("contexts_of_polymorphic_provider_2.kt")
+        public void testContexts_of_polymorphic_provider_2() throws Exception {
+            runTest("src/testData/box/context-receivers/contexts_of_polymorphic_provider_2.kt");
+        }
     }
 }

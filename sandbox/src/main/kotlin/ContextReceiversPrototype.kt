@@ -15,7 +15,7 @@ context(A)
 fun f2(): Int {
   println("will drop from nested body")
   context<Foo<Int>>()
-  return n
+  return 1
 }
 
 fun f3(): Int {

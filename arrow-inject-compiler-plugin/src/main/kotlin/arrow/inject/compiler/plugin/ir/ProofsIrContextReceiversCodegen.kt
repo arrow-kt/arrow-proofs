@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.IrBlockBodyBuilder
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.builders.irBlockBody
+import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationBase
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
@@ -24,6 +25,7 @@ import org.jetbrains.kotlin.ir.declarations.IrDeclarationParent
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrReturnTarget
+import org.jetbrains.kotlin.ir.declarations.IrTypeParameter
 import org.jetbrains.kotlin.ir.declarations.IrTypeParametersContainer
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
@@ -50,11 +52,13 @@ import org.jetbrains.kotlin.ir.types.IrTypeSubstitutor
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContextImpl
 import org.jetbrains.kotlin.ir.types.addAnnotations
 import org.jetbrains.kotlin.ir.types.classFqName
+import org.jetbrains.kotlin.ir.types.classifierOrNull
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.typeWith
 import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.ir.util.dumpKotlinLike
 import org.jetbrains.kotlin.ir.util.kotlinFqName
+import org.jetbrains.kotlin.ir.util.primaryConstructor
 import org.jetbrains.kotlin.ir.util.statements
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
 import org.jetbrains.kotlin.ir.visitors.IrElementVisitorVoid
@@ -75,10 +79,13 @@ internal class ProofsIrContextReceiversCodegen(
 
   fun generateContextReceivers() {
     irTransformBlockBodies { parent, body ->
-      val steps = buildProcessSteps(body)
-      if (steps.isNotEmpty())
+      val steps =
+        buildProcessSteps(body, contextCallFqName) + buildProcessSteps(body, contextsOfCallFqName)
+      if (steps.isNotEmpty()) {
         processBodiesRecursive(parent, body, steps, null, emptyList(), steps.size)
-      else body
+      } else {
+        body
+      }
     }
   }
 
@@ -92,13 +99,13 @@ internal class ProofsIrContextReceiversCodegen(
     }
   }
 
-  fun buildProcessSteps(body: IrBlockBody): List<ReceiverProcessStep> {
-    val contextCall = body.findNestedContextCall()
+  fun buildProcessSteps(body: IrBlockBody, callFqName: FqName): List<ReceiverProcessStep> {
+    val contextCall = body.findNestedCall(callFqName)
     return if (contextCall == null) emptyList()
     else {
       val targetTypes: List<IrType> =
-        contextCall.typeArguments.values.flatMap {
-          getAllContextReceiversTypes(it, mutableListOf())
+        contextCall.typeArguments.values.filterNotNull().flatMap {
+          getAllContextReceiversTypes(it, mutableListOf(), callFqName)
         }
       targetTypes.map { type ->
         ReceiverProcessStep(contextCall, contextualFunction.owner.irCall() as IrCall, type)
@@ -142,22 +149,18 @@ internal class ProofsIrContextReceiversCodegen(
           )
         currentStep.replacementCall.putValueArgument(1, nestedLambda)
         val lambdaBlockBody = nestedLambda.function.body
-        if (
-          lambdaBlockBody is IrBlockBody && (steps.size == 1 || originalStepsSize == 1)
-        ) { // last processing nests the remaining
-          val statements = remainingStatements + body.remainingStatementsAfterCall(currentStep.contextCall)
+        // last processing nests the remaining
+        if (lambdaBlockBody is IrBlockBody && (steps.size == 1 || originalStepsSize == 1)) {
+          val statements =
+            remainingStatements + body.remainingStatementsAfterCall(currentStep.contextCall)
           statements.forEach {
             val patchedStatement =
               if (it is IrReturn) nestedLambda.function.createIrReturn(it.value) else it
             lambdaBlockBody.statements.add(patchedStatement)
           }
         }
-//        if (originalStepsSize == 1) {
-//          val returned = nestedLambda.function.createIrReturn(currentStep.replacementCall)
-//          val lambdaBody: IrBlockBody? = (nestedLambda.function.body as? IrBlockBody)
-//          lambdaBody?.statements?.add(returned)
-//        }
-        val statementsBeforeContext = body.statementsBeforeContextCall()
+        val statementsBeforeContext =
+          body.statementsBeforeContextCall(currentStep.contextCall.symbol.owner.kotlinFqName)
         val newReturn = declarationParent.createIrReturn(currentStep.replacementCall)
         val newStatements =
           if (steps.size == originalStepsSize) statementsBeforeContext + newReturn
@@ -181,8 +184,12 @@ internal class ProofsIrContextReceiversCodegen(
       }
     }
 
-  private fun IrBlockBody.statementsBeforeContextCall() =
-    statements.takeWhile { it.findNestedContextCall() == null }
+  private fun IrBlockBody.statementsBeforeContextCall(callFqName: FqName) =
+    statements.takeWhile { it.findNestedCall(callFqName) == null }
+
+  private val contextCallFqName = FqName("arrow.inject.annotations.context")
+
+  private val contextsOfCallFqName = FqName("arrow.inject.annotations.contextsOf")
 
   private val contextualFunction: IrSimpleFunctionSymbol
     get() =
@@ -204,14 +211,16 @@ internal class ProofsIrContextReceiversCodegen(
     type = returningBlockType
   }
 
-  private fun IrElement.findNestedContextCall(): IrFunctionAccessExpression? =
-    if (this is IrCall && isCallToContextSyntheticFunction) this
+  private fun IrElement.findNestedCall(
+    syntheticFunctionFqName: FqName
+  ): IrFunctionAccessExpression? =
+    if (this is IrCall && symbol.owner.kotlinFqName == syntheticFunctionFqName) this
     else {
       var expression: IrFunctionAccessExpression? = null
       acceptChildrenVoid(
         object : IrElementVisitorVoid {
           override fun visitElement(element: IrElement) {
-            if (element is IrCall && element.isCallToContextSyntheticFunction) {
+            if (element is IrCall && element.symbol.owner.kotlinFqName == syntheticFunctionFqName) {
               expression = element
             } else {
               element.acceptChildrenVoid(this)
@@ -247,22 +256,56 @@ internal class ProofsIrContextReceiversCodegen(
     )
 
   private fun getAllContextReceiversTypes(
-    irType: IrType?,
+    irType: IrType,
     previousIrTypes: MutableList<IrType>,
+    callFqName: FqName,
   ): List<IrType> {
-    if (irType != null) {
-      previousIrTypes.add(irType)
-      val expression = contextProofCall(irType)
-      if (expression is IrCall) {
-        expression.symbol.owner.contextReceiversValueParameters.flatMap { param ->
-          val targetType = targetType(irType, param.type)
-          val resolvedType = targetType ?: param.type
-          getAllContextReceiversTypes(resolvedType, previousIrTypes)
-        }
+    val contextTypes =
+      when (callFqName) {
+        contextCallFqName -> listOf(irType)
+        contextsOfCallFqName -> irType.contextsOfReceivers
+        else -> emptyList()
       }
-    }
+
+    previousIrTypes.addAll(contextTypes)
+    val calls: List<IrFunctionAccessExpression> =
+      contextTypes.map(::contextProofCall).filterIsInstance<IrFunctionAccessExpression>()
+    calls
+      .flatMap { it.symbol.owner.contextReceiversValueParameters }
+      .flatMap { param ->
+        val targetType = targetType(irType, param.type)
+        val resolvedType = targetType ?: param.type
+        getAllContextReceiversTypes(resolvedType, previousIrTypes, callFqName)
+      }
+
     return previousIrTypes.reversed()
   }
+
+  private val IrType.contextsOfReceivers: List<IrType>
+    get() = buildList {
+      val deepRecursiveFunction: DeepRecursiveFunction<Pair<IrType, IrType?>, Unit> =
+        DeepRecursiveFunction() { (currentType, previousType) ->
+          val targetType =
+            if(previousType != null) targetType(previousType, currentType) ?: currentType
+            else currentType
+          val receivers =
+            when (val owner = targetType.classifierOrNull?.owner) {
+              null -> emptyList()
+              is IrClass -> {
+                owner.primaryConstructor
+                  ?.contextReceiversValueParameters
+                  ?.map(IrValueParameter::type)
+                  .orEmpty()
+              }
+              else -> error("Fix later")
+            }
+          addAll(receivers)
+          for (receiver in receivers) {
+            callRecursive(receiver to currentType)
+          }
+        }
+      deepRecursiveFunction(this@contextsOfReceivers to null)
+    }
 
   private fun processContextReceiver(
     index: Int,
@@ -458,9 +501,6 @@ internal class ProofsIrContextReceiversCodegen(
       Unit
     )
   }
-
-  private val IrFunctionAccessExpression.isCallToContextSyntheticFunction
-    get() = symbol.owner.kotlinFqName == FqName("arrow.inject.annotations.context")
 
   private fun irTransformBlockBodies(
     transformBody: (IrDeclarationParent, IrBlockBody) -> IrBody?

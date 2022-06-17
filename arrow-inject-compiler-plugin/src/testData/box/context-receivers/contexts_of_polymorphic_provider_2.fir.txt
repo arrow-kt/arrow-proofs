@@ -1,0 +1,48 @@
+FILE: contexts_of_polymorphic_provider_2.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Provider|() internal final fun intProvider(): R|kotlin/Int| {
+        ^intProvider Int(42)
+    }
+    context(R|Z|)
+    @R|arrow/inject/annotations/Provider|() public final class B<Z> : R|kotlin/Any| {
+        public constructor<Z>(): R|foo/bar/B<Z>| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val b: R|Z| = this@R|foo/bar/B|
+            public get(): R|Z|
+
+    }
+    context(R|foo/bar/B<kotlin/Int>|)
+    public final class C : R|kotlin/Any| {
+        public constructor(): R|foo/bar/C| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val c: R|kotlin/Int| = this@R|foo/bar/C|.R|SubstitutionOverride<foo/bar/B.b: R|kotlin/Int|>|
+            public get(): R|kotlin/Int|
+
+    }
+    public final fun f(): R|kotlin/Int| {
+        R|kotlin/io/println|(String(will drop from nested body))
+        ^f R|arrow/inject/annotations/contextual|<R|kotlin/Int|, R|kotlin/Int|>(R|foo/bar/intProvider|(), <L> = contextual@fun R|kotlin/Int|.<anonymous>(): R|kotlin/Int| <inline=Inline, kind=UNKNOWN>  {
+            ^ R|arrow/inject/annotations/contextual|<R|foo/bar/B<kotlin/Int>|, R|kotlin/Int|>(R|foo/bar/B.B|<R|kotlin/Int|>(), <L> = contextual@fun R|foo/bar/B<kotlin/Int>|.<anonymous>(): R|kotlin/Int| <inline=Inline, kind=UNKNOWN>  {
+                ^ R|foo/bar/C.C|().R|foo/bar/C.c|
+            }
+            )
+        }
+        )
+    }
+    public final fun box(): R|kotlin/String| {
+        lval result: R|kotlin/Int| = R|foo/bar/f|()
+        ^box when () {
+            ==(R|<local>/result|, Int(42)) ->  {
+                String(OK)
+            }
+            else ->  {
+                <strcat>(String(Fail: ), R|<local>/result|)
+            }
+        }
+
+    }
