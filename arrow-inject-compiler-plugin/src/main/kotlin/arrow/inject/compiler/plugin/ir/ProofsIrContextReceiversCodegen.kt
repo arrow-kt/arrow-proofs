@@ -143,9 +143,10 @@ internal class ProofsIrContextReceiversCodegen(
         currentStep.replacementCall.putValueArgument(1, nestedLambda)
         val lambdaBlockBody = nestedLambda.function.body
         if (
-          lambdaBlockBody is IrBlockBody && steps.size == 1
+          lambdaBlockBody is IrBlockBody && (steps.size == 1 || originalStepsSize == 1)
         ) { // last processing nests the remaining
-          remainingStatements.forEach {
+          val statements = remainingStatements + body.remainingStatementsAfterCall(currentStep.contextCall)
+          statements.forEach {
             val patchedStatement =
               if (it is IrReturn) nestedLambda.function.createIrReturn(it.value) else it
             lambdaBlockBody.statements.add(patchedStatement)
