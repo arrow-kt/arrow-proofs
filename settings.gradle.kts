@@ -2,16 +2,16 @@ pluginManagement {
   repositories {
     mavenCentral()
     gradlePluginPortal()
+    maven(url = "https://oss.sonatype.org/content/repositories/snapshots")
     maven(url = "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
-    mavenLocal()
   }
 }
 
 dependencyResolutionManagement {
   repositories {
     mavenCentral()
+    maven(url = "https://oss.sonatype.org/content/repositories/snapshots")
     maven(url = "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap")
-    mavenLocal()
   }
 }
 

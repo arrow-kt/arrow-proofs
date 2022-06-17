@@ -64,7 +64,7 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.types.model.TypeSystemContext
 
-internal class ProofsIrContextReceiversRecCodegen(
+internal class ProofsIrContextReceiversCodegen(
   override val proofCache: ProofCache,
   override val moduleFragment: IrModuleFragment,
   private val irPluginContext: IrPluginContext
@@ -118,13 +118,13 @@ internal class ProofsIrContextReceiversRecCodegen(
     when {
       steps.isEmpty() -> body // done processing
       else -> {
-        val currentStep = steps.first()
-        val returningBlockType = declarationParent.returningBlockType()
+        val currentStep: ReceiverProcessStep = steps.first()
+        val returningBlockType: IrType = declarationParent.returningBlockType()
         currentStep.replacementCall.addReplacedTypeArguments(currentStep.type, returningBlockType)
         val paramSymbol = IrValueParameterSymbolImpl()
         if (previousStepLambda != null) {
           val returned = previousStepLambda.function.createIrReturn(currentStep.replacementCall)
-          val previousLambdaBody = (previousStepLambda.function.body as? IrBlockBody)
+          val previousLambdaBody: IrBlockBody? = (previousStepLambda.function.body as? IrBlockBody)
           previousLambdaBody?.statements?.add(returned)
         }
         val nestedLambda =
@@ -151,6 +151,11 @@ internal class ProofsIrContextReceiversRecCodegen(
             lambdaBlockBody.statements.add(patchedStatement)
           }
         }
+//        if (originalStepsSize == 1) {
+//          val returned = nestedLambda.function.createIrReturn(currentStep.replacementCall)
+//          val lambdaBody: IrBlockBody? = (nestedLambda.function.body as? IrBlockBody)
+//          lambdaBody?.statements?.add(returned)
+//        }
         val statementsBeforeContext = body.statementsBeforeContextCall()
         val newReturn = declarationParent.createIrReturn(currentStep.replacementCall)
         val newStatements =
