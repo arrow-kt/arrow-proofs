@@ -16,6 +16,7 @@ kotlin {
       optIn("org.jetbrains.kotlin.fir.PrivateForInline")
       optIn("org.jetbrains.kotlin.diagnostics.InternalDiagnosticFactoryMethod")
       optIn("org.jetbrains.kotlin.ir.ObsoleteDescriptorBasedAPI")
+      optIn("org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi")
     }
   }
 }

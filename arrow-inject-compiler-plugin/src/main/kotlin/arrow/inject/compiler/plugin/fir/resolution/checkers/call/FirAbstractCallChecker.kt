@@ -22,7 +22,7 @@ import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
-import org.jetbrains.kotlin.fir.types.render
+import org.jetbrains.kotlin.fir.types.renderReadable
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.toRegularClassSymbol
 import org.jetbrains.kotlin.fir.types.type
@@ -117,7 +117,8 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
           val originalTypeArgumentIndex =
             originalFunction?.typeParameters?.indexOfFirst {
               val originalTypeParameter = it.toConeType()
-              originalTypeParameter.render() == coneType.render()
+              // TODO: comparing `renderReadable` is not a good idea
+              originalTypeParameter.renderReadable() == coneType.renderReadable()
             }
               ?: error("Found unbound parameter to type argument")
           if (originalTypeArgumentIndex != -1) {

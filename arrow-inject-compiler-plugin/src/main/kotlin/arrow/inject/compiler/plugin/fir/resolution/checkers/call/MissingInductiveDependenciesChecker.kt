@@ -25,7 +25,7 @@ import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
 import org.jetbrains.kotlin.fir.types.coneType
-import org.jetbrains.kotlin.fir.types.render
+import org.jetbrains.kotlin.fir.types.renderReadable
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.name.FqName
@@ -63,8 +63,8 @@ internal class MissingInductiveDependenciesChecker(
               ?.typeParameters
               ?.map { it.toConeType() }
               ?.indexOfFirst {
-                // TODO this may be incorrect
-                it.type.render() == returnType.render()
+                // TODO comparing `renderReadable` is not a good idea
+                it.type.renderReadable() == returnType.renderReadable()
               }
           if (index != null && index != -1) {
             val substitutedType: ConeKotlinType? =
