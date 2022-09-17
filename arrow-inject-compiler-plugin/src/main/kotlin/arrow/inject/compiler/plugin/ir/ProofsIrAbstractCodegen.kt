@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
+import org.jetbrains.kotlin.fir.declarations.utils.classId
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrConstructor
@@ -36,7 +37,6 @@ import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
 import org.jetbrains.kotlin.types.model.TypeArgumentMarker
 import org.jetbrains.kotlin.types.model.TypeSystemContext
-import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 
 interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
 
@@ -49,7 +49,8 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
 
   private fun typeArgs(type: IrType): List<TypeParameterDescriptor> =
     (type.toIrBasedKotlinType().constructor.declarationDescriptor as? ClassDescriptor)
-      ?.declaredTypeParameters.orEmpty()
+      ?.declaredTypeParameters
+      .orEmpty()
 
   fun targetType(type: IrType, expressionType: IrType): IrType? {
     val typeArgs = typeArgs(type)
@@ -57,18 +58,11 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
     return if (typeArgIndex >= 0) type.getArgument(typeArgIndex) as? IrType else null
   }
 
-  fun IrDeclaration.substitutedIrTypes(
-    typeArguments: List<TypeArgumentMarker>
-  ): List<IrType?> =
+  fun IrDeclaration.substitutedIrTypes(typeArguments: List<TypeArgumentMarker>): List<IrType?> =
     when (this) {
       is IrTypeParametersContainer -> {
         typeParameters.map { irTypeParameter ->
-          typeArguments
-            .find {
-              it == irTypeParameter.defaultType
-            }
-            ?.getType()
-            ?.toIrType()
+          typeArguments.find { it == irTypeParameter.defaultType }?.getType()?.toIrType()
         }
       }
       else -> emptyList()
@@ -156,12 +150,16 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
       else -> error("Unsupported FirDeclaration: $this")
     }
 
+  // TODO: show better errors when null
   fun Proof.irDeclaration(): IrDeclaration =
-    when (declaration) {
-      is FirClass -> symbolTable.referenceClass(idSignature).constructors.first().owner
-      is FirConstructor -> symbolTable.referenceConstructor(idSignature).owner
-      is FirFunction -> symbolTable.referenceSimpleFunction(idSignature).owner
-      is FirProperty -> symbolTable.referenceProperty(idSignature).owner
+    when (val declaration = declaration) {
+      is FirClass -> referenceClass(declaration.classId)!!.constructors.first().owner
+      is FirConstructor ->
+        referenceConstructors(declaration.symbol.callableId.classId!!)
+          .first { it.owner.isPrimary }
+          .owner
+      is FirFunction -> referenceFunctions(declaration.symbol.callableId).first().owner
+      is FirProperty -> referenceProperties(declaration.symbol.callableId).first().owner
       else -> error("Unsupported FirDeclaration: $this")
     }
 
@@ -184,6 +182,6 @@ fun IrFunction.substitutedTypeParameters(
       ?: typeParameters
         .firstOrNull { typeParam -> typeParam.defaultType == type }
         ?.let { typeParam -> call.getTypeArgument(typeParam.index) }
-      ?: type // Could not resolve the substituted KotlinType
-      )
+        ?: type // Could not resolve the substituted KotlinType
+    )
 }
