@@ -117,7 +117,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
           val originalTypeArgumentIndex =
             originalFunction?.typeParameters?.indexOfFirst {
               val originalTypeParameter = it.toConeType()
-              // TODO: comparing `renderReadable` is not a good idea
+              // TODO: comparing `renderReadable` is not a good idea because it may not consider type constraints and other potential unique elements of a type not reflected in the rendered string.
               originalTypeParameter.renderReadable() == coneType.renderReadable()
             }
               ?: error("Found unbound parameter to type argument")
