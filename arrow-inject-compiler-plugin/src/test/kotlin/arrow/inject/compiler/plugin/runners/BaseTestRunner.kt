@@ -1,7 +1,6 @@
 package arrow.inject.compiler.plugin.runners
 
 import arrow.inject.compiler.plugin.services.ExtensionRegistrarConfigurator
-import arrow.inject.compiler.plugin.services.LinkViaSignaturesConfigurator
 import arrow.inject.compiler.plugin.services.PluginAnnotationsConfigurator
 import arrow.inject.compiler.plugin.services.PreludeAdditionalFilesDirectives
 import arrow.inject.compiler.plugin.services.PreludeProvider
@@ -50,7 +49,6 @@ fun TestConfigurationBuilder.commonFirWithPluginFrontendConfiguration() {
   useConfigurators(
     ::PluginAnnotationsConfigurator,
     ::ExtensionRegistrarConfigurator,
-    ::LinkViaSignaturesConfigurator,
   )
 
   useAdditionalSourceProviders(::PreludeProvider)
