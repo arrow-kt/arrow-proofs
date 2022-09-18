@@ -230,7 +230,6 @@ internal class ResolvedFunctionGenerationExtension(
         origin = ProofKey.origin
         attributes = valueParameter.fir.attributes
         returnTypeRef = valueParameter.fir.returnTypeRef
-        deprecation = valueParameter.fir.deprecation
         containerSource = valueParameter.fir.containerSource
         dispatchReceiverType = valueParameter.fir.dispatchReceiverType
         contextReceivers += valueParameter.fir.contextReceivers

@@ -1,9 +1,9 @@
 package arrow.inject.compiler.plugin.runners
 
 import arrow.inject.compiler.plugin.services.ExtensionRegistrarConfigurator
-import arrow.inject.compiler.plugin.services.PluginAnnotationsProvider
+import arrow.inject.compiler.plugin.services.PluginAnnotationsConfigurator
 import arrow.inject.compiler.plugin.services.PreludeAdditionalFilesDirectives
-import arrow.inject.compiler.plugin.services.PreludeConfigurator
+import arrow.inject.compiler.plugin.services.PreludeProvider
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import org.jetbrains.kotlin.test.TargetBackend
 import org.jetbrains.kotlin.test.builders.TestConfigurationBuilder
@@ -46,7 +46,10 @@ fun TestConfigurationBuilder.commonFirWithPluginFrontendConfiguration() {
     dependencyKind = DependencyKind.Binary
   }
 
-  useConfigurators(::PluginAnnotationsProvider, ::ExtensionRegistrarConfigurator)
+  useConfigurators(
+    ::PluginAnnotationsConfigurator,
+    ::ExtensionRegistrarConfigurator,
+  )
 
-  useAdditionalSourceProviders(::PreludeConfigurator)
+  useAdditionalSourceProviders(::PreludeProvider)
 }

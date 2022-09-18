@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.test.model.TestModule
 import org.jetbrains.kotlin.test.services.AdditionalSourceProvider
 import org.jetbrains.kotlin.test.services.TestServices
 
-class PreludeConfigurator(
+class PreludeProvider(
   testServices: TestServices,
   baseDir: String = ".",
 ) : AdditionalSourceProvider(testServices) {

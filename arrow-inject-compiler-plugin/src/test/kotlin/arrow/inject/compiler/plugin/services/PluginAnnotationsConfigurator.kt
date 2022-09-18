@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.test.services.EnvironmentConfigurator
 import org.jetbrains.kotlin.test.services.TestServices
 import org.jetbrains.kotlin.test.services.assertions
 
-class PluginAnnotationsProvider(testServices: TestServices) :
+class PluginAnnotationsConfigurator(testServices: TestServices) :
   EnvironmentConfigurator(testServices) {
 
   companion object {
