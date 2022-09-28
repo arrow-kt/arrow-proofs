@@ -8,12 +8,10 @@ fun main() {
   generateTestGroupSuiteWithJUnit5 {
     testGroup(testDataRoot = "src/testData", testsRoot = "src/testGenerated") {
       testClass<AbstractDiagnosticTest> {
-        model("diagnostics/value-arguments")
         model("diagnostics/context-receivers")
       }
 
       testClass<AbstractBoxTest> {
-        model("box/value-arguments")
         model("box/context-receivers")
       }
     }
