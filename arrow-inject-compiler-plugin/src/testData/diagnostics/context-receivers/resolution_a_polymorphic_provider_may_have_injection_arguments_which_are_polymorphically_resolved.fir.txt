@@ -1,0 +1,27 @@
+FILE: resolution_a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Contextual|() internal final fun intProvider(): R|kotlin/Int| {
+        ^intProvider Int(42)
+    }
+    public final data class Foo<A> : R|kotlin/Any| {
+        public constructor<A>(n: R|A|): R|foo/bar/Foo<A>| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val n: R|A| = R|<local>/n|
+            public get(): R|A|
+
+        public final operator fun component1(): R|A|
+
+        public final fun copy(n: R|A| = this@R|foo/bar/Foo|.R|foo/bar/Foo.n|): R|foo/bar/Foo<A>|
+
+    }
+    context(R|A|)
+    @R|arrow/inject/annotations/Contextual|() internal final fun <A> fooProvider(): R|foo/bar/Foo<A>| {
+        ^fooProvider R|foo/bar/Foo.Foo|<R|A|>(this@R|foo/bar/fooProvider|)
+    }
+    context(R|foo/bar/Foo<kotlin/Int>|)
+    @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
+        lval number: R|kotlin/Int| = this@R|foo/bar/main|.R|SubstitutionOverride<foo/bar/Foo.n: R|kotlin/Int|>|
+    }

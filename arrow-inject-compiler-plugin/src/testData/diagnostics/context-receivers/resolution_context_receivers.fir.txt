@@ -1,0 +1,20 @@
+FILE: resolution_context_receivers.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Contextual|() public final class Persistence : R|kotlin/Any| {
+        public constructor(): R|foo/bar/Persistence| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    context(R|foo/bar/Persistence|)
+    @R|arrow/inject/annotations/Contextual|() public final class Repo : R|kotlin/Any| {
+        public constructor(): R|foo/bar/Repo| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    context(R|foo/bar/Persistence|)
+    @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
+        lval repo: R|foo/bar/Repo| = R|foo/bar/Repo.Repo|()
+    }

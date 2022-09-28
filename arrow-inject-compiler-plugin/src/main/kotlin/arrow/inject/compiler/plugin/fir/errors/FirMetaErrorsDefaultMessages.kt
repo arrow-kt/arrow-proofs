@@ -4,6 +4,7 @@ import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.AMBIGUOUS_PROOF
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.AMBIGUOUS_PROOF_FOR_SUPERTYPE
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.CIRCULAR_CYCLE_ON_GIVEN_PROOF
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.PUBLISHED_INTERNAL_ORPHAN
+import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.UNRESOLVED_CONTEXT_RESOLUTION
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactoryToRendererMap
 import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
@@ -58,6 +59,13 @@ internal object FirMetaErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
       )
       map.put(
         UNRESOLVED_GIVEN_CALL_SITE,
+        "There is no provider for this type {1} to resolve this call. Either define" +
+          " a corresponding provider or pass the required argument for {1} explicitly at this call-site.",
+        null,
+        RENDER_KOTLIN_TYPE_MARKER
+      )
+      map.put(
+        UNRESOLVED_CONTEXT_RESOLUTION,
         "There is no provider for this type {1} to resolve this call. Either define" +
           " a corresponding provider or pass the required argument for {1} explicitly at this call-site.",
         null,

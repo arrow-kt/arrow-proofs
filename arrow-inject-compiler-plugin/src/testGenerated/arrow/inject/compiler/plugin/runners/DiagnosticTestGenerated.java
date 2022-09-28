@@ -88,6 +88,84 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     }
 
     @Test
+    @TestMetadata("resolution_a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt")
+    public void testResolution_a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_ambiguous_internal_and_public_given_proofs.kt")
+    public void testResolution_ambiguous_internal_and_public_given_proofs() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_ambiguous_internal_and_public_given_proofs.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_ambiguous_internal_orphans.kt")
+    public void testResolution_ambiguous_internal_orphans() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_ambiguous_internal_orphans.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_ambiguous_type_bounds_based_injection.kt")
+    public void testResolution_ambiguous_type_bounds_based_injection() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_ambiguous_type_bounds_based_injection.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_circular_proof_single_cycle_rule.kt")
+    public void testResolution_circular_proof_single_cycle_rule() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_circular_proof_single_cycle_rule.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_circular_proofs_cycle_rule.kt")
+    public void testResolution_circular_proofs_cycle_rule() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_circular_proofs_cycle_rule.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_context_receivers.kt")
+    public void testResolution_context_receivers() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_context_receivers.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_inductive.kt")
+    public void testResolution_inductive() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_inductive.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_prohibited_public_proof_of_non_user_types.kt")
+    public void testResolution_prohibited_public_proof_of_non_user_types() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_prohibited_public_proof_of_non_user_types.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_prohibited_public_proof_over_polymorphic_type_parameter.kt")
+    public void testResolution_prohibited_public_proof_over_polymorphic_type_parameter() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_prohibited_public_proof_over_polymorphic_type_parameter.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_prohibited_published_internal_orphan.kt")
+    public void testResolution_prohibited_published_internal_orphan() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_prohibited_published_internal_orphan.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_unresolved_given_callsite.kt")
+    public void testResolution_unresolved_given_callsite() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_unresolved_given_callsite.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_unresolved_given_callsite_inductive.kt")
+    public void testResolution_unresolved_given_callsite_inductive() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_unresolved_given_callsite_inductive.kt");
+    }
+
+    @Test
     @TestMetadata("unresolved_given_callsite.kt")
     public void testUnresolved_given_callsite() throws Exception {
         runTest("src/testData/diagnostics/context-receivers/unresolved_given_callsite.kt");

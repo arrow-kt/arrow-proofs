@@ -1,0 +1,9 @@
+FILE: resolution_prohibited_public_proof_over_polymorphic_type_parameter.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Contextual|() public final fun <A> list(): R|kotlin/collections/List<kotlin/collections/Iterable<A>>| {
+        ^list R|kotlin/collections/emptyList|<R|kotlin/collections/Iterable<A>|>()
+    }
+    context(R|kotlin/collections/List<kotlin/collections/Iterable<*>>|)
+    @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
+    }

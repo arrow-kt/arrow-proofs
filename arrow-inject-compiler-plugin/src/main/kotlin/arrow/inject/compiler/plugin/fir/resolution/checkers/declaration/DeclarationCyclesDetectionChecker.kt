@@ -1,4 +1,4 @@
-package arrow.inject.compiler.plugin.fir.resolution.checkers.call
+package arrow.inject.compiler.plugin.fir.resolution.checkers.declaration
 
 import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
 import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
@@ -15,6 +15,7 @@ import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.caches.FirLazyValue
 import org.jetbrains.kotlin.fir.caches.firCachesFactory
+import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirContextReceiver
 import org.jetbrains.kotlin.fir.declarations.FirFunction
@@ -29,10 +30,10 @@ import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.toKtPsiSourceElement
 
-internal class CyclesDetectionChecker(
+internal class DeclarationCyclesDetectionChecker(
   override val proofCache: ProofCache,
   override val session: FirSession,
-) : FirAbstractCallChecker {
+) : FirAbstractDeclarationChecker {
 
   override val allFirLazyProofs: FirLazyValue<List<Proof>, Unit> =
     session.firCachesFactory.createLazyValue {
@@ -40,25 +41,31 @@ internal class CyclesDetectionChecker(
         ExternalProofCollector(session).collectExternalProofs()
     }
 
-  override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
-    val resolvedParameters = proofResolutionList(expression)
-    resolvedParameters.forEach { (proofResolution, valueParameter) ->
-      val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
+  override fun report(
+    declaration: FirCallableDeclaration,
+    context: CheckerContext,
+    reporter: DiagnosticReporter
+  ) {
+    if (declaration.hasContextResolutionAnnotation) {
+      val resolvedParameters = proofResolutionList(declaration)
+      resolvedParameters.forEach { (proofResolution, valueParameter) ->
+        val expressionSource: KtSourceElement? = valueParameter.psi?.toKtPsiSourceElement()
 
-      val cycles = proofResolution?.proof?.cycles.orEmpty()
+        val cycles = proofResolution?.proof?.cycles.orEmpty()
 
-      val valueParameterConeType = valueParameter.resolutionTargetType()
+        val valueParameterConeType = valueParameter.resolutionTargetType()
 
-      if (cycles.size > 1 && expressionSource != null) {
-        reporter.report(
-          FirMetaErrors.CIRCULAR_CYCLE_ON_GIVEN_PROOF.on(
-            expressionSource,
-            valueParameterConeType,
-            cycles,
-            AbstractSourceElementPositioningStrategy.DEFAULT,
-          ),
-          context,
-        )
+        if (cycles.size > 1 && expressionSource != null) {
+          reporter.report(
+            FirMetaErrors.CIRCULAR_CYCLE_ON_GIVEN_PROOF.on(
+              expressionSource,
+              valueParameterConeType,
+              cycles,
+              AbstractSourceElementPositioningStrategy.DEFAULT,
+            ),
+            context,
+          )
+        }
       }
     }
   }

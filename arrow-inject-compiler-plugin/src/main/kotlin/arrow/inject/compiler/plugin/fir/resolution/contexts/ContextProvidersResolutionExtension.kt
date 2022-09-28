@@ -1,9 +1,13 @@
 package arrow.inject.compiler.plugin.fir.resolution.contexts
 
 import arrow.inject.compiler.plugin.fir.FirResolutionProof
+import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
+import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.fir.FirSession
+import org.jetbrains.kotlin.fir.caches.FirLazyValue
+import org.jetbrains.kotlin.fir.caches.firCachesFactory
 import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.extensions.FirExpressionResolutionExtension
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
@@ -16,7 +20,11 @@ internal class ContextProvidersResolutionExtension(
   session: FirSession,
 ) : FirExpressionResolutionExtension(session), FirResolutionProof {
 
-  override val allProofs: List<Proof> by lazy { allCollectedProofs }
+  override val allFirLazyProofs: FirLazyValue<List<Proof>, Unit> =
+    session.firCachesFactory.createLazyValue {
+      LocalProofCollectors(session).collectLocalProofs() +
+        ExternalProofCollector(session).collectExternalProofs()
+    }
 
   override fun addNewImplicitReceivers(functionCall: FirFunctionCall): List<ConeKotlinType> {
     // TODO add resolve proof here instead and iterate over all contexts in the proof

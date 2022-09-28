@@ -8,6 +8,7 @@ import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofResolutionStage
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofResolution
 import arrow.inject.compiler.plugin.model.asProofCacheKey
+import org.jetbrains.kotlin.fir.caches.FirLazyValue
 import org.jetbrains.kotlin.fir.resolve.calls.Candidate
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.name.FqName
@@ -16,7 +17,7 @@ internal interface FirResolutionProof : FirProofIdSignature {
 
   val proofCache: ProofCache
 
-  val allProofs: List<Proof>
+  val allFirLazyProofs: FirLazyValue<List<Proof>, Unit>
 
   val proofResolutionStageRunner: ProofResolutionStageRunner
     get() = ProofResolutionStageRunner(session, this)
@@ -60,7 +61,7 @@ internal interface FirResolutionProof : FirProofIdSignature {
     previousProofs: MutableList<Proof>
   ): ProofResolutionResult =
     proofResolutionStageRunner.run {
-      allProofs
+      allFirLazyProofs.getValue(Unit)
         .filter { contextFqName in it.declaration.contextFqNames }
         .matchingCandidates(type, previousProofs)
     }

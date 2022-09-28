@@ -1,5 +1,7 @@
 package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
+import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
+import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
@@ -9,6 +11,8 @@ import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.caches.FirLazyValue
+import org.jetbrains.kotlin.fir.caches.firCachesFactory
 import org.jetbrains.kotlin.fir.expressions.FirCall
 
 internal class AmbiguousProofsChecker(
@@ -16,7 +20,11 @@ internal class AmbiguousProofsChecker(
   override val session: FirSession,
 ) : FirAbstractCallChecker {
 
-  override val allProofs: List<Proof> by lazy { allCollectedProofs }
+  override val allFirLazyProofs: FirLazyValue<List<Proof>, Unit> =
+    session.firCachesFactory.createLazyValue {
+      LocalProofCollectors(session).collectLocalProofs() +
+        ExternalProofCollector(session).collectExternalProofs()
+    }
 
   override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
     proofResolutionList(expression).let { resolvedParameters: Map<ProofResolution?, FirElement> ->

@@ -5,8 +5,12 @@ import arrow.inject.compiler.plugin.fir.resolution.checkers.call.AmbiguousProofs
 import arrow.inject.compiler.plugin.fir.resolution.checkers.call.CyclesDetectionChecker
 import arrow.inject.compiler.plugin.fir.resolution.checkers.call.MissingInductiveDependenciesChecker
 import arrow.inject.compiler.plugin.fir.resolution.checkers.call.UnresolvedCallSiteChecker
+import arrow.inject.compiler.plugin.fir.resolution.checkers.declaration.AmbiguousDeclarationsProofsChecker
+import arrow.inject.compiler.plugin.fir.resolution.checkers.declaration.DeclarationCyclesDetectionChecker
+import arrow.inject.compiler.plugin.fir.resolution.checkers.declaration.MissingInductiveDeclarationsChecker
 import arrow.inject.compiler.plugin.fir.resolution.checkers.declaration.OwnershipViolationsChecker
 import arrow.inject.compiler.plugin.fir.resolution.checkers.declaration.PublishedApiViolationsChecker
+import arrow.inject.compiler.plugin.fir.resolution.checkers.declaration.UnresolvedResolutionChecker
 import arrow.inject.compiler.plugin.fir.resolution.checkers.type.ContextReceiverProofTypeChecker
 import arrow.inject.compiler.plugin.fir.resolution.contexts.ContextProvidersResolutionExtension
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
@@ -24,8 +28,12 @@ public class FirArrowInjectExtensionRegistrar(
         session = session,
         declarationCheckers =
           listOf(
-            OwnershipViolationsChecker(session),
-            PublishedApiViolationsChecker(session),
+            AmbiguousDeclarationsProofsChecker(proofCache, session),
+            DeclarationCyclesDetectionChecker(proofCache, session),
+            MissingInductiveDeclarationsChecker(proofCache, session),
+            OwnershipViolationsChecker(proofCache, session),
+            PublishedApiViolationsChecker(proofCache, session),
+            UnresolvedResolutionChecker(proofCache, session),
           ),
         callCheckers =
           listOf(

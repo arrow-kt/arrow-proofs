@@ -3,6 +3,7 @@ package arrow.inject.compiler.plugin.fir.resolution.checkers.declaration
 import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
 import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
+import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.descriptors.Visibilities
@@ -16,10 +17,12 @@ import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.fir.resolve.transformers.publishedApiEffectiveVisibility
 
-internal class PublishedApiViolationsChecker(override val session: FirSession) :
-  FirAbstractDeclarationChecker {
+internal class PublishedApiViolationsChecker(
+  override val proofCache: ProofCache,
+  override val session: FirSession,
+) : FirAbstractDeclarationChecker {
 
-  override val allProofs: FirLazyValue<List<Proof>, Unit> =
+  override val allFirLazyProofs: FirLazyValue<List<Proof>, Unit> =
     session.firCachesFactory.createLazyValue {
       LocalProofCollectors(session).collectLocalProofs() +
         ExternalProofCollector(session).collectExternalProofs()
@@ -48,7 +51,7 @@ internal class PublishedApiViolationsChecker(override val session: FirSession) :
   private fun FirCallableDeclaration.takeProofIfViolatingPublishingApiRule(): Proof? =
     takeIf { it.metaContextAnnotations.isNotEmpty() }
       ?.let {
-        allProofs.getValue(Unit).firstOrNull {
+        allFirLazyProofs.getValue(Unit).firstOrNull {
           it.declaration.symbol == this.symbol &&
             this.visibility == Visibilities.Internal &&
             this.publishedApiEffectiveVisibility?.publicApi == true

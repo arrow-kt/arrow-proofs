@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.diagnostics.error1
 import org.jetbrains.kotlin.diagnostics.error2
 import org.jetbrains.kotlin.diagnostics.error3
 import org.jetbrains.kotlin.diagnostics.rendering.RootDiagnosticRendererFactory
+import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.expressions.FirCall
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.types.model.KotlinTypeMarker
@@ -25,6 +26,8 @@ internal object FirMetaErrors {
   val CIRCULAR_CYCLE_ON_GIVEN_PROOF by error2<PsiElement, KotlinTypeMarker, List<Proof>>()
 
   val UNRESOLVED_GIVEN_CALL_SITE by error2<PsiElement, FirCall, KotlinTypeMarker>()
+
+  val UNRESOLVED_CONTEXT_RESOLUTION by error2<PsiElement, FirElement, KotlinTypeMarker>()
 
   init {
     RootDiagnosticRendererFactory.registerFactory(FirMetaErrorsDefaultMessages)

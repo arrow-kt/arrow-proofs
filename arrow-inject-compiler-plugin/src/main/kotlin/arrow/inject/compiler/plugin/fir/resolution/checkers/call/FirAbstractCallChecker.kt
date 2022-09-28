@@ -2,7 +2,7 @@ package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.FirResolutionProof
-import arrow.inject.compiler.plugin.fir.coneType
+import arrow.inject.compiler.plugin.fir.resolution.checkers.resolutionTargetType
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ContextualAnnotation
 import arrow.inject.compiler.plugin.model.ProofResolution
@@ -21,7 +21,6 @@ import org.jetbrains.kotlin.fir.resolvedSymbol
 import org.jetbrains.kotlin.fir.scopes.impl.toConeType
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.types.ConeTypeParameterType
-import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.renderReadable
 import org.jetbrains.kotlin.fir.types.toConeTypeProjection
 import org.jetbrains.kotlin.fir.types.toRegularClassSymbol
@@ -48,6 +47,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
       emptyMap()
     }
   }
+
   fun FirQualifiedAccess.contextReceiversResolutionMap(): Map<ProofResolution?, FirElement> {
     val targetTypes = typeArguments.map { it.toConeTypeProjection().type }
     return if (targetTypes.isNotEmpty()) {
@@ -146,21 +146,4 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
       annotations.any { firAnnotation ->
         firAnnotation.fqName(session) == ProofAnnotationsFqName.CompileTimeAnnotation
       }
-
-  fun FirElement.resolutionTargetType() =
-    when (this) {
-      is FirValueParameter -> coneType
-      is FirContextReceiver -> typeRef.coneType
-      is FirFunctionCall ->
-        typeArguments[0].toConeTypeProjection().type!! // contextSyntheticFunction
-      else -> error("unsupported $this")
-    }
-
-  fun FirElement.contextAnnotation(): FqName? =
-    when (this) {
-      is FirValueParameter -> metaContextAnnotations.firstOrNull()?.fqName(session)
-      is FirContextReceiver -> ContextualAnnotation
-      is FirFunctionCall -> ContextualAnnotation // contextSyntheticFunction
-      else -> error("unsupported $this")
-    }
 }

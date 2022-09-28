@@ -1,4 +1,4 @@
-package arrow.inject.compiler.plugin.fir.resolution.checkers.call
+package arrow.inject.compiler.plugin.fir.resolution.checkers.declaration
 
 import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
 import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
@@ -15,14 +15,14 @@ import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.caches.FirLazyValue
 import org.jetbrains.kotlin.fir.caches.firCachesFactory
-import org.jetbrains.kotlin.fir.expressions.FirCall
+import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
 import org.jetbrains.kotlin.fir.psi
 import org.jetbrains.kotlin.toKtPsiSourceElement
 
-internal class UnresolvedCallSiteChecker(
+internal class UnresolvedResolutionChecker(
   override val proofCache: ProofCache,
   override val session: FirSession,
-) : FirAbstractCallChecker {
+) : FirAbstractDeclarationChecker {
 
   override val allFirLazyProofs: FirLazyValue<List<Proof>, Unit> =
     session.firCachesFactory.createLazyValue {
@@ -30,23 +30,29 @@ internal class UnresolvedCallSiteChecker(
         ExternalProofCollector(session).collectExternalProofs()
     }
 
-  override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
-    proofResolutionList(expression).let { resolvedParameters: Map<ProofResolution?, FirElement> ->
-      resolvedParameters.forEach { (proofResolution, valueParameter) ->
-        val expressionSource: KtSourceElement? = expression.psi?.toKtPsiSourceElement()
+  override fun report(
+    declaration: FirCallableDeclaration,
+    context: CheckerContext,
+    reporter: DiagnosticReporter
+  ) {
+    if (declaration.hasContextResolutionAnnotation)
+      proofResolutionList(declaration).let { resolvedParameters: Map<ProofResolution?, FirElement>
+        ->
+        resolvedParameters.forEach { (proofResolution, contextReceiver) ->
+          val expressionSource: KtSourceElement? = contextReceiver.psi?.toKtPsiSourceElement()
 
-        if (proofResolution?.proof == null && expressionSource != null) {
-          reporter.report(
-            FirMetaErrors.UNRESOLVED_GIVEN_CALL_SITE.on(
-              expressionSource,
-              expression,
-              valueParameter.resolutionTargetType(),
-              AbstractSourceElementPositioningStrategy.DEFAULT,
-            ),
-            context,
-          )
+          if (proofResolution?.proof == null && expressionSource != null) {
+            reporter.report(
+              FirMetaErrors.UNRESOLVED_CONTEXT_RESOLUTION.on(
+                expressionSource,
+                contextReceiver,
+                contextReceiver.resolutionTargetType(),
+                AbstractSourceElementPositioningStrategy.DEFAULT,
+              ),
+              context,
+            )
+          }
         }
       }
-    }
   }
 }

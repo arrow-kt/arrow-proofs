@@ -1,0 +1,12 @@
+FILE: resolution_ambiguous_internal_orphans.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Contextual|() internal final fun n(): R|kotlin/Int| {
+        ^n Int(42)
+    }
+    @R|arrow/inject/annotations/Contextual|() internal final fun n2(): R|kotlin/Int| {
+        ^n2 Int(0)
+    }
+    context(R|kotlin/Int|)
+    @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
+    }

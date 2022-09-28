@@ -1,0 +1,9 @@
+FILE: resolution_prohibited_public_proof_of_non_user_types.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Contextual|() public final fun n(): R|kotlin/Int| {
+        ^n Int(42)
+    }
+    context(R|kotlin/Int|)
+    @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
+    }

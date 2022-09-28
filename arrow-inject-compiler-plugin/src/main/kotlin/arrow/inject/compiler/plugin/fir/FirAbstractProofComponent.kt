@@ -5,8 +5,10 @@ import org.jetbrains.kotlin.descriptors.EffectiveVisibility
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.FirAnnotationContainer
+import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
+import org.jetbrains.kotlin.fir.declarations.FirCallableDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirContextReceiver
@@ -23,6 +25,7 @@ import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.origin
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
+import org.jetbrains.kotlin.fir.expressions.FirFunctionCall
 import org.jetbrains.kotlin.fir.extensions.predicate.DeclarationPredicate
 import org.jetbrains.kotlin.fir.extensions.predicate.annotated
 import org.jetbrains.kotlin.fir.extensions.predicate.metaAnnotated
@@ -132,6 +135,19 @@ internal interface FirAbstractProofComponent {
 
   val FirDeclaration.contextFqNames: Set<FqName>
     get() = annotations.filter { it.isContextAnnotation }.mapNotNull { it.fqName(session) }.toSet()
+
+  val FirCallableDeclaration.hasContextResolutionAnnotation: Boolean
+    get() = annotations.any {
+      it.fqName(session) == ProofAnnotationsFqName.ContextResolutionAnnotation
+    }
+
+  fun FirElement.contextAnnotation(): FqName? =
+    when (this) {
+      is FirValueParameter -> metaContextAnnotations.firstOrNull()?.fqName(session)
+      is FirContextReceiver -> ProofAnnotationsFqName.ContextualAnnotation
+      is FirFunctionCall -> ProofAnnotationsFqName.ContextualAnnotation // contextSyntheticFunction
+      else -> error("unsupported $this")
+    }
 
   private fun typeArgIndex(typeArgs: List<FirTypeParameterSymbol>, expressionType: ConeKotlinType) =
     typeArgs.indexOfFirst { it.name.asString() == expressionType.toString() }

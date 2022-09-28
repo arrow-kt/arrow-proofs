@@ -1,0 +1,12 @@
+FILE: resolution_ambiguous_type_bounds_based_injection.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Contextual|() internal final fun n(): R|kotlin/Int| {
+        ^n Int(42)
+    }
+    @R|arrow/inject/annotations/Contextual|() internal final fun d(): R|kotlin/Double| {
+        ^d Double(33.0)
+    }
+    context(R|kotlin/Number|)
+    @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
+    }

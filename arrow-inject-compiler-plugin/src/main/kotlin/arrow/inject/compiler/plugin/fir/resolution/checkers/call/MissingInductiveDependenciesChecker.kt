@@ -1,7 +1,10 @@
 package arrow.inject.compiler.plugin.fir.resolution.checkers.call
 
+import arrow.inject.compiler.plugin.fir.collectors.ExternalProofCollector
+import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.fir.contextReceivers
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
+import arrow.inject.compiler.plugin.fir.resolution.checkers.resolutionTargetType
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ContextualAnnotation
@@ -12,6 +15,8 @@ import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
+import org.jetbrains.kotlin.fir.caches.FirLazyValue
+import org.jetbrains.kotlin.fir.caches.firCachesFactory
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirTypeParameterRefsOwner
@@ -35,7 +40,11 @@ internal class MissingInductiveDependenciesChecker(
   override val session: FirSession,
 ) : FirAbstractCallChecker {
 
-  override val allProofs: List<Proof> by lazy { allCollectedProofs }
+  override val allFirLazyProofs: FirLazyValue<List<Proof>, Unit> =
+    session.firCachesFactory.createLazyValue {
+      LocalProofCollectors(session).collectLocalProofs() +
+        ExternalProofCollector(session).collectExternalProofs()
+    }
 
   override fun report(expression: FirCall, context: CheckerContext, reporter: DiagnosticReporter) {
     val resolvedParameters: Map<ProofResolution?, FirElement> = proofResolutionList(expression)
