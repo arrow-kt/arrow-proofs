@@ -4,7 +4,7 @@ import arrow.inject.compiler.plugin.fir.coneType
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
-import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ContextualAnnotation
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
@@ -103,7 +103,7 @@ internal class CyclesDetectionChecker(
     val type = typeRef.coneType
     if (type !is ConeTypeParameterType) {
       val resolvedProof: Proof? =
-        resolveProof(contextFqName = ProviderAnnotation, type = type, mutableListOf()).proof
+        resolveProof(contextFqName = ContextualAnnotation, type = type, mutableListOf()).proof
       if (resolvedProof != null) {
         val encountered = cycles.count { it == resolvedProof }
         if (encountered <= 1) {

@@ -1,13 +1,13 @@
 package foo.bar
 
-import arrow.inject.annotations.Provider
+import arrow.inject.annotations.Contextual
 import arrow.inject.annotations.context
 
 class Persistence
 
 context(Persistence)
 
-@Provider class Repo
+@Contextual class Repo
 
 fun main() {
   <!UNRESOLVED_GIVEN_CALL_SITE!>context<Persistence>()<!>

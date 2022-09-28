@@ -1,10 +1,10 @@
 FILE: ambiguous_type_bounds_based_injection.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/Provider|() internal final fun n(): R|kotlin/Int| {
+    @R|arrow/inject/annotations/Contextual|() internal final fun n(): R|kotlin/Int| {
         ^n Int(42)
     }
-    @R|arrow/inject/annotations/Provider|() internal final fun d(): R|kotlin/Double| {
+    @R|arrow/inject/annotations/Contextual|() internal final fun d(): R|kotlin/Double| {
         ^d Double(33.0)
     }
     public final fun main(): R|kotlin/Unit| {

@@ -8,5 +8,5 @@ internal object ProofAnnotationsFqName {
 
   val ContextAnnotation = AnnotationFqn("arrow.inject.annotations.Context")
 
-  val ProviderAnnotation = AnnotationFqn("arrow.inject.annotations.Provider")
+  val ContextualAnnotation = AnnotationFqn("arrow.inject.annotations.Contextual")
 }

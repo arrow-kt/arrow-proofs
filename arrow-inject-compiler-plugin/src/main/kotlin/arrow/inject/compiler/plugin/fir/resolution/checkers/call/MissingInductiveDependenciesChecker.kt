@@ -4,7 +4,7 @@ import arrow.inject.compiler.plugin.fir.contextReceivers
 import arrow.inject.compiler.plugin.fir.errors.FirMetaErrors
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
-import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ContextualAnnotation
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.AbstractSourceElementPositioningStrategy
@@ -105,7 +105,7 @@ internal class MissingInductiveDependenciesChecker(
           contextReceiver.typeRef.coneType
         )
 
-      val contextReceiverProof = resolveProof(ProviderAnnotation, targetType.type, mutableListOf())
+      val contextReceiverProof = resolveProof(ContextualAnnotation, targetType.type, mutableListOf())
 
       val expressionSource: KtSourceElement? = expression.source
 

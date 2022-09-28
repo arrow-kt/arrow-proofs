@@ -1,7 +1,7 @@
 FILE fqName:foo.bar fileName:/a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt
   FUN name:intProvider visibility:internal modality:FINAL <> () returnType:kotlin.Int
     annotations:
-      Provider
+      Contextual
     BLOCK_BODY
       RETURN type=kotlin.Nothing from='internal final fun intProvider (): kotlin.Int declared in foo.bar'
         CONST Int type=kotlin.Int value=42
@@ -107,7 +107,7 @@ FILE fqName:foo.bar fileName:/a_polymorphic_provider_may_have_injection_argument
             CONST String type=kotlin.String value=")"
   FUN name:fooProvider visibility:internal modality:FINAL <A> (_context_receiver_0:A of foo.bar.fooProvider) returnType:foo.bar.Foo<A of foo.bar.fooProvider>
     annotations:
-      Provider
+      Contextual
     TYPE_PARAMETER name:A index:0 variance: superTypes:[kotlin.Any?] reified:false
     contextReceiverParametersCount: 1
     VALUE_PARAMETER name:_context_receiver_0 index:0 type:A of foo.bar.fooProvider

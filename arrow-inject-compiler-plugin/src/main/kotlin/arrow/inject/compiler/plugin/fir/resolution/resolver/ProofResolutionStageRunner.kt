@@ -136,7 +136,7 @@ internal class ProofResolutionStageRunner(
         val targetType = targetType(type, it.typeRef.coneType) ?: it.typeRef.coneType
         val receiverProofResolution =
           firResolutionProof.resolveProof(
-            ProofAnnotationsFqName.ProviderAnnotation,
+            ProofAnnotationsFqName.ContextualAnnotation,
             targetType.type,
             previousProofs
           )

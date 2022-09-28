@@ -3,7 +3,7 @@ package arrow.inject.compiler.plugin.ir
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
-import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ContextualAnnotation
 import arrow.inject.compiler.plugin.model.ProofResolution
 import arrow.inject.compiler.plugin.model.asProofCacheKey
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
@@ -297,7 +297,7 @@ internal class ProofsIrContextReceiversCodegen(
 
   private fun contextProofCall(irType: IrType): IrExpression? =
     proofCache
-      .getProofFromCache(irType.toIrBasedKotlinType().asProofCacheKey(ProviderAnnotation))
+      .getProofFromCache(irType.toIrBasedKotlinType().asProofCacheKey(ContextualAnnotation))
       ?.let { proofResolution -> substitutedResolvedContextCall(proofResolution, irType) }
 
   private fun substitutedResolvedContextCall(

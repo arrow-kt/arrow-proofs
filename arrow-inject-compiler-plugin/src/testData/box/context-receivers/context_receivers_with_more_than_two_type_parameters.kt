@@ -1,29 +1,29 @@
 package foo.bar
 
-import arrow.inject.annotations.Provider
+import arrow.inject.annotations.Contextual
 import arrow.inject.annotations.context
 
-@Provider
+@Contextual
 class A {
   val a = 1
 }
 
-@Provider
+@Contextual
 class B {
   val b = 2
 }
 
-@Provider
+@Contextual
 class C {
   val c = 3
 }
 
-@Provider
+@Contextual
 class D {
   val d = 5
 }
 
-@Provider
+@Contextual
 class E {
   val e = 8
 }

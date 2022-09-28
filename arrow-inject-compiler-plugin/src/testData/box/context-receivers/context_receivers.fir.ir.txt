@@ -1,7 +1,7 @@
 FILE fqName:foo.bar fileName:/context_receivers.kt
   CLASS CLASS name:Persistence modality:FINAL visibility:public superTypes:[kotlin.Any]
     annotations:
-      Provider
+      Contextual
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:foo.bar.Persistence
     CONSTRUCTOR visibility:public <> () returnType:foo.bar.Persistence [primary]
       BLOCK_BODY

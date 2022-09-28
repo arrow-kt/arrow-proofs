@@ -1,10 +1,10 @@
 FILE: ambiguous_internal_orphans.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/Provider|() internal final fun n(): R|kotlin/Int| {
+    @R|arrow/inject/annotations/Contextual|() internal final fun n(): R|kotlin/Int| {
         ^n Int(42)
     }
-    @R|arrow/inject/annotations/Provider|() internal final fun n2(): R|kotlin/Int| {
+    @R|arrow/inject/annotations/Contextual|() internal final fun n2(): R|kotlin/Int| {
         ^n2 Int(0)
     }
     public final fun main(): R|kotlin/Unit| {

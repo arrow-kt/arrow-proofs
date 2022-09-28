@@ -1,7 +1,7 @@
 FILE: a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphically_resolved.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/Provider|() internal final fun intProvider(): R|kotlin/Int| {
+    @R|arrow/inject/annotations/Contextual|() internal final fun intProvider(): R|kotlin/Int| {
         ^intProvider Int(42)
     }
     public final data class Foo<A> : R|kotlin/Any| {
@@ -18,7 +18,7 @@ FILE: a_polymorphic_provider_may_have_injection_arguments_which_are_polymorphica
 
     }
     context(R|A|)
-    @R|arrow/inject/annotations/Provider|() internal final fun <A> fooProvider(): R|foo/bar/Foo<A>| {
+    @R|arrow/inject/annotations/Contextual|() internal final fun <A> fooProvider(): R|foo/bar/Foo<A>| {
         ^fooProvider R|foo/bar/Foo.Foo|<R|A|>(this@R|foo/bar/fooProvider|)
     }
     public final fun box(): R|kotlin/String| {

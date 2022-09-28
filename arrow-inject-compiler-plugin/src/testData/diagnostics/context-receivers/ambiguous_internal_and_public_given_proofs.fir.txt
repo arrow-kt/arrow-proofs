@@ -19,16 +19,16 @@ FILE: ambiguous_internal_and_public_given_proofs.kt
         public final fun copy(name: R|kotlin/String| = this@R|foo/bar/Person|.R|foo/bar/Person.name|, age: R|kotlin/Int| = this@R|foo/bar/Person|.R|foo/bar/Person.age|): R|foo/bar/Person|
 
     }
-    @R|arrow/inject/annotations/Provider|() public final fun person1(): R|foo/bar/Person| {
+    @R|arrow/inject/annotations/Contextual|() public final fun person1(): R|foo/bar/Person| {
         ^person1 R|foo/bar/Person.Person|(String(X), Int(0))
     }
-    @R|arrow/inject/annotations/Provider|() public final fun person2(): R|foo/bar/Person| {
+    @R|arrow/inject/annotations/Contextual|() public final fun person2(): R|foo/bar/Person| {
         ^person2 R|foo/bar/Person.Person|(String(X), Int(0))
     }
-    @R|arrow/inject/annotations/Provider|() internal final fun person3(): R|foo/bar/Person| {
+    @R|arrow/inject/annotations/Contextual|() internal final fun person3(): R|foo/bar/Person| {
         ^person3 R|foo/bar/Person.Person|(String(X), Int(0))
     }
-    @R|arrow/inject/annotations/Provider|() internal final fun person4(): R|foo/bar/Person| {
+    @R|arrow/inject/annotations/Contextual|() internal final fun person4(): R|foo/bar/Person| {
         ^person4 R|foo/bar/Person.Person|(String(X), Int(0))
     }
     public final fun main(): R|kotlin/Unit| {

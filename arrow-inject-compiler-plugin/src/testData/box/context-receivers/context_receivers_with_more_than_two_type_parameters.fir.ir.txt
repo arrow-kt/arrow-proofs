@@ -1,7 +1,7 @@
 FILE fqName:foo.bar fileName:/context_receivers_with_more_than_two_type_parameters.kt
   CLASS CLASS name:A modality:FINAL visibility:public superTypes:[kotlin.Any]
     annotations:
-      Provider
+      Contextual
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:foo.bar.A
     CONSTRUCTOR visibility:public <> () returnType:foo.bar.A [primary]
       BLOCK_BODY
@@ -33,7 +33,7 @@ FILE fqName:foo.bar fileName:/context_receivers_with_more_than_two_type_paramete
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
   CLASS CLASS name:B modality:FINAL visibility:public superTypes:[kotlin.Any]
     annotations:
-      Provider
+      Contextual
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:foo.bar.B
     CONSTRUCTOR visibility:public <> () returnType:foo.bar.B [primary]
       BLOCK_BODY
@@ -65,7 +65,7 @@ FILE fqName:foo.bar fileName:/context_receivers_with_more_than_two_type_paramete
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
   CLASS CLASS name:C modality:FINAL visibility:public superTypes:[kotlin.Any]
     annotations:
-      Provider
+      Contextual
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:foo.bar.C
     CONSTRUCTOR visibility:public <> () returnType:foo.bar.C [primary]
       BLOCK_BODY
@@ -97,7 +97,7 @@ FILE fqName:foo.bar fileName:/context_receivers_with_more_than_two_type_paramete
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
   CLASS CLASS name:D modality:FINAL visibility:public superTypes:[kotlin.Any]
     annotations:
-      Provider
+      Contextual
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:foo.bar.D
     CONSTRUCTOR visibility:public <> () returnType:foo.bar.D [primary]
       BLOCK_BODY
@@ -129,7 +129,7 @@ FILE fqName:foo.bar fileName:/context_receivers_with_more_than_two_type_paramete
       $this: VALUE_PARAMETER name:<this> type:kotlin.Any
   CLASS CLASS name:E modality:FINAL visibility:public superTypes:[kotlin.Any]
     annotations:
-      Provider
+      Contextual
     $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:foo.bar.E
     CONSTRUCTOR visibility:public <> () returnType:foo.bar.E [primary]
       BLOCK_BODY

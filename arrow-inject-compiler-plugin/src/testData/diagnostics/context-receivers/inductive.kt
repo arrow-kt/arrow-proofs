@@ -1,14 +1,14 @@
 package foo.bar
 
-import arrow.inject.annotations.Provider
+import arrow.inject.annotations.Contextual
 import arrow.inject.annotations.context
 
-@Provider class X {
+@Contextual class X {
   val x = "yes!"
 }
 
 context(X)
-@Provider class Y {
+@Contextual class Y {
   val y = x
 }
 

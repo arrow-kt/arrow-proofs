@@ -1,7 +1,7 @@
 FILE: prohibited_published_internal_orphan.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/Provider|() @R|kotlin/PublishedApi|() internal final fun n(): R|kotlin/Int| {
+    @R|arrow/inject/annotations/Contextual|() @R|kotlin/PublishedApi|() internal final fun n(): R|kotlin/Int| {
         ^n Int(0)
     }
     public final fun main(): R|kotlin/Unit| {

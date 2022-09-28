@@ -9,4 +9,4 @@ package arrow.inject.annotations
   AnnotationTarget.VALUE_PARAMETER
 )
 @MustBeDocumented
-public annotation class Provider
+public annotation class Contextual

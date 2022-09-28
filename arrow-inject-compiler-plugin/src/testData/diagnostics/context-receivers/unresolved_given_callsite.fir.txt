@@ -8,7 +8,7 @@ FILE: unresolved_given_callsite.kt
 
     }
     context(R|foo/bar/Persistence|)
-    @R|arrow/inject/annotations/Provider|() public final class Repo : R|kotlin/Any| {
+    @R|arrow/inject/annotations/Contextual|() public final class Repo : R|kotlin/Any| {
         public constructor(): R|foo/bar/Repo| {
             super<R|kotlin/Any|>()
         }

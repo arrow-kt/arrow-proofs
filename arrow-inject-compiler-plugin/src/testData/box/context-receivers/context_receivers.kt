@@ -1,10 +1,10 @@
 package foo.bar
 
 import arrow.inject.annotations.context
-import arrow.inject.annotations.Provider
+import arrow.inject.annotations.Contextual
 import arrow.inject.annotations.contextual
 
-@Provider
+@Contextual
 class Persistence
 
 context(Persistence)

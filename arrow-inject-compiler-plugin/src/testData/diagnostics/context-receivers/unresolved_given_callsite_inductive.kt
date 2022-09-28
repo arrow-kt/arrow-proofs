@@ -1,6 +1,6 @@
 package foo.bar
 
-import arrow.inject.annotations.Provider
+import arrow.inject.annotations.Contextual
 import arrow.inject.annotations.context
 
 class X {
@@ -8,7 +8,7 @@ class X {
 }
 
 context(X)
-@Provider class Y {
+@Contextual class Y {
   val y = x
 }
 

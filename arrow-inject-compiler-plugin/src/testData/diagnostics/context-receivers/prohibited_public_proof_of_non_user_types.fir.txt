@@ -1,7 +1,7 @@
 FILE: prohibited_public_proof_of_non_user_types.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/Provider|() public final fun n(): R|kotlin/Int| {
+    @R|arrow/inject/annotations/Contextual|() public final fun n(): R|kotlin/Int| {
         ^n Int(42)
     }
     public final fun main(): R|kotlin/Unit| {

@@ -4,7 +4,7 @@ import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.FirResolutionProof
 import arrow.inject.compiler.plugin.fir.coneType
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
-import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ContextualAnnotation
 import arrow.inject.compiler.plugin.model.ProofResolution
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.fir.FirElement
@@ -51,9 +51,11 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
   fun FirQualifiedAccess.contextReceiversResolutionMap(): Map<ProofResolution?, FirElement> {
     val targetTypes = typeArguments.map { it.toConeTypeProjection().type }
     return if (targetTypes.isNotEmpty()) {
-      targetTypes.fold(mutableMapOf()) { map, type -> map.also {
-        if(type != null) it[resolveProof(ProviderAnnotation, type, mutableListOf())] = this
-      }}
+      targetTypes.fold(mutableMapOf()) { map, type ->
+        map.also {
+          if (type != null) it[resolveProof(ContextualAnnotation, type, mutableListOf())] = this
+        }
+      }
     } else emptyMap()
   }
 
@@ -99,7 +101,7 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
   ): Map<ProofResolution?, FirElement> {
     val resolvedReceivers =
       unresolvedContextReceivers.map { receiverParameter ->
-        receiverParameter.proofResolution(call, ProviderAnnotation)
+        receiverParameter.proofResolution(call, ContextualAnnotation)
       }
     return resolvedReceivers.toMap()
   }
@@ -117,7 +119,9 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
           val originalTypeArgumentIndex =
             originalFunction?.typeParameters?.indexOfFirst {
               val originalTypeParameter = it.toConeType()
-              // TODO: comparing `renderReadable` is not a good idea because it may not consider type constraints and other potential unique elements of a type not reflected in the rendered string.
+              // TODO: comparing `renderReadable` is not a good idea because it may not consider
+              // type constraints and other potential unique elements of a type not reflected in the
+              // rendered string.
               originalTypeParameter.renderReadable() == coneType.renderReadable()
             }
               ?: error("Found unbound parameter to type argument")
@@ -155,8 +159,8 @@ internal interface FirAbstractCallChecker : FirAbstractProofComponent, FirResolu
   fun FirElement.contextAnnotation(): FqName? =
     when (this) {
       is FirValueParameter -> metaContextAnnotations.firstOrNull()?.fqName(session)
-      is FirContextReceiver -> ProviderAnnotation
-      is FirFunctionCall -> ProviderAnnotation // contextSyntheticFunction
+      is FirContextReceiver -> ContextualAnnotation
+      is FirFunctionCall -> ContextualAnnotation // contextSyntheticFunction
       else -> error("unsupported $this")
     }
 }

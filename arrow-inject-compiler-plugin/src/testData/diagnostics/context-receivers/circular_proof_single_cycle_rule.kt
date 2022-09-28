@@ -1,10 +1,10 @@
 package foo.bar
 
-import arrow.inject.annotations.Provider
+import arrow.inject.annotations.Contextual
 import arrow.inject.annotations.context
 
 context(Int)
-@Provider internal fun n(): Int {
+@Contextual internal fun n(): Int {
   return this@Int
 }
 

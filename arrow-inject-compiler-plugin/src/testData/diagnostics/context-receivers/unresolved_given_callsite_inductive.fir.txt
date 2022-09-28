@@ -11,7 +11,7 @@ FILE: unresolved_given_callsite_inductive.kt
 
     }
     context(R|foo/bar/X|)
-    @R|arrow/inject/annotations/Provider|() public final class Y : R|kotlin/Any| {
+    @R|arrow/inject/annotations/Contextual|() public final class Y : R|kotlin/Any| {
         public constructor(): R|foo/bar/Y| {
             super<R|kotlin/Any|>()
         }

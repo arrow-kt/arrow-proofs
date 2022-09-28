@@ -1,7 +1,7 @@
 FILE: context_receivers_with_two_type_parameters.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/Provider|() public final class A : R|kotlin/Any| {
+    @R|arrow/inject/annotations/Contextual|() public final class A : R|kotlin/Any| {
         public constructor(): R|foo/bar/A| {
             super<R|kotlin/Any|>()
         }
@@ -10,7 +10,7 @@ FILE: context_receivers_with_two_type_parameters.kt
             public get(): R|kotlin/Int|
 
     }
-    @R|arrow/inject/annotations/Provider|() public final class B : R|kotlin/Any| {
+    @R|arrow/inject/annotations/Contextual|() public final class B : R|kotlin/Any| {
         public constructor(): R|foo/bar/B| {
             super<R|kotlin/Any|>()
         }
