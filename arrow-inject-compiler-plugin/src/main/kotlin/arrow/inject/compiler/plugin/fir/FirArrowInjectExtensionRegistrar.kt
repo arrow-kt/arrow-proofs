@@ -1,6 +1,5 @@
 package arrow.inject.compiler.plugin.fir
 
-import arrow.inject.compiler.plugin.fir.codegen.ResolvedFunctionGenerationExtension
 import arrow.inject.compiler.plugin.fir.resolution.ProofResolutionCheckerExtension
 import arrow.inject.compiler.plugin.fir.resolution.checkers.call.AmbiguousProofsChecker
 import arrow.inject.compiler.plugin.fir.resolution.checkers.call.CyclesDetectionChecker
@@ -20,7 +19,6 @@ public class FirArrowInjectExtensionRegistrar(
 
   override fun ExtensionRegistrarContext.configurePlugin() {
     +{ session: FirSession -> ContextProvidersResolutionExtension(proofCache, session) }
-    +{ session: FirSession -> ResolvedFunctionGenerationExtension(proofCache, session) }
     +{ session: FirSession ->
       ProofResolutionCheckerExtension(
         session = session,
@@ -36,9 +34,7 @@ public class FirArrowInjectExtensionRegistrar(
             MissingInductiveDependenciesChecker(proofCache, session),
             UnresolvedCallSiteChecker(proofCache, session),
           ),
-        typeCheckers = listOf(
-          ContextReceiverProofTypeChecker()
-        )
+        typeCheckers = listOf(ContextReceiverProofTypeChecker())
       )
     }
   }
