@@ -44,7 +44,7 @@ internal class CyclesDetectionChecker(
     if (declaration.hasContextResolutionAnnotation) {
       val resolvedParameters = proofResolutionList(declaration)
       resolvedParameters.forEach { (proofResolution, valueParameter) ->
-        val expressionSource: KtSourceElement? = declaration.psi?.toKtPsiSourceElement()
+        val expressionSource: KtSourceElement? = valueParameter.psi?.toKtPsiSourceElement()
 
         val cycles = proofResolution?.proof?.cycles.orEmpty()
 

@@ -87,19 +87,19 @@ internal class ProofResolutionStageRunner(
     return ProofResolutionResult.Candidates(
       mapNotNull { proof ->
           val proofDeclaration: FirDeclaration = proof.declaration
-          // val hasCycles = proof.hasCycle(type, previousProofs)
-          // if (hasCycles) null
-          // else
-          when (val callInfoResult = proof.proofCallInfo(proofDeclaration, type)) {
-            is CallInfoResult.Info -> {
-              val completedCandidate =
-                createAndCompleteCandidate(resolveCallInfo, callInfoResult, proof, type)
-              completedCandidate
+          val hasCycles = proof.hasCycle(type, previousProofs)
+          if (hasCycles) return ProofResolutionResult.CyclesFound(proof)
+          else
+            when (val callInfoResult = proof.proofCallInfo(proofDeclaration, type)) {
+              is CallInfoResult.Info -> {
+                val completedCandidate =
+                  createAndCompleteCandidate(resolveCallInfo, callInfoResult, proof, type)
+                completedCandidate
+              }
+              is CallInfoResult.CyclesFound ->
+                return ProofResolutionResult.CyclesFound(callInfoResult.proof)
+              is CallInfoResult.FunctionCall -> TODO()
             }
-            is CallInfoResult.CyclesFound ->
-              return ProofResolutionResult.CyclesFound(callInfoResult.proof)
-            is CallInfoResult.FunctionCall -> TODO()
-          }
         }
         .toSet()
     )

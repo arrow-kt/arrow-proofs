@@ -48,14 +48,20 @@ internal interface FirAbstractDeclarationChecker : FirAbstractProofComponent, Fi
     return declaration.contextReceiversResolutionMap()
   }
 
-  fun FirCallableDeclaration.contextReceiversResolutionMap(): Map<ProofResolution?, FirElement> {
-    val targetTypes = contextReceivers.map { it.typeRef.coneType }
-    return if (targetTypes.isNotEmpty()) {
-      targetTypes.fold(mutableMapOf()) { map, type ->
-        map.also { it[resolveProof(type, mutableListOf())] = this }
-      }
-    } else emptyMap()
-  }
+  fun FirCallableDeclaration.contextReceiversResolutionMap(): Map<ProofResolution?, FirElement> =
+    contextReceivers.fold(mutableMapOf()) { map, receiver ->
+      map.also { it[resolveProof(receiver.typeRef.coneType, mutableListOf())] = receiver }
+    }
+
+//
+//
+//    val targetTypes = contextReceivers.map { it.typeRef.coneType }
+//    return if (targetTypes.isNotEmpty()) {
+//      targetTypes.fold(mutableMapOf()) { map, type ->
+//        map.also { it[resolveProof(type, mutableListOf())] = this }
+//      }
+//    } else emptyMap()
+//  }
 
   fun FirElement.resolutionTargetType() =
     when (this) {

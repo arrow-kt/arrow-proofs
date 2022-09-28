@@ -9,8 +9,8 @@ context(String)
 context(Int)
 @Contextual internal fun s(): String = this@Int.toString()
 
-@ContextResolution
 context(<!CIRCULAR_CYCLE_ON_GIVEN_PROOF!>Int<!>)
+@ContextResolution
 fun main() {
   println(this@Int)
 }
