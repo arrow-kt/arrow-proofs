@@ -1,7 +1,7 @@
 FILE: inductive.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/Provider|() public final class X : R|kotlin/Any| {
+    @R|arrow/inject/annotations/Contextual|() public final class X : R|kotlin/Any| {
         public constructor(): R|foo/bar/X| {
             super<R|kotlin/Any|>()
         }
@@ -11,7 +11,7 @@ FILE: inductive.kt
 
     }
     context(R|foo/bar/X|)
-    @R|arrow/inject/annotations/Provider|() public final class Y : R|kotlin/Any| {
+    @R|arrow/inject/annotations/Contextual|() public final class Y : R|kotlin/Any| {
         public constructor(): R|foo/bar/Y| {
             super<R|kotlin/Any|>()
         }
@@ -24,7 +24,7 @@ FILE: inductive.kt
     public final fun foo(id: R|kotlin/Int|): R|kotlin/String| {
         ^foo <strcat>(R|<local>/id|, String(: ), this@R|foo/bar/foo|.R|foo/bar/Y.y|)
     }
-    public final fun main(): R|kotlin/Unit| {
-        R|arrow/inject/annotations/context|<R|foo/bar/Y|>()
+    context(R|foo/bar/Y|)
+    @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
         R|foo/bar/foo|(Int(1))
     }

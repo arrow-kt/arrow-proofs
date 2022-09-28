@@ -10,7 +10,6 @@ import arrow.inject.compiler.plugin.model.ProofResolution
 import arrow.inject.compiler.plugin.model.asProofCacheKey
 import org.jetbrains.kotlin.fir.resolve.calls.Candidate
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
-import org.jetbrains.kotlin.name.FqName
 
 internal interface FirResolutionProof : FirProofIdSignature {
 
@@ -31,12 +30,8 @@ internal interface FirResolutionProof : FirProofIdSignature {
   val externalProofCollector: ExternalProofCollector
     get() = ExternalProofCollector(session)
 
-  fun resolveProof(
-    contextFqName: FqName,
-    type: ConeKotlinType,
-    previousProofs: MutableList<Proof>
-  ): ProofResolution {
-    val resolutionResult = resolutionResult(contextFqName, type, previousProofs)
+  fun resolveProof(type: ConeKotlinType, previousProofs: MutableList<Proof>): ProofResolution {
+    val resolutionResult = resolutionResult(type, previousProofs)
     return when (resolutionResult) {
       is ProofResolutionResult.Candidates -> {
         val candidates = resolutionResult.candidates
@@ -45,7 +40,7 @@ internal interface FirResolutionProof : FirProofIdSignature {
         // TODO if (candidateProof in cycles) ProofResolution(candidateProof, type, emptyList(),
         // resolutionResult)
         return proofResolution.apply {
-          proofCache.putProofIntoCache(type.asProofCacheKey(contextFqName), this)
+          proofCache.putProofIntoCache(type.asProofCacheKey(), this)
         }
       }
       is ProofResolutionResult.CyclesFound -> {
@@ -55,15 +50,10 @@ internal interface FirResolutionProof : FirProofIdSignature {
   }
 
   private fun resolutionResult(
-    contextFqName: FqName,
     type: ConeKotlinType,
     previousProofs: MutableList<Proof>
   ): ProofResolutionResult =
-    proofResolutionStageRunner.run {
-      allProofs
-        .filter { contextFqName in it.declaration.contextFqNames }
-        .matchingCandidates(type, previousProofs)
-    }
+    proofResolutionStageRunner.run { allProofs.matchingCandidates(type, previousProofs) }
 
   private fun proofCandidate(
     candidates: Set<Candidate>,

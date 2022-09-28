@@ -2,7 +2,7 @@ package arrow.inject.compiler.plugin.ir
 
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
-import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ContextualAnnotation
 import arrow.inject.compiler.plugin.model.ProofResolution
 import arrow.inject.compiler.plugin.model.asProofCacheKey
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
@@ -54,6 +54,7 @@ import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.typeWith
 import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.ir.util.dumpKotlinLike
+import org.jetbrains.kotlin.ir.util.isLocal
 import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.ir.util.statements
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
@@ -93,17 +94,18 @@ internal class ProofsIrContextReceiversCodegen(
   }
 
   fun buildProcessSteps(body: IrBlockBody): List<ReceiverProcessStep> {
-    val contextCall = body.findNestedContextCall()
-    return if (contextCall == null) emptyList()
-    else {
-      val targetTypes: List<IrType> =
-        contextCall.typeArguments.values.flatMap {
-          getAllContextReceiversTypes(it, mutableListOf())
-        }
-      targetTypes.map { type ->
-        ReceiverProcessStep(contextCall, contextualFunction.owner.irCall() as IrCall, type)
-      }
-    }
+    return TODO()
+//    val contextCall = body.findNestedContextCall()
+//    return if (contextCall == null) emptyList()
+//    else {
+//      val targetTypes: List<IrType> =
+//        contextCall.typeArguments.values.flatMap {
+//          getAllContextReceiversTypes(it, mutableListOf())
+//        }
+//      targetTypes.map { type ->
+//        ReceiverProcessStep(contextCall, contextualFunction.owner.irCall() as IrCall, type)
+//      }
+//    }
   }
 
   fun processBodiesRecursive(
@@ -294,7 +296,7 @@ internal class ProofsIrContextReceiversCodegen(
 
   private fun contextProofCall(irType: IrType): IrExpression? =
     proofCache
-      .getProofFromCache(irType.toIrBasedKotlinType().asProofCacheKey(ProviderAnnotation))
+      .getProofFromCache(irType.toIrBasedKotlinType().asProofCacheKey())
       ?.let { proofResolution -> substitutedResolvedContextCall(proofResolution, irType) }
 
   private fun substitutedResolvedContextCall(
@@ -338,8 +340,8 @@ internal class ProofsIrContextReceiversCodegen(
 
         if (declaration is IrFunction) {
           declaration.valueParameters.forEachIndexed { index, valueParameter ->
-            val contextFqName: FqName? =
-              valueParameter.metaContextAnnotations.firstOrNull()?.type?.classFqName
+            val contextFqName: FqName? = TODO()
+//              valueParameter.metaContextAnnotations.firstOrNull()?.type?.classFqName
             if (contextFqName != null) {
               val newType = typeSubstitutor.substitute(valueParameter.type)
               val argumentProvedExpression = contextProofCall(newType)
@@ -470,12 +472,12 @@ internal class ProofsIrContextReceiversCodegen(
 
         var declarationParent: IrDeclarationParent? = null
 
-        override fun visitDeclaration(declaration: IrDeclarationBase, data: Unit): IrStatement {
-          if (declaration is IrDeclarationParent) {
-            declarationParent = declaration
-          }
-          return super.visitDeclaration(declaration, data)
-        }
+//        override fun visitDeclaration(declaration: IrDeclarationBase, data: Unit): IrStatement {
+//          if (declaration is IrDeclarationParent) {
+//            declarationParent = declaration
+//          }
+//          return super.visitDeclaration(declaration, data)
+//        }
 
         override fun visitBlockBody(body: IrBlockBody, data: Unit): IrBody =
           body.transformChildren(this, Unit).let {
@@ -483,6 +485,11 @@ internal class ProofsIrContextReceiversCodegen(
             val result = if (parent != null) transformBody(parent, body) else null
             result ?: super.visitBlockBody(body, data)
           }
+
+        override fun visitFunction(declaration: IrFunction, data: Unit): IrStatement {
+          declarationParent = if(!declaration.isLocal) declaration else null
+          return super.visitFunction(declaration, data)
+        }
       },
       Unit
     )

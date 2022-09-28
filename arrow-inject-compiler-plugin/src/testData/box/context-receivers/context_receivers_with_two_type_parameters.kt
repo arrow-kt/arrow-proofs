@@ -1,21 +1,21 @@
 package foo.bar
 
-import arrow.inject.annotations.Provider
-import arrow.inject.annotations.context
+import arrow.inject.annotations.Contextual
+import arrow.inject.annotations.ContextuResolution
 
-@Provider
+@Contextual
 class A {
   val a = 1
 }
 
-@Provider
+@Contextual
 class B {
   val b = 2
 }
 
+@ContextuResolution
 fun f(): Int {
   println("123")
-  context<A, B>()
   return a + b
 }
 

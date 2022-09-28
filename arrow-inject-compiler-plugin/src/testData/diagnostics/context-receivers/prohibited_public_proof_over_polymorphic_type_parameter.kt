@@ -1,10 +1,11 @@
 package foo.bar
 
-import arrow.inject.annotations.context
-import arrow.inject.annotations.Provider
+import arrow.inject.annotations.Context
+import arrow.inject.annotations.ContextResolution
 
-<!OWNERSHIP_VIOLATED_PROOF!>@Provider fun <A> list(): List<Iterable<A>> = emptyList()<!>
+<!OWNERSHIP_VIOLATED_PROOF!>@Contextual fun <A> list(): List<Iterable<A>> = emptyList()<!>
 
+@ContextResolution
 fun main() {
-  context<List<Iterable<*>>>()
+  println(this)
 }

@@ -17,25 +17,18 @@ import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrProperty
-import org.jetbrains.kotlin.ir.declarations.IrTypeParametersContainer
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
 import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstructorCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetObjectValueImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.IrType
-import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.dumpKotlinLike
-import org.jetbrains.kotlin.ir.util.isTypeParameter
-import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.model.KotlinTypeMarker
-import org.jetbrains.kotlin.types.model.TypeArgumentMarker
 import org.jetbrains.kotlin.types.model.TypeSystemContext
 
 interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
@@ -57,31 +50,6 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
     val typeArgIndex = typeArgIndex(typeArgs, expressionType)
     return if (typeArgIndex >= 0) type.getArgument(typeArgIndex) as? IrType else null
   }
-
-  fun IrDeclaration.substitutedIrTypes(typeArguments: List<TypeArgumentMarker>): List<IrType?> =
-    when (this) {
-      is IrTypeParametersContainer -> {
-        typeParameters.map { irTypeParameter ->
-          typeArguments.find { it == irTypeParameter.defaultType }?.getType()?.toIrType()
-        }
-      }
-      else -> emptyList()
-    }
-
-  fun Proof.typeArgumentSubstitutor(otherType: KotlinType): List<TypeArgumentMarker> {
-    return irDeclaration().type().typeArguments(otherType)
-  }
-
-  private fun KotlinTypeMarker.typeArguments(other: KotlinType): List<TypeArgumentMarker> =
-    if (isTypeVariableType()) {
-      listOf(asTypeArgument())
-    } else {
-      getArguments()
-        .mapIndexed { index, typeArgumentMarker ->
-          other.arguments.getOrNull(index)?.let { typeArgumentMarker }
-        }
-        .filterNotNull()
-    }
 
   fun IrDeclaration.irCall(): IrExpression =
     when (this) {
@@ -140,16 +108,6 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
       }
     }
 
-  // TODO: Fix init
-  private fun Proof.irCallableDeclaration(): IrDeclaration =
-    when (declaration) {
-      is FirClass -> symbolTable.referenceClass(idSignature).constructors.first().owner
-      is FirConstructor -> symbolTable.referenceConstructor(idSignature).owner
-      is FirFunction -> symbolTable.referenceSimpleFunction(idSignature).owner
-      is FirProperty -> symbolTable.referenceProperty(idSignature).owner
-      else -> error("Unsupported FirDeclaration: $this")
-    }
-
   // TODO: show better errors when null
   fun Proof.irDeclaration(): IrDeclaration =
     when (val declaration = declaration) {
@@ -162,26 +120,4 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
       is FirProperty -> referenceProperties(declaration.symbol.callableId).first().owner
       else -> error("Unsupported FirDeclaration: $this")
     }
-
-  private fun IrDeclaration.type(): IrType =
-    when (this) {
-      is IrClass -> defaultType
-      is IrFunction -> returnType
-      is IrProperty -> checkNotNull(getter?.returnType) { "Expected getter" }
-      else -> error("Unsupported IrDeclaration: $this")
-    }
-}
-
-fun IrFunction.substitutedTypeParameters(
-  it: IrValueParameter,
-  call: IrFunctionAccessExpression
-): Pair<IrValueParameter, IrType> {
-  val type = it.type
-  return it to
-    (type.takeIf { t -> !t.isTypeParameter() }
-      ?: typeParameters
-        .firstOrNull { typeParam -> typeParam.defaultType == type }
-        ?.let { typeParam -> call.getTypeArgument(typeParam.index) }
-        ?: type // Could not resolve the substituted KotlinType
-    )
 }

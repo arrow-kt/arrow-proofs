@@ -1,21 +1,22 @@
 package foo.bar
 
-import arrow.inject.annotations.Provider
-import arrow.inject.annotations.context
+import arrow.inject.annotations.Contextual
+import arrow.inject.annotations.ContextResolution
 
-@Provider class X {
+@Contextual class X {
   val x = "yes!"
 }
 
 context(X)
-@Provider class Y {
+@Contextual class Y {
   val y = x
 }
 
 context(Y)
 fun foo(id: Int): String = "$id: ${this@Y.y}"
 
+context(Y)
+@ContextResolution
 fun main() {
-  context<Y>()
   foo(1)
 }

@@ -13,7 +13,6 @@ import org.jetbrains.kotlin.fir.types.ConeClassLikeType
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.type
 import org.jetbrains.kotlin.ir.util.IdSignature
-import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.types.KotlinType
@@ -66,25 +65,22 @@ internal data class ProofResolution(
 }
 
 internal data class ProofCacheKey(
-  val contextFqName: FqName?,
   val name: String,
   val typeArguments: List<ProofCacheKey>,
 )
 
-internal fun ConeKotlinType.asProofCacheKey(contextFqName: FqName?): ProofCacheKey =
+internal fun ConeKotlinType.asProofCacheKey(): ProofCacheKey =
   ProofCacheKey(
-    contextFqName = contextFqName,
     name =
       when (this) {
         is ConeClassLikeType -> lookupTag.classId.asFqNameString()
         else -> error("Unsupported type")
       },
-    typeArguments = typeArguments.mapNotNull { it.type?.asProofCacheKey(contextFqName) },
+    typeArguments = typeArguments.mapNotNull { it.type?.asProofCacheKey() },
   )
 
-internal fun KotlinType.asProofCacheKey(contextFqName: FqName): ProofCacheKey =
+internal fun KotlinType.asProofCacheKey(): ProofCacheKey =
   ProofCacheKey(
-    contextFqName = contextFqName,
     name =
       when (this) {
         is SimpleType -> {
@@ -93,5 +89,5 @@ internal fun KotlinType.asProofCacheKey(contextFqName: FqName): ProofCacheKey =
         }
         else -> error("Unsupported type")
       },
-    typeArguments = arguments.map { it.type.asProofCacheKey(contextFqName) },
+    typeArguments = arguments.map { it.type.asProofCacheKey() },
   )

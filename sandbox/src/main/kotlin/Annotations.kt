@@ -1,8 +1,5 @@
 package foo.bar
 
-import arrow.inject.annotations.Context
-
-@Context
 @Retention(AnnotationRetention.RUNTIME)
 @Target(
   AnnotationTarget.CLASS,
@@ -13,7 +10,6 @@ import arrow.inject.annotations.Context
 @MustBeDocumented
 annotation class Given
 
-@Context
 @Retention(AnnotationRetention.RUNTIME)
 @Target(
   AnnotationTarget.CLASS,

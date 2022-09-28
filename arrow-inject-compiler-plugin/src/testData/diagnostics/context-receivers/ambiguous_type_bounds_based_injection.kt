@@ -1,12 +1,14 @@
 package foo.bar
 
-import arrow.inject.annotations.Provider
-import arrow.inject.annotations.context
+import arrow.inject.annotations.Contextual
+import arrow.inject.annotations.ContextResolution
 
-@Provider internal fun n(): Int = 42
+@Contextual internal fun n(): Int = 42
 
-@Provider internal fun d(): Double = 33.0
+@Contextual internal fun d(): Double = 33.0
 
+@ContextResolution
+<!AMBIGUOUS_PROOF_FOR_SUPERTYPE!>@ContextResolution<!>
 fun main() {
-  <!AMBIGUOUS_PROOF_FOR_SUPERTYPE!>context<Number>()<!>
+  println(this)
 }

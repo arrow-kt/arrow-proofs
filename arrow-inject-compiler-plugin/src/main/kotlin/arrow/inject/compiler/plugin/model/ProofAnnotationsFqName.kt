@@ -4,13 +4,9 @@ import org.jetbrains.kotlin.fir.extensions.AnnotationFqn
 
 internal object ProofAnnotationsFqName {
 
-  val CompileTimeAnnotation = AnnotationFqn("arrow.inject.annotations.CompileTime")
+  val ContextResolutionAnnotation = AnnotationFqn("arrow.inject.annotations.ContextResolution")
 
-  val ContextAnnotation = AnnotationFqn("arrow.inject.annotations.Context")
+  val ContextualAnnotation = AnnotationFqn("arrow.inject.annotations.Contextual")
 
-  val InjectAnnotation = AnnotationFqn("arrow.inject.annotations.Inject")
-
-  val ResolveAnnotation = AnnotationFqn("arrow.inject.annotations.Resolve")
-
-  val ProviderAnnotation = AnnotationFqn("arrow.inject.annotations.Provider")
+  val ContextualOverrideAnnotation = AnnotationFqn("arrow.inject.annotations.ContextualOverride")
 }

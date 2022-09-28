@@ -43,13 +43,6 @@ internal object FirMetaErrorsDefaultMessages : BaseDiagnosticRendererFactory() {
         RenderProof
       )
       map.put(
-        FirMetaErrors.UNRESOLVED_GIVEN_PROOF,
-        "The provider on the type {0} can't be inductively resolved. Please" +
-          " verify that all parameters have default value or that other injected values" +
-          " have a corresponding provider.",
-        RENDER_KOTLIN_TYPE_MARKER
-      )
-      map.put(
         CIRCULAR_CYCLE_ON_GIVEN_PROOF,
         "The provider on the type {0} has cyclic dependencies: {1}. Please verify" +
           " that providers don't depend on each other for resolution.",

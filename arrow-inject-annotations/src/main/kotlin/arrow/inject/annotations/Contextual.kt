@@ -4,7 +4,8 @@ package arrow.inject.annotations
 @Target(
   AnnotationTarget.CLASS,
   AnnotationTarget.FUNCTION,
-  AnnotationTarget.CONSTRUCTOR,
+  AnnotationTarget.PROPERTY,
+  AnnotationTarget.VALUE_PARAMETER
 )
 @MustBeDocumented
-public annotation class Inject
+public annotation class Contextual

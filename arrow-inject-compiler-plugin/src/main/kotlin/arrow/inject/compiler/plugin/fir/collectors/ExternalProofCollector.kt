@@ -1,7 +1,6 @@
 package arrow.inject.compiler.plugin.fir.collectors
 
-import arrow.inject.annotations.Context
-import arrow.inject.annotations.Inject
+import arrow.inject.annotations.Contextual
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.FirProofIdSignature
 import arrow.inject.compiler.plugin.model.Proof
@@ -14,7 +13,6 @@ import org.jetbrains.kotlin.descriptors.runtime.structure.classId
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.resolve.providers.getClassDeclaredPropertySymbols
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
-import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
@@ -28,18 +26,9 @@ internal class ExternalProofCollector(
 ) : FirAbstractProofComponent, FirProofIdSignature {
 
   fun collectExternalProofs(): List<Proof> =
-    firClasspathResult
-      .filter { it.type == ClasspathResult.Type.Provider }
-      .flatMap { result ->
-        (result.functions + result.classes + result.properties + result.classProperties).map {
-          Proof.Implication(it.fir.idSignature, it.fir)
-        }
-      }
-
-  fun collectExternalInjectables(): List<CallableId> =
     firClasspathResult.flatMap { result ->
-      (result.functions + result.classes + result.properties + result.classProperties).mapNotNull {
-        (it as? FirCallableSymbol)?.callableId
+      (result.functions + result.classes + result.properties + result.classProperties).map {
+        Proof.Implication(it.fir.idSignature, it.fir)
       }
     }
 
@@ -48,7 +37,6 @@ internal class ExternalProofCollector(
       classpathResult.map { result ->
         FirClasspathResult(
           annotation = FqName(result.annotation),
-          type = result.type,
           functions = result.functions.flatMap(session::topLevelFunctionSymbolProviders),
           classes = result.classes.mapNotNull(session::classLikeSymbolProviders),
           properties = result.functions.flatMap(session::topLevelPropertySymbolProviders),
@@ -70,21 +58,11 @@ internal class ExternalProofCollector(
         .scan()
         .use { scanResult ->
           with(scanResult) {
-            contextAnnotations.map { contextAnnotationClassInfo ->
+            contextualAnnotations.map { contextAnnotationClassInfo ->
               ClasspathResult(
-                ClasspathResult.Type.Provider,
                 contextAnnotationClassInfo.name,
                 functionProviders(contextAnnotationClassInfo),
                 classProviders(contextAnnotationClassInfo),
-              )
-            }
-
-            injectAnnotations.map { injectAnnotationClassInfo ->
-              ClasspathResult(
-                ClasspathResult.Type.Injection,
-                injectAnnotationClassInfo.name,
-                functionProviders(injectAnnotationClassInfo),
-                classProviders(injectAnnotationClassInfo),
               )
             }
           }
@@ -110,7 +88,6 @@ internal class ExternalProofCollector(
 
 private data class FirClasspathResult(
   val annotation: FqName,
-  val type: ClasspathResult.Type,
   val functions: List<FirNamedFunctionSymbol>,
   val classes: List<FirClassLikeSymbol<*>>,
   val properties: List<FirVariableSymbol<*>>,
@@ -118,23 +95,13 @@ private data class FirClasspathResult(
 )
 
 private data class ClasspathResult(
-  val type: Type,
   val annotation: String,
   val functions: List<Method>,
   val classes: List<Class<*>>,
-) {
+)
 
-  enum class Type {
-    Provider,
-    Injection,
-  }
-}
-
-private val ScanResult.contextAnnotations: List<ClassInfo>
-  get() = allAnnotations.filter { classInfo -> classInfo.hasAnnotation(Context::class.java) }
-
-private val ScanResult.injectAnnotations: List<ClassInfo>
-  get() = allAnnotations.filter { classInfo -> classInfo.hasAnnotation(Inject::class.java) }
+private val ScanResult.contextualAnnotations: List<ClassInfo>
+  get() = allAnnotations.filter { classInfo -> classInfo.hasAnnotation(Contextual::class.java) }
 
 private fun ScanResult.functionProviders(annotationClassInfo: ClassInfo): List<Method> =
   getClassesWithMethodAnnotation(annotationClassInfo.name).flatMap { classWithContextMethodInfo ->

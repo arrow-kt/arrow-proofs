@@ -1,14 +1,16 @@
 package foo.bar
 
-import arrow.inject.annotations.context
-import arrow.inject.annotations.Provider
+import arrow.inject.annotations.Contextual
+import arrow.inject.annotations.ContextResolution
 
 context(String)
-@Provider internal fun n(): Int = this@String.toInt()
+@Contextual internal fun n(): Int = this@String.toInt()
 
 context(Int)
-@Provider internal fun s(): String = this@Int.toString()
+@Contextual internal fun s(): String = this@Int.toString()
 
+@ContextResolution
+context(<!CIRCULAR_CYCLE_ON_GIVEN_PROOF!>Int<!>)
 fun main() {
-  <!CIRCULAR_CYCLE_ON_GIVEN_PROOF!>context<String>()<!>
+  println(this@Int)
 }

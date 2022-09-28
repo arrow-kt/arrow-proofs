@@ -6,9 +6,6 @@ import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.FirAnnotationContainer
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
-import org.jetbrains.kotlin.fir.declarations.FirClass
-import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirContextReceiver
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationAttributes
@@ -22,7 +19,6 @@ import org.jetbrains.kotlin.fir.declarations.builder.buildSimpleFunction
 import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.origin
-import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.extensions.predicate.DeclarationPredicate
 import org.jetbrains.kotlin.fir.extensions.predicate.annotated
 import org.jetbrains.kotlin.fir.extensions.predicate.metaAnnotated
@@ -49,13 +45,10 @@ internal interface FirAbstractProofComponent {
 
   val session: FirSession
 
-  val contextPredicate: DeclarationPredicate
+  val contextualPredicate: DeclarationPredicate
     get() =
-      annotated(ProofAnnotationsFqName.ContextAnnotation)
-        .or(metaAnnotated(ProofAnnotationsFqName.ContextAnnotation))
-
-  val injectPredicate: DeclarationPredicate
-    get() = annotated(ProofAnnotationsFqName.InjectAnnotation)
+      annotated(ProofAnnotationsFqName.ContextualAnnotation)
+        .or(metaAnnotated(ProofAnnotationsFqName.ContextualAnnotation))
 
   val resolve: FirSimpleFunction
     get() {
@@ -89,52 +82,10 @@ internal interface FirAbstractProofComponent {
       }
     }
 
-  val FirAnnotation.isContextAnnotation: Boolean
+  val FirAnnotationContainer.hasContextualAnnotation: Boolean
     get() {
-      val annotations: List<FirAnnotation> =
-        typeRef.toClassLikeSymbol(session)?.annotations.orEmpty()
-      return annotations.any { it.fqName(session) == ProofAnnotationsFqName.ContextAnnotation }
+      return annotations.any { it.fqName(session) == ProofAnnotationsFqName.ContextualAnnotation }
     }
-
-  val FirAnnotationContainer.metaContextAnnotations: List<FirAnnotation>
-    get() =
-      annotations.filter { firAnnotation ->
-        firAnnotation.typeRef.toClassLikeSymbol(session)?.annotations.orEmpty().any {
-          it.fqName(session) == ProofAnnotationsFqName.ContextAnnotation
-        }
-      }
-
-  val FirAnnotationContainer.hasMetaContextAnnotation: Boolean
-    get() = metaContextAnnotations.isNotEmpty()
-
-  val FirDeclaration.boundedTypes: Map<FqName, ConeKotlinType>
-    get() =
-      when (this) {
-        is FirFunction -> {
-          valueParameters
-            .filter { it.hasMetaContextAnnotation }
-            .associate { it.contextFqNames.first() to it.returnTypeRef.coneType }
-        }
-        is FirClass -> {
-          declarations
-            .filterIsInstance<FirConstructor>()
-            .flatMap { constructor ->
-              constructor.valueParameters
-                .filter { it.hasMetaContextAnnotation }
-                .flatMap { parameter -> parameter.boundedTypes.toList() }
-            }
-            .toMap()
-        }
-        is FirValueParameter -> {
-          mapOf(this.contextFqNames.first() to returnTypeRef.coneType)
-        }
-        else -> {
-          emptyMap()
-        }
-      }
-
-  val FirDeclaration.contextFqNames: Set<FqName>
-    get() = annotations.filter { it.isContextAnnotation }.mapNotNull { it.fqName(session) }.toSet()
 
   private fun typeArgIndex(typeArgs: List<FirTypeParameterSymbol>, expressionType: ConeKotlinType) =
     typeArgs.indexOfFirst { it.name.asString() == expressionType.toString() }

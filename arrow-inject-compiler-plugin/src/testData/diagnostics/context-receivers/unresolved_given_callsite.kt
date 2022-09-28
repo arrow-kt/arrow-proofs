@@ -1,15 +1,15 @@
 package foo.bar
 
-import arrow.inject.annotations.Provider
-import arrow.inject.annotations.context
+import arrow.inject.annotations.Contextual
+import arrow.inject.annotations.ContextResolution
 
 class Persistence
 
 context(Persistence)
 
-@Provider class Repo
+@Contextual class Repo
 
+<!UNRESOLVED_GIVEN_CALL_SITE!>@ContextResolution<!>
 fun main() {
-  <!UNRESOLVED_GIVEN_CALL_SITE!>context<Persistence>()<!>
   val repo: Repo = Repo()
 }

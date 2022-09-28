@@ -1,18 +1,16 @@
 package foo.bar
 
-import arrow.inject.annotations.context
-import arrow.inject.annotations.Provider
-import arrow.inject.annotations.contextual
+import arrow.inject.annotations.Contextual
+import arrow.inject.annotations.ContextuResolution
 
-@Provider
-class Persistence
+@Contextual class Persistence
 
 context(Persistence)
 class Repo(val x: Int)
 
+@ContextResolution
 fun f2(): Int {
   println("will drop from nested body")
-  context<Persistence>()
   return Repo(0).x
 }
 

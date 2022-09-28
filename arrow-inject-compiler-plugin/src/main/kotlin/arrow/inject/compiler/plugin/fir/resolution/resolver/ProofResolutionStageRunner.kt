@@ -5,7 +5,6 @@ import arrow.inject.compiler.plugin.fir.FirResolutionProof
 import arrow.inject.compiler.plugin.fir.ProofKey
 import arrow.inject.compiler.plugin.fir.contextReceivers
 import arrow.inject.compiler.plugin.model.Proof
-import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.typeParameterSymbols
 import org.jetbrains.kotlin.fir.builder.buildPackageDirective
@@ -135,11 +134,7 @@ internal class ProofResolutionStageRunner(
       declaration.contextReceivers.any {
         val targetType = targetType(type, it.typeRef.coneType) ?: it.typeRef.coneType
         val receiverProofResolution =
-          firResolutionProof.resolveProof(
-            ProofAnnotationsFqName.ProviderAnnotation,
-            targetType.type,
-            previousProofs
-          )
+          firResolutionProof.resolveProof(targetType.type, previousProofs)
         receiverProofResolution.proof == this
       }
     }
