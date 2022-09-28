@@ -1,5 +1,6 @@
 package arrow.inject.compiler.plugin.services
 
+import arrow.inject.compiler.plugin.services.AdditionalFilesDirectives.SOME_FILE_DIRECTIVE
 import java.io.File
 import org.jetbrains.kotlin.test.directives.model.DirectivesContainer
 import org.jetbrains.kotlin.test.directives.model.RegisteredDirectives
@@ -9,22 +10,19 @@ import org.jetbrains.kotlin.test.model.TestModule
 import org.jetbrains.kotlin.test.services.AdditionalSourceProvider
 import org.jetbrains.kotlin.test.services.TestServices
 
-class PreludeProvider(
+class AdditionalFilesProvider(
   testServices: TestServices,
   baseDir: String = ".",
 ) : AdditionalSourceProvider(testServices) {
 
-  private val preludePath = File("$baseDir/src/testData/prelude/")
+  private val filesPath = File("$baseDir/src/testData/additional-files/")
 
   private val directiveToFileMap: Map<SimpleDirective, String> =
     mapOf(
-      PreludeAdditionalFilesDirectives.ANNOTATION_DIRECTIVE to
-        File("$preludePath/Annotations.kt").path,
-      PreludeAdditionalFilesDirectives.IDENTITY_DIRECTIVE to File("$preludePath/Identity.kt").path,
+      SOME_FILE_DIRECTIVE to File("$filesPath/SomeFile.kt").path,
     )
 
-  override val directiveContainers: List<DirectivesContainer> =
-    listOf(PreludeAdditionalFilesDirectives)
+  override val directiveContainers: List<DirectivesContainer> = listOf(AdditionalFilesDirectives)
 
   override fun produceAdditionalFiles(
     globalDirectives: RegisteredDirectives,
