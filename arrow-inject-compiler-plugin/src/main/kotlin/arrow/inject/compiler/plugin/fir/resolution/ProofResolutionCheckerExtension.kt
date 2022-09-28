@@ -76,6 +76,5 @@ internal class ProofResolutionCheckerExtension(
 
   override fun FirDeclarationPredicateRegistrar.registerPredicates() {
     register(contextPredicate)
-    register(injectPredicate)
   }
 }

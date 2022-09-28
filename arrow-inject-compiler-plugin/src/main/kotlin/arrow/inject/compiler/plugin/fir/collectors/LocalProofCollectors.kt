@@ -21,7 +21,7 @@ internal class LocalProofCollectors(
 
   fun collectLocalProofs(): List<Proof> = collectLocalProofsIde() + collectLocalProofsCLI()
 
-  fun collectLocalProofsIde(): List<Proof> =
+  private fun collectLocalProofsIde(): List<Proof> =
     session.predicateBasedProvider
       .getSymbolsByPredicate(hasMetaAnnotated(ProofAnnotationsFqName.ContextAnnotation))
       .map { Proof.Implication(it.fir.idSignature, it.fir) }
@@ -42,10 +42,4 @@ internal class LocalProofCollectors(
       )
       localProofs
     }
-
-  fun collectLocalInjectables(): Set<CallableId> =
-    session.predicateBasedProvider
-      .getSymbolsByPredicate(injectPredicate)
-      .mapNotNull { (it as? FirCallableSymbol)?.callableId }
-      .toSet()
 }

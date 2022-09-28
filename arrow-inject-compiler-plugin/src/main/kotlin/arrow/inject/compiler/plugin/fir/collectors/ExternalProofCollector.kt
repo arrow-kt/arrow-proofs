@@ -1,25 +1,21 @@
 package arrow.inject.compiler.plugin.fir.collectors
 
 import arrow.inject.annotations.Context
-import arrow.inject.annotations.Inject
 import arrow.inject.compiler.plugin.fir.FirAbstractProofComponent
 import arrow.inject.compiler.plugin.fir.FirProofIdSignature
 import arrow.inject.compiler.plugin.model.Proof
 import io.github.classgraph.ClassGraph
 import io.github.classgraph.ClassInfo
 import io.github.classgraph.ScanResult
-import java.lang.reflect.Field
 import java.lang.reflect.Method
 import org.jetbrains.kotlin.descriptors.runtime.structure.classId
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.resolve.providers.getClassDeclaredPropertySymbols
 import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
-import org.jetbrains.kotlin.fir.symbols.impl.FirCallableSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassLikeSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirNamedFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol
-import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
@@ -35,13 +31,6 @@ internal class ExternalProofCollector(
           Proof.Implication(it.fir.idSignature, it.fir)
         }
       }
-
-  fun collectExternalInjectables(): List<CallableId> =
-    firClasspathResult.flatMap { result ->
-      (result.functions + result.classes + result.properties + result.classProperties).mapNotNull {
-        (it as? FirCallableSymbol)?.callableId
-      }
-    }
 
   private val firClasspathResult: List<FirClasspathResult>
     get() =
@@ -76,15 +65,6 @@ internal class ExternalProofCollector(
                 contextAnnotationClassInfo.name,
                 functionProviders(contextAnnotationClassInfo),
                 classProviders(contextAnnotationClassInfo),
-              )
-            }
-
-            injectAnnotations.map { injectAnnotationClassInfo ->
-              ClasspathResult(
-                ClasspathResult.Type.Injection,
-                injectAnnotationClassInfo.name,
-                functionProviders(injectAnnotationClassInfo),
-                classProviders(injectAnnotationClassInfo),
               )
             }
           }
@@ -126,15 +106,11 @@ private data class ClasspathResult(
 
   enum class Type {
     Provider,
-    Injection,
   }
 }
 
 private val ScanResult.contextAnnotations: List<ClassInfo>
   get() = allAnnotations.filter { classInfo -> classInfo.hasAnnotation(Context::class.java) }
-
-private val ScanResult.injectAnnotations: List<ClassInfo>
-  get() = allAnnotations.filter { classInfo -> classInfo.hasAnnotation(Inject::class.java) }
 
 private fun ScanResult.functionProviders(annotationClassInfo: ClassInfo): List<Method> =
   getClassesWithMethodAnnotation(annotationClassInfo.name).flatMap { classWithContextMethodInfo ->
@@ -147,16 +123,6 @@ private fun ScanResult.classProviders(annotationClassInfo: ClassInfo): List<Clas
   getClassesWithAnnotation(annotationClassInfo.name).map { contextClassInfo ->
     contextClassInfo.loadClass()
   }
-
-private fun ScanResult.propertyProviders(annotationClassInfo: ClassInfo): List<Field> =
-  getClassesWithFieldAnnotation(annotationClassInfo.name).flatMap { classWithContextFieldInfo ->
-    classWithContextFieldInfo.fieldInfo
-      .filter { fieldInfo -> fieldInfo.hasAnnotation(annotationClassInfo.name) }
-      .mapNotNull { field -> field.loadClassAndGetField() }
-  }
-
-private val Class<*>.callableId: CallableId
-  get() = CallableId(classId, Name.identifier(name))
 
 private fun FirSession.topLevelFunctionSymbolProviders(
   method: Method

@@ -54,9 +54,6 @@ internal interface FirAbstractProofComponent {
       annotated(ProofAnnotationsFqName.ContextAnnotation)
         .or(metaAnnotated(ProofAnnotationsFqName.ContextAnnotation))
 
-  val injectPredicate: DeclarationPredicate
-    get() = annotated(ProofAnnotationsFqName.InjectAnnotation)
-
   val resolve: FirSimpleFunction
     get() {
       val typeArg = buildTypeParameter {
