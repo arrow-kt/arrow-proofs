@@ -14,8 +14,6 @@ public class IrArrowInjectExtensionRegistrar(
 ) : IrGenerationExtension {
 
   override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
-    ProofsIrArgumentsCodegen(proofCache, moduleFragment, pluginContext).generateArguments()
-
     ProofsIrContextReceiversCodegen(proofCache, moduleFragment, pluginContext)
       .generateContextReceivers()
 

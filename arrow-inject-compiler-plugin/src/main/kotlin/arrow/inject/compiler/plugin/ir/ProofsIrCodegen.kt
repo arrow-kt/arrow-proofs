@@ -2,6 +2,7 @@ package arrow.inject.compiler.plugin.ir
 
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
+import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName.ProviderAnnotation
 import arrow.inject.compiler.plugin.model.ProofResolution
 import arrow.inject.compiler.plugin.model.asProofCacheKey
@@ -17,6 +18,7 @@ import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.IrBlockBodyBuilder
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.builders.irBlockBody
+import org.jetbrains.kotlin.ir.declarations.IrAnnotationContainer
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationBase
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
@@ -106,7 +108,7 @@ internal class ProofsIrContextReceiversCodegen(
     }
   }
 
-  fun processBodiesRecursive(
+  private fun processBodiesRecursive(
     declarationParent: IrDeclarationParent,
     body: IrBlockBody,
     steps: List<ReceiverProcessStep>,
@@ -145,18 +147,19 @@ internal class ProofsIrContextReceiversCodegen(
         if (
           lambdaBlockBody is IrBlockBody && (steps.size == 1 || originalStepsSize == 1)
         ) { // last processing nests the remaining
-          val statements = remainingStatements + body.remainingStatementsAfterCall(currentStep.contextCall)
+          val statements =
+            remainingStatements + body.remainingStatementsAfterCall(currentStep.contextCall)
           statements.forEach {
             val patchedStatement =
               if (it is IrReturn) nestedLambda.function.createIrReturn(it.value) else it
             lambdaBlockBody.statements.add(patchedStatement)
           }
         }
-//        if (originalStepsSize == 1) {
-//          val returned = nestedLambda.function.createIrReturn(currentStep.replacementCall)
-//          val lambdaBody: IrBlockBody? = (nestedLambda.function.body as? IrBlockBody)
-//          lambdaBody?.statements?.add(returned)
-//        }
+        //        if (originalStepsSize == 1) {
+        //          val returned = nestedLambda.function.createIrReturn(currentStep.replacementCall)
+        //          val lambdaBody: IrBlockBody? = (nestedLambda.function.body as? IrBlockBody)
+        //          lambdaBody?.statements?.add(returned)
+        //        }
         val statementsBeforeContext = body.statementsBeforeContextCall()
         val newReturn = declarationParent.createIrReturn(currentStep.replacementCall)
         val newStatements =
@@ -490,3 +493,27 @@ internal class ProofsIrContextReceiversCodegen(
 
 val IrFunction.contextReceiversValueParameters: List<IrValueParameter>
   get() = valueParameters.subList(0, contextReceiverParametersCount)
+
+private val IrAnnotationContainer.metaContextAnnotations: List<IrConstructorCall>
+  get() =
+    annotations.filter { irConstructorCall: IrConstructorCall ->
+      irConstructorCall.type
+        .toIrBasedKotlinType()
+        .constructor
+        .declarationDescriptor
+        ?.annotations
+        ?.toList()
+        .orEmpty()
+        .any { annotationDescriptor ->
+          annotationDescriptor.fqName == ProofAnnotationsFqName.ContextAnnotation
+        }
+    }
+
+private val IrFunctionAccessExpression.typeArguments: Map<Int, IrType?>
+  get() {
+    val arguments = arrayListOf<Pair<Int, IrType?>>()
+    for (index in 0 until typeArgumentsCount) {
+      arguments.add(index to getTypeArgument(index))
+    }
+    return arguments.toMap()
+  }
