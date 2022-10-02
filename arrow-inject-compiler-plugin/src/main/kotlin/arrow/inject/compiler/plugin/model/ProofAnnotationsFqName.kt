@@ -11,4 +11,7 @@ internal object ProofAnnotationsFqName {
   val ContextualAnnotation = AnnotationFqn("arrow.inject.annotations.Contextual")
 
   val ContextResolutionAnnotation = AnnotationFqn("arrow.inject.annotations.ContextResolution")
+
+  val ContextResolvedAnnotation = AnnotationFqn("arrow.inject.annotations.ContextResolved")
+
 }

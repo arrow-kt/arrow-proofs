@@ -112,6 +112,12 @@ public class DiagnosticTestGenerated extends AbstractDiagnosticTest {
     }
 
     @Test
+    @TestMetadata("resolution_call_after_resolution.kt")
+    public void testResolution_call_after_resolution() throws Exception {
+        runTest("src/testData/diagnostics/context-receivers/resolution_call_after_resolution.kt");
+    }
+
+    @Test
     @TestMetadata("resolution_circular_proof_single_cycle_rule.kt")
     public void testResolution_circular_proof_single_cycle_rule() throws Exception {
         runTest("src/testData/diagnostics/context-receivers/resolution_circular_proof_single_cycle_rule.kt");

@@ -494,7 +494,7 @@ internal class ProofsIrContextReceiversCodegen(
 val IrFunction.contextReceiversValueParameters: List<IrValueParameter>
   get() = valueParameters.subList(0, contextReceiverParametersCount)
 
-private val IrAnnotationContainer.metaContextAnnotations: List<IrConstructorCall>
+internal val IrAnnotationContainer.metaContextAnnotations: List<IrConstructorCall>
   get() =
     annotations.filter { irConstructorCall: IrConstructorCall ->
       irConstructorCall.type

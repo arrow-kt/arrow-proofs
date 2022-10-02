@@ -57,6 +57,9 @@ internal interface FirAbstractProofComponent {
       annotated(ProofAnnotationsFqName.ContextAnnotation)
         .or(metaAnnotated(ProofAnnotationsFqName.ContextAnnotation))
 
+  val contextResolutionPredicate: DeclarationPredicate
+    get() = annotated(ProofAnnotationsFqName.ContextResolutionAnnotation)
+
   val resolve: FirSimpleFunction
     get() {
       val typeArg = buildTypeParameter {
@@ -137,9 +140,8 @@ internal interface FirAbstractProofComponent {
     get() = annotations.filter { it.isContextAnnotation }.mapNotNull { it.fqName(session) }.toSet()
 
   val FirCallableDeclaration.hasContextResolutionAnnotation: Boolean
-    get() = annotations.any {
-      it.fqName(session) == ProofAnnotationsFqName.ContextResolutionAnnotation
-    }
+    get() =
+      annotations.any { it.fqName(session) == ProofAnnotationsFqName.ContextResolutionAnnotation }
 
   fun FirElement.contextAnnotation(): FqName? =
     when (this) {

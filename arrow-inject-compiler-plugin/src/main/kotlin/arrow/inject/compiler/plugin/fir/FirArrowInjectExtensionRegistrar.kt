@@ -1,5 +1,6 @@
 package arrow.inject.compiler.plugin.fir
 
+import arrow.inject.compiler.plugin.fir.codegen.ContextResolutionCodegen
 import arrow.inject.compiler.plugin.fir.resolution.ProofResolutionCheckerExtension
 import arrow.inject.compiler.plugin.fir.resolution.checkers.call.AmbiguousProofsChecker
 import arrow.inject.compiler.plugin.fir.resolution.checkers.call.CyclesDetectionChecker
@@ -13,6 +14,7 @@ import arrow.inject.compiler.plugin.fir.resolution.checkers.declaration.Publishe
 import arrow.inject.compiler.plugin.fir.resolution.checkers.declaration.UnresolvedResolutionChecker
 import arrow.inject.compiler.plugin.fir.resolution.checkers.type.ContextReceiverProofTypeChecker
 import arrow.inject.compiler.plugin.fir.resolution.contexts.ContextProvidersResolutionExtension
+import arrow.inject.compiler.plugin.fir.resolution.contexts.ContextResolutionImplicits
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.extensions.FirExtensionRegistrar
@@ -22,7 +24,9 @@ public class FirArrowInjectExtensionRegistrar(
 ) : FirExtensionRegistrar() {
 
   override fun ExtensionRegistrarContext.configurePlugin() {
+    +{ session: FirSession -> ContextResolutionCodegen(proofCache, session) }
     +{ session: FirSession -> ContextProvidersResolutionExtension(proofCache, session) }
+    +{ session: FirSession -> ContextResolutionImplicits(proofCache, session) }
     +{ session: FirSession ->
       ProofResolutionCheckerExtension(
         session = session,

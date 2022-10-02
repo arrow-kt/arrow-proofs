@@ -45,4 +45,16 @@ public class BoxTestGenerated extends AbstractBoxTest {
     public void testContext_receivers_with_two_type_parameters() throws Exception {
         runTest("src/testData/box/context-receivers/context_receivers_with_two_type_parameters.kt");
     }
+
+    @Test
+    @TestMetadata("resolution_call_after_resolution.kt")
+    public void testResolution_call_after_resolution() throws Exception {
+        runTest("src/testData/box/context-receivers/resolution_call_after_resolution.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_call_after_resolution_2.kt")
+    public void testResolution_call_after_resolution_2() throws Exception {
+        runTest("src/testData/box/context-receivers/resolution_call_after_resolution_2.kt");
+    }
 }

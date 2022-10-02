@@ -3,4 +3,4 @@ package arrow.inject.annotations
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION)
 @MustBeDocumented
-annotation class ContextResolution
+annotation class ContextResolved

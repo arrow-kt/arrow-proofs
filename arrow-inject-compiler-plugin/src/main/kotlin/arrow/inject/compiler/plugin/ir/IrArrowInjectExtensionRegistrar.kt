@@ -17,6 +17,9 @@ public class IrArrowInjectExtensionRegistrar(
     ProofsIrContextReceiversCodegen(proofCache, moduleFragment, pluginContext)
       .generateContextReceivers()
 
+    ContextResolvedIrCodegen(proofCache, moduleFragment, pluginContext)
+      .generateContextResolvedBody()
+
     moduleFragment.removeCompileTimeDeclarations()
   }
 
