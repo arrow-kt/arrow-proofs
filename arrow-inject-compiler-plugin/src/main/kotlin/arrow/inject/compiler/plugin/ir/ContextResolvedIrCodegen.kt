@@ -41,7 +41,7 @@ internal class ContextResolvedIrCodegen(
         val mirrorFunction = parent.mirrorFunction()
         if (mirrorFunction != null) {
           val body = irFactory.createBlockBodyFromFunctionStatements(mirrorFunction)
-          val steps = buildProcessSteps(mirrorFunction)
+          val steps = createCallAndContextReceiverType(mirrorFunction)
           val functionBody =
             processBodiesRecursive(parent, body, steps, null, emptyList(), steps.size)
           parent.body = functionBody
@@ -52,7 +52,7 @@ internal class ContextResolvedIrCodegen(
     }
   }
 
-  private fun buildProcessSteps(mirrorFunction: IrFunction): List<Pair<IrCall, IrType>> =
+  private fun createCallAndContextReceiverType(mirrorFunction: IrFunction): List<Pair<IrCall, IrType>> =
     mirrorFunction.contextReceiversValueParameters.map { ctx ->
       val call = contextualFunction.owner.irCall() as IrCall
       val returningBlockType: IrType = irBuiltIns.returningBlockType(mirrorFunction)
@@ -82,7 +82,7 @@ internal class ContextResolvedIrCodegen(
         val extensionReceiverParam = nestedLambda.function.extensionReceiverParameter
         requireNotNull(extensionReceiverParam) { "Expected extension receiver parameter" }
         setValueArgument0ToContextualReceiver(0, type, call, extensionReceiverParam)
-        setValueArgument1ToLambda(call, nestedLambda)
+        call.putValueArgument(1, nestedLambda)
         if (shouldNestStatementsOnNestedLambda(steps, totalSteps))
           irBuiltIns.addStatements(nestedLambda.function, statements)
         val transformedBody = irBuiltIns.createBodyReturningExpression(declarationParent, call)
@@ -104,11 +104,6 @@ internal class ContextResolvedIrCodegen(
     steps: List<Pair<IrCall, IrType>>,
     originalStepsSize: Int
   ): Boolean = steps.size == 1 || originalStepsSize == 1
-
-  private fun setValueArgument1ToLambda(
-    replacementCall: IrCall,
-    nestedLambda: IrFunctionExpression
-  ) = replacementCall.putValueArgument(1, nestedLambda)
 
   private fun insertCallInLambda(
     previousStepLambdaFunction: IrSimpleFunction,
@@ -146,11 +141,9 @@ internal class ContextResolvedIrCodegen(
         }
       }
       if (replacementCall.valueArgumentsCount > index) {
-        if (this is IrMemberAccessExpression<*>) {
-          if (this.valueArgumentsCount > index) {
-            val valueArg = receiverParam.irCall()
-            this.putValueArgument(index, valueArg)
-          }
+        if (this is IrMemberAccessExpression<*> && this.valueArgumentsCount > index) {
+          val valueArg = receiverParam.irCall()
+          this.putValueArgument(index, valueArg)
         }
         replacementCall.putValueArgument(index, this)
       }
