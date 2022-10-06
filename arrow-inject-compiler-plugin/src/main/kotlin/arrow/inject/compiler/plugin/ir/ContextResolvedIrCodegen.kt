@@ -2,28 +2,31 @@ package arrow.inject.compiler.plugin.ir
 
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
+import kotlin.collections.set
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
-import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationParent
+import org.jetbrains.kotlin.ir.declarations.IrFunction
+import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.declarations.IrValueParameter
+import org.jetbrains.kotlin.ir.expressions.IrBlockBody
+import org.jetbrains.kotlin.ir.expressions.IrBody
+import org.jetbrains.kotlin.ir.expressions.IrCall
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
+import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
+import org.jetbrains.kotlin.ir.symbols.IrValueParameterSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.IrValueParameterSymbolImpl
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContextImpl
+import org.jetbrains.kotlin.ir.util.DeepCopySymbolRemapper
+import org.jetbrains.kotlin.ir.util.deepCopyWithSymbols
 import org.jetbrains.kotlin.ir.util.dump
 import org.jetbrains.kotlin.ir.util.hasAnnotation
+import org.jetbrains.kotlin.ir.util.statements
 import org.jetbrains.kotlin.types.model.TypeSystemContext
-import kotlin.collections.List
-import kotlin.collections.Map
-import kotlin.collections.MutableMap
-import kotlin.collections.drop
-import kotlin.collections.emptyList
-import kotlin.collections.first
-import kotlin.collections.forEachIndexed
-import kotlin.collections.map
-import kotlin.collections.mutableMapOf
-import kotlin.collections.set
 
 internal class ContextResolvedIrCodegen(
   override val proofCache: ProofCache,
@@ -42,8 +45,17 @@ internal class ContextResolvedIrCodegen(
         if (mirrorFunction != null) {
           val body = irFactory.createBlockBodyFromFunctionStatements(mirrorFunction)
           val steps = createCallAndContextReceiverType(mirrorFunction)
+          val clonedStatements =
+            mirrorFunction.body?.statements.orEmpty().map { it.deepCopyWithSymbols() }
           val functionBody =
-            processBodiesRecursive(parent, body, steps, null, emptyList(), steps.size)
+            processBodiesRecursive(
+              declarationParent = parent,
+              body = body,
+              steps = steps,
+              previousLambda = null,
+              statements = clonedStatements,
+              totalSteps = steps.size,
+            )
           parent.body = functionBody
           println(parent.dump())
           parent
@@ -52,15 +64,19 @@ internal class ContextResolvedIrCodegen(
     }
   }
 
-  private fun createCallAndContextReceiverType(mirrorFunction: IrFunction): List<Pair<IrCall, IrType>> =
-    mirrorFunction.contextReceiversValueParameters.map { ctx ->
-      val call = contextualFunction.owner.irCall() as IrCall
-      val returningBlockType: IrType = irBuiltIns.returningBlockType(mirrorFunction)
-      call.setTypeArguments(ctx.type, returningBlockType)
-      Pair(call, ctx.type)
+  private fun createCallAndContextReceiverType(
+    mirrorFunction: IrFunction
+  ): List<Pair<IrCall, IrType>> =
+    mirrorFunction.contextReceiversValueParameters.flatMap { ctx ->
+      getAllContextReceiversTypes(ctx.type, mutableListOf()).map { type ->
+        val call = contextualFunction.owner.irCall() as IrCall
+        val returningBlockType: IrType = irBuiltIns.returningBlockType(mirrorFunction)
+        call.setTypeArguments(type, returningBlockType)
+        Pair(call, type)
+      }
     }
 
-  private tailrec fun processBodiesRecursive(
+  private fun processBodiesRecursive(
     declarationParent: IrDeclarationParent,
     body: IrBlockBody,
     steps: List<Pair<IrCall, IrType>>,
@@ -76,16 +92,28 @@ internal class ContextResolvedIrCodegen(
         // current `with` call and context receiver type
         val (call, type) = steps.first()
         val paramSymbol = IrValueParameterSymbolImpl()
-        if (previousLambda != null)
-          insertCallInLambda(previousLambda, call)
+        if (previousLambda != null) insertCallInLambda(previousLambda, call)
         val nestedLambda = createNestedLambda(declarationParent, type, call.type, paramSymbol)
         val extensionReceiverParam = nestedLambda.function.extensionReceiverParameter
         requireNotNull(extensionReceiverParam) { "Expected extension receiver parameter" }
-        setValueArgument0ToContextualReceiver(0, type, call, extensionReceiverParam)
+        val previousLambdaParameter = previousLambda?.extensionReceiverParameter
+        val previousType = previousLambdaParameter?.type ?: type
+        setValueArgument0ToContextualReceiver(
+          index = 0,
+          previousIrType = previousType,
+          irType = type,
+          replacementCall = call,
+          receiverParam = previousLambdaParameter ?: extensionReceiverParam
+        )
         call.putValueArgument(1, nestedLambda)
-        if (shouldNestStatementsOnNestedLambda(steps, totalSteps))
+        if (shouldNestStatementsOnNestedLambda(steps, totalSteps)) {
+          // TODO
+          //replaceMirrorReceiverExpressionWithReceiverValues(previousType, statements, internalSymbolState)
           irBuiltIns.addStatements(nestedLambda.function, statements)
-        val transformedBody = irBuiltIns.createBodyReturningExpression(declarationParent, call)
+        }
+        val transformedBody =
+          if (steps.size == 1) body
+          else irBuiltIns.createBodyReturningExpression(declarationParent, call)
         internalSymbolState[type] = paramSymbol
         replaceErrorExpressionsWithReceiverValues(transformedBody, internalSymbolState)
         processBodiesRecursive(
@@ -126,8 +154,33 @@ internal class ContextResolvedIrCodegen(
     }
   }
 
+  private fun replaceMirrorReceiverExpressionWithReceiverValues(
+    previousIrType: IrType,
+    statements: List<IrStatement>,
+    paramSymbol: Map<IrType, IrValueParameterSymbolImpl>
+  ) {
+    statements.forEach {
+      it.transformFunctionAccess { call ->
+        val lambdaSymbol = paramSymbol[previousIrType]
+        if (lambdaSymbol != null && call.valueArgumentsCount > 0) {
+          call.getValueArgument(0)?.deepCopyWithSymbols(
+            null,
+            object : DeepCopySymbolRemapper() {
+              override fun getDeclaredValueParameter(
+                symbol: IrValueParameterSymbol
+              ): IrValueParameterSymbol {
+                return if (symbol == lambdaSymbol) lambdaSymbol else symbol
+              }
+            }
+          )
+        } else null
+      }
+    }
+  }
+
   private fun setValueArgument0ToContextualReceiver(
     index: Int,
+    previousIrType: IrType,
     irType: IrType,
     replacementCall: IrMemberAccessExpression<*>,
     receiverParam: IrValueParameter
@@ -137,7 +190,7 @@ internal class ContextResolvedIrCodegen(
         symbol.owner.contextReceiversValueParameters.forEachIndexed { index, param ->
           val targetType = targetType(irType, param.type)
           val resolvedType = targetType ?: param.type
-          setValueArgument0ToContextualReceiver(index, resolvedType, this, param)
+          setValueArgument0ToContextualReceiver(index, previousIrType, resolvedType, this, param)
         }
       }
       if (replacementCall.valueArgumentsCount > index) {
@@ -155,5 +208,4 @@ internal class ContextResolvedIrCodegen(
     putTypeArgument(1, returningBlockType)
     type = returningBlockType
   }
-
 }

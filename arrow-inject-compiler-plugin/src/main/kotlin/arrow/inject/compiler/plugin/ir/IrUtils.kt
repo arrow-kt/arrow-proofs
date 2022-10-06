@@ -10,8 +10,22 @@ import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.IrBlockBodyBuilder
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
 import org.jetbrains.kotlin.ir.builders.irBlockBody
-import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationParent
+import org.jetbrains.kotlin.ir.declarations.IrFactory
+import org.jetbrains.kotlin.ir.declarations.IrFunction
+import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.declarations.IrReturnTarget
+import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.declarations.IrValueParameter
+import org.jetbrains.kotlin.ir.expressions.IrBlockBody
+import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
+import org.jetbrains.kotlin.ir.expressions.IrErrorExpression
+import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
+import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
+import org.jetbrains.kotlin.ir.expressions.IrReturn
+import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrFunctionExpressionImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrReturnImpl
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
@@ -27,7 +41,9 @@ import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
-fun IrModuleFragment.irTransformFunctionBlockBodies(transformBody: (IrFunction) -> IrStatement?): Unit =
+fun IrModuleFragment.irTransformFunctionBlockBodies(
+  transformBody: (IrFunction) -> IrStatement?
+): Unit =
   transformChildren(
     object : IrElementTransformer<Unit> {
 
@@ -38,18 +54,33 @@ fun IrModuleFragment.irTransformFunctionBlockBodies(transformBody: (IrFunction) 
     Unit
   )
 
+fun IrStatement.transformFunctionAccess(
+  transformFunctionAccess: (IrFunctionAccessExpression) -> IrStatement?
+): Unit =
+  transformChildren(
+    object : IrElementTransformer<Unit> {
+
+      override fun visitFunctionAccess(
+        expression: IrFunctionAccessExpression,
+        data: Unit
+      ): IrElement =
+        expression.transformChildren(this, Unit).let {
+          transformFunctionAccess(expression) ?: super.visitFunctionAccess(expression, data)
+        }
+    },
+    Unit
+  )
+
 fun IrBuiltIns.createIrReturn(parent: IrDeclarationParent, expression: IrExpression): IrReturn =
   IrReturnImpl(
     UNDEFINED_OFFSET,
     UNDEFINED_OFFSET,
     nothingType,
-    (this as IrReturnTarget).symbol,
+    (parent as IrReturnTarget).symbol,
     expression
   )
 
-fun IrElement.transformNestedErrorExpressions(
-  transform: (IrErrorExpression) -> IrExpression?
-) {
+fun IrElement.transformNestedErrorExpressions(transform: (IrErrorExpression) -> IrExpression?) {
   transformChildren(
     object : IrElementTransformer<Unit> {
 
@@ -62,20 +93,37 @@ fun IrElement.transformNestedErrorExpressions(
   )
 }
 
+fun IrElement.transformIrValueParameter(transform: (IrValueParameter) -> IrStatement?) {
+  transformChildren(
+    object : IrElementTransformer<Unit> {
+
+      override fun visitValueParameter(declaration: IrValueParameter, data: Unit): IrStatement =
+        declaration.transformChildren(this, Unit).let {
+          transform(declaration) ?: super.visitValueParameter(declaration, data)
+        }
+    },
+    Unit
+  )
+}
+
 fun IrFactory.createBlockBody(newStatements: List<IrStatement>): IrBlockBody =
   createBlockBody(UNDEFINED_OFFSET, UNDEFINED_OFFSET, newStatements)
 
 fun IrFactory.createBlockBodyFromFunctionStatements(fn: IrSimpleFunction) =
   createBlockBody(fn.body?.statements.orEmpty())
 
-fun IrPluginContext.topLevelFunctionSymbol(pck: String, callableName: String): IrSimpleFunctionSymbol =
+fun IrPluginContext.topLevelFunctionSymbol(
+  pck: String,
+  callableName: String
+): IrSimpleFunctionSymbol =
   referenceFunctions(
-    CallableId(
-      packageName = FqName(pck),
-      className = null,
-      callableName = Name.identifier(callableName)
+      CallableId(
+        packageName = FqName(pck),
+        className = null,
+        callableName = Name.identifier(callableName)
+      )
     )
-  ).first()
+    .first()
 
 fun IrBuiltIns.createBodyReturningExpression(
   declarationParent: IrDeclarationParent,
@@ -111,12 +159,12 @@ fun IrResolution.createLambdaExpressionWithoutParent(
   function.extensionReceiverParameter = withFunReceiverParameter(function, type, paramSymbol)
 
   return IrFunctionExpressionImpl(
-    UNDEFINED_OFFSET,
-    UNDEFINED_OFFSET,
-    irBuiltIns.nothingType,
-    function,
-    IrStatementOrigin.LAMBDA
-  )
+      UNDEFINED_OFFSET,
+      UNDEFINED_OFFSET,
+      irBuiltIns.nothingType,
+      function,
+      IrStatementOrigin.LAMBDA
+    )
     .also {
       val extensionAnnotation =
         irBuiltIns.findClass(Name.identifier("ExtensionFunctionType"), "kotlin")
@@ -154,9 +202,6 @@ fun IrResolution.createNestedLambda(
   returningBlockType: IrType,
   paramSymbol: IrValueParameterSymbolImpl
 ): IrFunctionExpression {
-  return createLambdaExpressionWithoutParent(type, returningBlockType, paramSymbol) {
-    blockBody {}
-  }.also {
-    it.function.parent = declarationParent
-  }
+  return createLambdaExpressionWithoutParent(type, returningBlockType, paramSymbol) { blockBody {} }
+    .also { it.function.parent = declarationParent }
 }

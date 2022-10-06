@@ -11,7 +11,9 @@ import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
+import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrValueParameterSymbol
@@ -123,4 +125,21 @@ interface IrResolution : IrPluginContext, ProofsIrAbstractCodegen {
     }
   }
 
+  fun getAllContextReceiversTypes(
+    irType: IrType?,
+    previousIrTypes: MutableList<IrType>,
+  ): List<IrType> {
+    if (irType != null) {
+      previousIrTypes.add(irType)
+      val expression = contextProofCall(irType)
+      if (expression is IrFunctionAccessExpression) {
+        expression.symbol.owner.contextReceiversValueParameters.flatMap { param ->
+          val targetType = targetType(irType, param.type)
+          val resolvedType = targetType ?: param.type
+          getAllContextReceiversTypes(resolvedType, previousIrTypes)
+        }
+      }
+    }
+    return previousIrTypes.reversed()
+  }
 }
