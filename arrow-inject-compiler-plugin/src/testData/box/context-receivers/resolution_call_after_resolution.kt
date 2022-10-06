@@ -3,19 +3,20 @@ package foo.bar
 import arrow.inject.annotations.context
 import arrow.inject.annotations.Contextual
 import arrow.inject.annotations.ContextResolution
-import arrow.inject.annotations.contextual
 
 @Contextual
 class A
 
 context(A)
-class B(val x: Int)
+@Contextual class B
 
-context(A)
+context(B)
+class C(val x: Int)
+
+context(B)
 @ContextResolution
-fun f2(): Int {
-  return B(0).x
-}
+fun f2(): Int = C(0).x
+
 
 fun box(): String {
   val result = f2()

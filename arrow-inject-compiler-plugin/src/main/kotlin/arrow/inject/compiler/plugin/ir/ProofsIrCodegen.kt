@@ -94,7 +94,7 @@ internal class ProofsIrContextReceiversCodegen(
     }
   }
 
-  fun buildProcessSteps(body: IrBlockBody): List<ReceiverProcessStep> {
+  private fun buildProcessSteps(body: IrBlockBody): List<ReceiverProcessStep> {
     val contextCall = body.findNestedContextCall()
     return if (contextCall == null) emptyList()
     else {

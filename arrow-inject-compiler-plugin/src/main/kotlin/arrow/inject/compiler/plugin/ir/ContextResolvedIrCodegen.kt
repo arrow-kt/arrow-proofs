@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.fir.declarations.FirMemberDeclaration
 import org.jetbrains.kotlin.fir.declarations.utils.visibility
+import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.IrBlockBodyBuilder
@@ -25,17 +26,23 @@ import org.jetbrains.kotlin.ir.declarations.IrReturnTarget
 import org.jetbrains.kotlin.ir.declarations.IrTypeParametersContainer
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.descriptors.toIrBasedKotlinType
+import org.jetbrains.kotlin.ir.expressions.IrBlockBody
+import org.jetbrains.kotlin.ir.expressions.IrBody
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
+import org.jetbrains.kotlin.ir.expressions.IrErrorExpression
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
 import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrReturn
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.impl.IrFunctionExpressionImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrReturnImpl
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrValueParameterSymbol
+import org.jetbrains.kotlin.ir.symbols.impl.IrValueParameterSymbolImpl
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.IrTypeArgument
 import org.jetbrains.kotlin.ir.types.IrTypeSubstitutor
@@ -45,8 +52,11 @@ import org.jetbrains.kotlin.ir.types.classFqName
 import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.types.typeWith
 import org.jetbrains.kotlin.ir.util.constructors
+import org.jetbrains.kotlin.ir.util.dump
+import org.jetbrains.kotlin.ir.util.dumpKotlinLike
 import org.jetbrains.kotlin.ir.util.getPackageFragment
 import org.jetbrains.kotlin.ir.util.hasAnnotation
+import org.jetbrains.kotlin.ir.util.statements
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformer
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.FqName
@@ -62,70 +72,212 @@ internal class ContextResolvedIrCodegen(
   TypeSystemContext by IrTypeSystemContextImpl(irPluginContext.irBuiltIns),
   ProofsIrAbstractCodegen {
 
-  private val withFunction: IrSimpleFunctionSymbol
+  private val contextualFunction: IrSimpleFunctionSymbol
     get() =
       referenceFunctions(
           CallableId(
-            packageName = FqName("kotlin"),
+            packageName = FqName("arrow.inject.annotations"),
             className = null,
-            callableName = Name.identifier("with")
+            callableName = Name.identifier("contextual")
           )
         )
         .first()
 
   fun generateContextResolvedBody() {
-    irTransformFunctionBlockBodies { declaration ->
-      if (declaration.hasAnnotation(ProofAnnotationsFqName.ContextResolvedAnnotation)) {
-        val packageFqName = declaration.getPackageFragment().fqName
-        val name = declaration.name
+    irTransformFunctionBlockBodies { parent ->
+      if (parent.hasAnnotation(ProofAnnotationsFqName.ContextResolvedAnnotation)) {
+        val packageFqName = parent.getPackageFragment().fqName
+        val name = parent.name
         val matchingFunctions = referenceFunctions(CallableId(packageFqName, name))
         val mirrorFunction =
-          matchingFunctions.firstOrNull {
-            it.owner.hasAnnotation(ProofAnnotationsFqName.ContextResolutionAnnotation)
-          }
-        val contextReceivers = mirrorFunction?.owner?.contextReceiversValueParameters.orEmpty()
-
-        declaration
+          matchingFunctions
+            .firstOrNull {
+              it.owner.hasAnnotation(ProofAnnotationsFqName.ContextResolutionAnnotation)
+            }
+            ?.owner
+        val body = createBlockBody(mirrorFunction?.body?.statements.orEmpty())
+        val steps = buildProcessSteps(mirrorFunction)
+        val functionBody =
+          if (steps.isNotEmpty())
+            processBodiesRecursive(parent, body as IrBlockBody, steps, null, emptyList(), steps.size)
+          else body
+        parent.body = functionBody
+        println(parent.dump())
+        parent
       } else null
     }
   }
 
-  private fun generateWithCall(
-    declaration: IrFunction,
-    currentCall: IrCall?,
-    contextReceivers: List<IrValueParameter>,
-  ): IrCall? {
-    return when {
-      contextReceivers.isEmpty() -> currentCall
-      else -> {
-        val head = contextReceivers.first()
-        val tail = contextReceivers.drop(1)
-        val irType = head.type
-        val replacementCall = (withFunction.owner.irCall() as IrCall)
-        processContextReceiver(0, irType, replacementCall, null)
-//        val nestedLambda =
-//          createLambdaExpressionWithoutParent(currentStep.type, returningBlockType, paramSymbol) {
-//            blockBody {
-//
-//            }.statements.add(declaration.createIrReturn(currentCall))
-//          }
-
-        generateWithCall(declaration, replacementCall, tail)
-      }
+  private fun buildProcessSteps(mirrorFunction: IrFunction?): List<ReceiverProcessStep> {
+    val targetTypes: List<IrType> =
+      mirrorFunction?.contextReceiversValueParameters.orEmpty().map { it.type }
+    return targetTypes.map { type ->
+      ReceiverProcessStep(contextualFunction.owner.irCall() as IrCall, type)
     }
   }
 
+  data class ReceiverProcessStep(val replacementCall: IrCall, val type: IrType) {
+    override fun toString(): String {
+      return "step: ${type.dumpKotlinLike()}"
+    }
+  }
+
+  private fun processBodiesRecursive(
+    declarationParent: IrDeclarationParent,
+    body: IrBlockBody,
+    steps: List<ReceiverProcessStep>,
+    previousStepLambda: IrFunctionExpression?,
+    statements: List<IrStatement>,
+    originalStepsSize: Int,
+    paramSymbols: MutableMap<IrType, IrValueParameterSymbolImpl> = mutableMapOf()
+  ): IrBody =
+    when {
+      steps.isEmpty() -> body // done processing
+      else -> {
+        val currentStep: ReceiverProcessStep = steps.first()
+        val returningBlockType: IrType = declarationParent.returningBlockType()
+        currentStep.replacementCall.addReplacedTypeArguments(currentStep.type, returningBlockType)
+        val paramSymbol = IrValueParameterSymbolImpl()
+        if (previousStepLambda != null) {
+          val returned = previousStepLambda.function.createIrReturn(currentStep.replacementCall)
+          val previousLambdaBody: IrBlockBody? = (previousStepLambda.function.body as? IrBlockBody)
+          previousLambdaBody?.statements?.add(returned)
+        }
+        val nestedLambda =
+          createLambdaExpressionWithoutParent(currentStep.type, returningBlockType, paramSymbol) {
+            blockBody {}
+          }
+        nestedLambda.function.parent = declarationParent
+        val extensionReceiverParam = nestedLambda.function.extensionReceiverParameter
+        if (extensionReceiverParam != null)
+          processContextReceiver(
+            0,
+            currentStep.type,
+            currentStep.replacementCall,
+            previousStepLambda?.function?.extensionReceiverParameter
+          )
+        currentStep.replacementCall.putValueArgument(1, nestedLambda)
+        val lambdaBlockBody = nestedLambda.function.body
+        // last processing nests the remaining
+        if (lambdaBlockBody is IrBlockBody && (steps.size == 1 || originalStepsSize == 1)) {
+          statements.forEach {
+            val patchedStatement =
+              if (it is IrReturn) nestedLambda.function.createIrReturn(it.value) else it
+            lambdaBlockBody.statements.add(patchedStatement)
+          }
+        }
+        val newReturn = declarationParent.createIrReturn(currentStep.replacementCall)
+        val newStatements = listOf(newReturn)
+        val transformedBody = createBlockBody(newStatements)
+        paramSymbols[currentStep.type] = paramSymbol
+        replaceErrorExpressionsWithReceiverValues(transformedBody, paramSymbols)
+        val nextSteps = steps.drop(1)
+        processBodiesRecursive(
+          nestedLambda.function,
+          transformedBody,
+          nextSteps,
+          nestedLambda,
+          statements,
+          originalStepsSize,
+          paramSymbols
+        )
+      }
+    }
+
+  private fun createBlockBody(newStatements: List<IrStatement>): IrBlockBody =
+    irFactory.createBlockBody(UNDEFINED_OFFSET, UNDEFINED_OFFSET, newStatements)
+
+  private fun replaceErrorExpressionsWithReceiverValues(
+    transformedBody: IrBlockBody,
+    paramSymbol: Map<IrType, IrValueParameterSymbolImpl>
+  ) {
+    transformedBody.transformNestedErrorExpressions { errorExpression ->
+      val symbol = paramSymbol[errorExpression.type]
+      if (symbol != null) {
+        IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, symbol)
+      } else errorExpression
+    }
+  }
+
+  private fun IrElement.transformNestedErrorExpressions(
+    transform: (IrErrorExpression) -> IrExpression?
+  ) {
+    transformChildren(
+      object : IrElementTransformer<Unit> {
+
+        override fun visitErrorExpression(expression: IrErrorExpression, data: Unit): IrExpression =
+          expression.transformChildren(this, Unit).let {
+            transform(expression) ?: super.visitErrorExpression(expression, data)
+          }
+      },
+      Unit
+    )
+  }
+
+  private tailrec fun generateContextualCall(
+    currentCall: IrCall?,
+    mirrorBody: IrBody?,
+    previousStepLambda: IrFunctionExpression?,
+    declaration: IrFunction,
+    contextReceivers: List<IrValueParameter>,
+  ): IrCall? =
+    when {
+      contextReceivers.isEmpty() -> currentCall
+      else -> {
+        val call: IrCall = (contextualFunction.owner.irCall() as IrCall)
+        val contextReceiver = contextReceivers.first()
+        val remainingReceivers = contextReceivers.drop(1)
+        // add current call to call
+        val returningBlockType: IrType = declaration.returningBlockType()
+        val paramSymbol = IrValueParameterSymbolImpl()
+
+        call.addReplacedTypeArguments(contextReceiver.type, returningBlockType)
+
+        if (previousStepLambda != null && currentCall != null) {
+          val returned = previousStepLambda.function.createIrReturn(currentCall)
+          val previousLambdaBody: IrBlockBody? = (previousStepLambda.function.body as? IrBlockBody)
+          previousLambdaBody?.statements?.add(returned)
+        }
+
+        processContextReceiver(
+          0,
+          contextReceiver.type,
+          call,
+          previousStepLambda?.function?.extensionReceiverParameter
+        )
+
+        val nestedLambda =
+          createLambdaExpressionWithoutParent(
+            contextReceiver.type,
+            returningBlockType,
+            paramSymbol
+          ) {
+            blockBody {}
+          }
+        nestedLambda.function.parent = declaration
+        call.putValueArgument(1, nestedLambda)
+        val nestedLambdaBody = nestedLambda.function.body as IrBlockBody
+        val returnCall = currentCall ?: call
+
+        if (remainingReceivers.isEmpty()) {
+          mirrorBody?.statements?.forEach {
+            val patchedStatement =
+              if (it is IrReturn) nestedLambda.function.createIrReturn(it.value) else it
+            nestedLambdaBody.statements.add(patchedStatement)
+          }
+        }
+        generateContextualCall(
+          returnCall,
+          mirrorBody,
+          nestedLambda,
+          declaration,
+          remainingReceivers
+        )
+      }
+    }
+
   private fun IrDeclarationParent.returningBlockType() =
     (this as? IrFunction)?.returnType ?: irBuiltIns.nothingType
-
-  private fun IrDeclarationParent.createIrReturn(expression: IrExpression): IrReturn =
-    IrReturnImpl(
-      UNDEFINED_OFFSET,
-      UNDEFINED_OFFSET,
-      irBuiltIns.nothingType,
-      (this as IrReturnTarget).symbol,
-      expression
-    )
 
   private fun createLambdaExpressionWithoutParent(
     type: IrType,
@@ -149,12 +301,12 @@ internal class ContextResolvedIrCodegen(
     function.extensionReceiverParameter = withFunReceiverParameter(function, type, paramSymbol)
 
     return IrFunctionExpressionImpl(
-      UNDEFINED_OFFSET,
-      UNDEFINED_OFFSET,
-      irBuiltIns.nothingType,
-      function,
-      IrStatementOrigin.LAMBDA
-    )
+        UNDEFINED_OFFSET,
+        UNDEFINED_OFFSET,
+        irBuiltIns.nothingType,
+        function,
+        IrStatementOrigin.LAMBDA
+      )
       .also {
         val extensionAnnotation =
           irBuiltIns.findClass(Name.identifier("ExtensionFunctionType"), "kotlin")
@@ -201,7 +353,7 @@ internal class ContextResolvedIrCodegen(
   ) {
     if (irType != null) {
       contextProofCall(irType)?.apply {
-        if (this is IrCall) {
+        if (this is IrFunctionAccessExpression) {
           symbol.owner.contextReceiversValueParameters.forEachIndexed { index, param ->
             val targetType = targetType(irType, param.type)
             val resolvedType = targetType ?: param.type
@@ -285,16 +437,29 @@ internal class ContextResolvedIrCodegen(
     }
   }
 
-  private fun irTransformFunctionBlockBodies(
-    processDeclaration: (IrFunction) -> IrStatement?
-  ): Unit =
+  private fun irTransformFunctionBlockBodies(transformBody: (IrFunction) -> IrStatement?): Unit =
     moduleFragment.transformChildren(
       object : IrElementTransformer<Unit> {
 
         override fun visitFunction(declaration: IrFunction, data: Unit): IrStatement {
-          return processDeclaration(declaration) ?: super.visitDeclaration(declaration, data)
+          return transformBody(declaration) ?: super.visitDeclaration(declaration, data)
         }
       },
       Unit
+    )
+
+  private fun IrCall.addReplacedTypeArguments(targetType: IrType, returningBlockType: IrType) {
+    putTypeArgument(0, targetType)
+    putTypeArgument(1, returningBlockType)
+    type = returningBlockType
+  }
+
+  private fun IrDeclarationParent.createIrReturn(expression: IrExpression): IrReturn =
+    IrReturnImpl(
+      UNDEFINED_OFFSET,
+      UNDEFINED_OFFSET,
+      irBuiltIns.nothingType,
+      (this as IrReturnTarget).symbol,
+      expression
     )
 }

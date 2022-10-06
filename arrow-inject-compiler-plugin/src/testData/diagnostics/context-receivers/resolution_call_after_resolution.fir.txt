@@ -1,0 +1,30 @@
+FILE: resolution_call_after_resolution.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/Contextual|() public final class Persistence : R|kotlin/Any| {
+        public constructor(): R|foo/bar/Persistence| {
+            super<R|kotlin/Any|>()
+        }
+
+    }
+    context(R|foo/bar/Persistence|)
+    public final class Repo : R|kotlin/Any| {
+        public constructor(x: R|kotlin/Int|): R|foo/bar/Repo| {
+            super<R|kotlin/Any|>()
+        }
+
+        public final val x: R|kotlin/Int| = R|<local>/x|
+            public get(): R|kotlin/Int|
+
+    }
+    context(R|foo/bar/Persistence|)
+    @R|arrow/inject/annotations/ContextResolution|() public final fun f2(): R|kotlin/Int| {
+        ^f2 R|foo/bar/Repo.Repo|(Int(0)).R|foo/bar/Repo.x|
+    }
+    public final fun main(): R|kotlin/Unit| {
+        R|SubstitutionOverride<foo/bar/f2: R|kotlin/Int|>|()
+    }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/ContextResolved|() public final fun f2(_unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|kotlin/Int|

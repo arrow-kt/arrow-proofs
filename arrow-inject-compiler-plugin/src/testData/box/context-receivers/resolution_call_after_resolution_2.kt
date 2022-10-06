@@ -9,16 +9,15 @@ import arrow.inject.annotations.contextual
 class A
 
 context(A)
-class B(val x: Int)
+@Contextual class B()
 
-context(A)
-@ContextResolution
-fun f2(): Int {
-  return B(0).x
-}
+context(B)
+class C(val x: Int)
 
-fun f3(): Int = with(A()) {
-  return B(0).x
+fun f2(): Int = contextual(A()) {
+  contextual(B()) {
+    C(0).x
+  }
 }
 
 fun box(): String {
