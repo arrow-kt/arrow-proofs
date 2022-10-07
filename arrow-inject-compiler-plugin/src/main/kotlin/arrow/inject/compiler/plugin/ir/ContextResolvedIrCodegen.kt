@@ -82,8 +82,7 @@ internal class ContextResolvedIrCodegen(
     steps: List<Pair<IrCall, IrType>>,
     previousLambda: IrSimpleFunction?,
     statements: List<IrStatement>,
-    totalSteps: Int,
-    internalSymbolState: MutableMap<IrType, IrValueParameterSymbolImpl> = mutableMapOf()
+    totalSteps: Int
   ): IrBody =
     when {
       // done processing
@@ -107,23 +106,21 @@ internal class ContextResolvedIrCodegen(
         )
         call.putValueArgument(1, nestedLambda)
         if (shouldNestStatementsOnNestedLambda(steps, totalSteps)) {
-          // TODO
-          //replaceMirrorReceiverExpressionWithReceiverValues(previousType, statements, internalSymbolState)
+          replaceMirrorReceiverExpressionWithReceiverValues(paramSymbol, statements)
           irBuiltIns.addStatements(nestedLambda.function, statements)
         }
         val transformedBody =
           if (steps.size == 1) body
           else irBuiltIns.createBodyReturningExpression(declarationParent, call)
-        internalSymbolState[type] = paramSymbol
-        replaceErrorExpressionsWithReceiverValues(transformedBody, internalSymbolState)
+        //internalSymbolState[type] = paramSymbol
+        //replaceErrorExpressionsWithReceiverValues(transformedBody, internalSymbolState)
         processBodiesRecursive(
           declarationParent = nestedLambda.function,
           body = transformedBody,
           steps = steps.drop(1),
           previousLambda = nestedLambda.function,
           statements = statements,
-          totalSteps = totalSteps,
-          internalSymbolState = internalSymbolState
+          totalSteps = totalSteps
         )
       }
     }
@@ -155,24 +152,13 @@ internal class ContextResolvedIrCodegen(
   }
 
   private fun replaceMirrorReceiverExpressionWithReceiverValues(
-    previousIrType: IrType,
-    statements: List<IrStatement>,
-    paramSymbol: Map<IrType, IrValueParameterSymbolImpl>
+    lambdaSymbol: IrValueParameterSymbol,
+    statements: List<IrStatement>
   ) {
     statements.forEach {
-      it.transformFunctionAccess { call ->
-        val lambdaSymbol = paramSymbol[previousIrType]
-        if (lambdaSymbol != null && call.valueArgumentsCount > 0) {
-          call.getValueArgument(0)?.deepCopyWithSymbols(
-            null,
-            object : DeepCopySymbolRemapper() {
-              override fun getDeclaredValueParameter(
-                symbol: IrValueParameterSymbol
-              ): IrValueParameterSymbol {
-                return if (symbol == lambdaSymbol) lambdaSymbol else symbol
-              }
-            }
-          )
+      it.transformValueAccessExpression { valueAccess ->
+        if (valueAccess.type == lambdaSymbol.owner.type) {
+          IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, lambdaSymbol)
         } else null
       }
     }

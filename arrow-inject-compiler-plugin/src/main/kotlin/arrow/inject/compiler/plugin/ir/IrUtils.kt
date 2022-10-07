@@ -18,14 +18,7 @@ import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrReturnTarget
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
-import org.jetbrains.kotlin.ir.expressions.IrBlockBody
-import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
-import org.jetbrains.kotlin.ir.expressions.IrErrorExpression
-import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
-import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
-import org.jetbrains.kotlin.ir.expressions.IrReturn
-import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
+import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrFunctionExpressionImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrReturnImpl
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
@@ -67,6 +60,21 @@ fun IrStatement.transformFunctionAccess(
         expression.transformChildren(this, Unit).let {
           transformFunctionAccess(expression) ?: super.visitFunctionAccess(expression, data)
         }
+    },
+    Unit
+  )
+
+fun IrStatement.transformValueAccessExpression(
+  transformValueAccess: (IrValueAccessExpression) -> IrExpression?
+): Unit =
+  transformChildren(
+    object : IrElementTransformer<Unit> {
+
+      override fun visitValueAccess(expression: IrValueAccessExpression, data: Unit): IrExpression =
+        expression.transformChildren(this, Unit).let {
+          transformValueAccess(expression) ?: super.visitValueAccess(expression, data)
+        }
+
     },
     Unit
   )
