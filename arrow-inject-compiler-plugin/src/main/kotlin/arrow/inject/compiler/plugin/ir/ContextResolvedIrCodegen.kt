@@ -39,9 +39,9 @@ internal class ContextResolvedIrCodegen(
   ProofsIrAbstractCodegen {
 
   fun generateContextResolvedBody() {
-    moduleFragment.irTransformFunctionBlockBodies { parent ->
-      if (parent.hasAnnotation(ProofAnnotationsFqName.ContextResolvedAnnotation)) {
-        val mirrorFunction = parent.mirrorFunction()
+    moduleFragment.irTransformFunctionBlockBodies { function ->
+      if (function.hasAnnotation(ProofAnnotationsFqName.ContextResolvedAnnotation)) {
+        val mirrorFunction = function.mirrorFunction()
         if (mirrorFunction != null) {
           val body = irFactory.createBlockBodyFromFunctionStatements(mirrorFunction)
           val steps = createCallAndContextReceiverType(mirrorFunction)
@@ -49,16 +49,16 @@ internal class ContextResolvedIrCodegen(
             mirrorFunction.body?.statements.orEmpty().map { it.deepCopyWithSymbols() }
           val functionBody =
             processBodiesRecursive(
-              declarationParent = parent,
+              declarationParent = function,
               body = body,
               steps = steps,
               previousLambda = null,
               statements = clonedStatements,
               totalSteps = steps.size,
             )
-          parent.body = functionBody
-          println(parent.dump())
-          parent
+          function.body = functionBody
+          println(function.dump())
+          function
         } else null
       } else null
     }

@@ -26,7 +26,9 @@ import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusIm
 import org.jetbrains.kotlin.fir.declarations.origin
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
+import org.jetbrains.kotlin.fir.expressions.builder.FirBlockBuilder
 import org.jetbrains.kotlin.fir.expressions.builder.buildAnnotation
+import org.jetbrains.kotlin.fir.expressions.builder.buildBlock
 import org.jetbrains.kotlin.fir.expressions.builder.buildFunctionCall
 import org.jetbrains.kotlin.fir.expressions.impl.FirEmptyAnnotationArgumentMapping
 import org.jetbrains.kotlin.fir.extensions.FirDeclarationGenerationExtension
@@ -118,10 +120,14 @@ internal class ContextResolutionCodegen(
   ): FirNamedFunctionSymbol {
     val originalSymbol = FirNamedFunctionSymbol(callableId)
     return buildSimpleFunction {
-        contextReceivers.clear()
-        resolvePhase = FirResolvePhase.BODY_RESOLVE
+        //contextReceivers.clear()
+        resolvePhase = FirResolvePhase.RAW_FIR
         moduleData = firNamedFunctionSymbol.moduleData
-        origin = FirDeclarationOrigin.SubstitutionOverride
+        origin = ProofKey.origin
+
+        body = buildBlock {
+        }
+
         status = buildStatus()
         returnTypeRef = firNamedFunctionSymbol.resolvedReturnTypeRef
         name = callableId.callableName
@@ -132,7 +138,10 @@ internal class ContextResolutionCodegen(
         valueParameters +=
           buildValueParameters(firNamedFunctionSymbol) /*+ unambiguousUnitValueParameter()*/
       }
-      .apply { this.originalForSubstitutionOverrideAttr = firNamedFunctionSymbol.fir }
+      .apply {
+       // this.originalForSubstitutionOverrideAttr = firNamedFunctionSymbol.fir
+       // this.or
+      }
       .symbol
   }
 

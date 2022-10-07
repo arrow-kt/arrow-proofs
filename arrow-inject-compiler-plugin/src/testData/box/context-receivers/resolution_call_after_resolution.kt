@@ -17,9 +17,16 @@ context(B)
 @ContextResolution
 fun f2(): Int = C(0).x
 
+//plugin generated
+@ContextResolved
+fun f2(): Int = contextual(A()) { //contextual is same as `with`
+  contextual(B()) {
+    C(0).x
+  }
+}
 
 fun box(): String {
-  val result = f2()
+  val result = f2() // this no longer needs receivers
   return if (result == 0) {
     "OK"
   } else {
