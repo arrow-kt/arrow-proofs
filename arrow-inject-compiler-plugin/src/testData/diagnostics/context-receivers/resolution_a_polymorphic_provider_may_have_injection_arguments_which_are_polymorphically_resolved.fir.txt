@@ -25,3 +25,7 @@ FILE: resolution_a_polymorphic_provider_may_have_injection_arguments_which_are_p
     @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
         lval number: R|kotlin/Int| = this@R|foo/bar/main|.R|SubstitutionOverride<foo/bar/Foo.n: R|kotlin/Int|>|
     }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/ContextResolved|() public final fun main(): R|kotlin/Unit|

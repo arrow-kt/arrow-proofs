@@ -10,3 +10,7 @@ FILE: resolution_ambiguous_type_bounds_based_injection.kt
     context(R|kotlin/Number|)
     @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
     }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/ContextResolved|() public final fun main(): R|kotlin/Unit|

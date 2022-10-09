@@ -18,3 +18,7 @@ FILE: resolution_context_receivers.kt
     @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
         lval repo: R|foo/bar/Repo| = R|foo/bar/Repo.Repo|()
     }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/ContextResolved|() public final fun main(): R|kotlin/Unit|

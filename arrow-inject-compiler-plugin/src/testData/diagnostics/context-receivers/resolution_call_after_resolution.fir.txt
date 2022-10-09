@@ -22,9 +22,9 @@ FILE: resolution_call_after_resolution.kt
         ^f2 R|foo/bar/Repo.Repo|(Int(0)).R|foo/bar/Repo.x|
     }
     public final fun main(): R|kotlin/Unit| {
-        R|SubstitutionOverride<foo/bar/f2: R|kotlin/Int|>|()
+        R|foo/bar/f2|()
     }
 FILE: __GENERATED DECLARATIONS__.kt
     package foo.bar
 
-    @R|arrow/inject/annotations/ContextResolved|() public final fun f2(_unit0_: R|kotlin/Unit| = R|kotlin/Unit|()): R|kotlin/Int|
+    @R|arrow/inject/annotations/ContextResolved|() public final fun f2(): R|kotlin/Int|

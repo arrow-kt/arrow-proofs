@@ -28,3 +28,7 @@ FILE: resolution_unresolved_given_callsite_inductive.kt
     @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
         R|foo/bar/foo|(Int(1))
     }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/ContextResolved|() public final fun main(): R|kotlin/Unit|
