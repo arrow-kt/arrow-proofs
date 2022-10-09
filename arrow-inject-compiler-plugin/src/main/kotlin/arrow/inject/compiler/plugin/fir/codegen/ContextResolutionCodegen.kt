@@ -8,6 +8,7 @@ import arrow.inject.compiler.plugin.fir.collectors.LocalProofCollectors
 import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
 import arrow.inject.compiler.plugin.model.ProofAnnotationsFqName
+import org.jetbrains.kotlin.descriptors.Modality
 import java.util.concurrent.atomic.AtomicInteger
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.toClassLikeSymbol
@@ -24,6 +25,9 @@ import org.jetbrains.kotlin.fir.declarations.builder.buildTypeParameter
 import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.origin
+import org.jetbrains.kotlin.fir.declarations.utils.effectiveVisibility
+import org.jetbrains.kotlin.fir.declarations.utils.modality
+import org.jetbrains.kotlin.fir.declarations.utils.visibility
 import org.jetbrains.kotlin.fir.expressions.FirAnnotation
 import org.jetbrains.kotlin.fir.expressions.buildResolvedArgumentList
 import org.jetbrains.kotlin.fir.expressions.builder.FirBlockBuilder
@@ -121,14 +125,18 @@ internal class ContextResolutionCodegen(
     val originalSymbol = FirNamedFunctionSymbol(callableId)
     return buildSimpleFunction {
         //contextReceivers.clear()
-        resolvePhase = FirResolvePhase.RAW_FIR
+        resolvePhase = FirResolvePhase.BODY_RESOLVE
         moduleData = firNamedFunctionSymbol.moduleData
         origin = ProofKey.origin
 
-        body = buildBlock {
-        }
+//        body = buildBlock {
+//        }
 
-        status = buildStatus()
+        status = FirResolvedDeclarationStatusImpl(
+          firNamedFunctionSymbol.fir.visibility,
+          firNamedFunctionSymbol.fir.modality ?: Modality.FINAL,
+          firNamedFunctionSymbol.fir.effectiveVisibility
+        )
         returnTypeRef = firNamedFunctionSymbol.resolvedReturnTypeRef
         name = callableId.callableName
         symbol = originalSymbol

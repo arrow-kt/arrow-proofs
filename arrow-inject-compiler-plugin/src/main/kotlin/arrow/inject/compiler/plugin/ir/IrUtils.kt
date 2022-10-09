@@ -153,9 +153,9 @@ fun IrResolution.createLambdaExpressionWithoutParent(
 ): IrFunctionExpression {
   val function =
     irFactory.buildFun {
-      this.startOffset = UNDEFINED_OFFSET
-      this.endOffset = UNDEFINED_OFFSET
-      this.returnType = returningBlockType
+      startOffset = UNDEFINED_OFFSET
+      endOffset = UNDEFINED_OFFSET
+      returnType = returningBlockType
       name = Name.identifier("<anonymous>")
       visibility = DescriptorVisibilities.LOCAL
       origin = IrDeclarationOrigin.LOCAL_FUNCTION_FOR_LAMBDA

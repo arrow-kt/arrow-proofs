@@ -4,6 +4,7 @@ import arrow.inject.compiler.plugin.fir.resolution.resolver.ProofCache
 import arrow.inject.compiler.plugin.model.Proof
 import org.jetbrains.kotlin.backend.common.extensions.IrPluginContext
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.SourceElement
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
 import org.jetbrains.kotlin.fir.declarations.FirClass
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
@@ -74,7 +75,8 @@ interface ProofsIrAbstractCodegen : IrPluginContext, TypeSystemContext {
           symbol = symbol,
           typeArgumentsCount = symbol.owner.typeParameters.size,
           valueArgumentsCount = symbol.owner.valueParameters.size,
-          constructorTypeArgumentsCount = symbol.owner.typeParameters.size
+          constructorTypeArgumentsCount = symbol.owner.typeParameters.size,
+          source = SourceElement.NO_SOURCE
         )
       }
       is IrFunction -> {

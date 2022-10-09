@@ -11,16 +11,13 @@ import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
-import org.jetbrains.kotlin.ir.expressions.IrBlockBody
-import org.jetbrains.kotlin.ir.expressions.IrBody
-import org.jetbrains.kotlin.ir.expressions.IrCall
-import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
-import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
+import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
 import org.jetbrains.kotlin.ir.symbols.IrValueParameterSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.IrValueParameterSymbolImpl
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.IrTypeSystemContextImpl
+import org.jetbrains.kotlin.ir.types.defaultType
 import org.jetbrains.kotlin.ir.util.DeepCopySymbolRemapper
 import org.jetbrains.kotlin.ir.util.deepCopyWithSymbols
 import org.jetbrains.kotlin.ir.util.dump
@@ -43,17 +40,14 @@ internal class ContextResolvedIrCodegen(
       if (function.hasAnnotation(ProofAnnotationsFqName.ContextResolvedAnnotation)) {
         val mirrorFunction = function.mirrorFunction()
         if (mirrorFunction != null) {
-          val body = irFactory.createBlockBodyFromFunctionStatements(mirrorFunction)
           val steps = createCallAndContextReceiverType(mirrorFunction)
-          val clonedStatements =
-            mirrorFunction.body?.statements.orEmpty().map { it.deepCopyWithSymbols() }
           val functionBody =
             processBodiesRecursive(
               declarationParent = function,
-              body = body,
+              body = irFactory.createBlockBody(UNDEFINED_OFFSET, UNDEFINED_OFFSET, emptyList()),
               steps = steps,
               previousLambda = null,
-              statements = clonedStatements,
+              mirrorFunction = mirrorFunction,
               totalSteps = steps.size,
             )
           function.body = functionBody
@@ -81,7 +75,7 @@ internal class ContextResolvedIrCodegen(
     body: IrBlockBody,
     steps: List<Pair<IrCall, IrType>>,
     previousLambda: IrSimpleFunction?,
-    statements: List<IrStatement>,
+    mirrorFunction: IrSimpleFunction,
     totalSteps: Int
   ): IrBody =
     when {
@@ -97,6 +91,7 @@ internal class ContextResolvedIrCodegen(
         requireNotNull(extensionReceiverParam) { "Expected extension receiver parameter" }
         val previousLambdaParameter = previousLambda?.extensionReceiverParameter
         val previousType = previousLambdaParameter?.type ?: type
+        val targetParam = previousLambdaParameter ?: extensionReceiverParam
         setValueArgument0ToContextualReceiver(
           index = 0,
           previousIrType = previousType,
@@ -106,8 +101,14 @@ internal class ContextResolvedIrCodegen(
         )
         call.putValueArgument(1, nestedLambda)
         if (shouldNestStatementsOnNestedLambda(steps, totalSteps)) {
-          replaceMirrorReceiverExpressionWithReceiverValues(paramSymbol, statements)
-          irBuiltIns.addStatements(nestedLambda.function, statements)
+          //replaceMirrorReceiverExpressionWithReceiverValues(paramSymbol, statements)
+          val mirrorCall = mirrorFunction.irCall().also { mirrorCall ->
+            if (mirrorCall is IrMemberAccessExpression<*>) {
+              setValueArgument0ToContextualReceiver(0, previousType, type, mirrorCall, targetParam)
+            }
+          }
+          val callToMirrorBody = irBuiltIns.createBodyReturningExpression(nestedLambda.function, mirrorCall)
+          irBuiltIns.addStatements(nestedLambda.function, callToMirrorBody.statements)
         }
         val transformedBody =
           if (steps.size == 1) body
@@ -119,7 +120,7 @@ internal class ContextResolvedIrCodegen(
           body = transformedBody,
           steps = steps.drop(1),
           previousLambda = nestedLambda.function,
-          statements = statements,
+          mirrorFunction = mirrorFunction,
           totalSteps = totalSteps
         )
       }
