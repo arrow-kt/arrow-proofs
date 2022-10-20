@@ -227,7 +227,7 @@ internal class ContextResolutionCodegen(
   ): List<FirValueParameter> =
     proofResolutions
       .fold<ProofResolution, MutableList<FirValueParameter>>(mutableListOf()) { args, resolution ->
-        args.add(buildProofOverrideValueParameter(args.lastOrNull(), resolution))
+        args.add(buildProofOverrideValueParameter(resolution))
         args
       }
       .toList()
@@ -291,27 +291,33 @@ internal class ContextResolutionCodegen(
     returnTypeRef = coneKotlinType.toFirResolvedTypeRef()
     name = extractedName
     symbol = FirValueParameterSymbol(extractedName)
+    isCrossinline = false
+    isNoinline = false
+    isVararg = false
     defaultValue =
       if (proofResolution.targetType.contextReceivers.isEmpty()) {
         buildFunctionCall {
           typeRef = coneKotlinType.toFirResolvedTypeRef()
-          argumentList = buildArgumentList {
-            arguments += coneKotlinType.toRegularClassSymbol()
-          }
-          typeArguments +=
-            valueParameter.typeParameterSymbols.map {
-              buildTypeProjectionWithVariance {
-                typeRef = valueParameter.resolvedReturnTypeRef
-                variance = Variance.OUT_VARIANCE
-              }
+          argumentList = buildResolvedArgumentList(LinkedHashMap())
+//          typeArguments += TODO
+//            valueParameter.typeParameterSymbols.map {
+//              buildTypeProjectionWithVariance {
+//                typeRef = valueParameter.resolvedReturnTypeRef
+//                variance = Variance.OUT_VARIANCE
+//              }
+//            }
+          val proofSymbol = proofResolution.proof?.declaration?.symbol
+          val proofName = proofResolution.proof?.declarationName
+          if (proofSymbol != null && proofName != null) {
+            calleeReference = buildResolvedNamedReference {
+              name = proofName
+              resolvedSymbol = proofSymbol
             }
-          calleeReference = buildResolvedNamedReference {
-            name = resolve.name
-            resolvedSymbol = resolve.symbol
           }
         }
       } else {
-        TODO()
+        null
+        // TODO()
       }
   }
 

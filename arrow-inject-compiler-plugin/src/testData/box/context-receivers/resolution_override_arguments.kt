@@ -35,7 +35,7 @@ context(B)
 fun f2(): Int = C().x
 
 fun box(): String {
-  val result: Int = f2(a = OverrideA())
+  val result: Int = f2(A = OverrideA(), B = with<A, B>(A) { B() })
   return if (result == 2) {
     "OK"
   } else {
