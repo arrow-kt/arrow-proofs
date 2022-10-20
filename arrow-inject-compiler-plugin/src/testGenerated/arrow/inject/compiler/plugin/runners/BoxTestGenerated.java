@@ -57,4 +57,16 @@ public class BoxTestGenerated extends AbstractBoxTest {
     public void testResolution_call_after_resolution_2() throws Exception {
         runTest("src/testData/box/context-receivers/resolution_call_after_resolution_2.kt");
     }
+
+    @Test
+    @TestMetadata("resolution_override_arguments.kt")
+    public void testResolution_override_arguments() throws Exception {
+        runTest("src/testData/box/context-receivers/resolution_override_arguments.kt");
+    }
+
+    @Test
+    @TestMetadata("resolution_override_arguments_2.kt")
+    public void testResolution_override_arguments_2() throws Exception {
+        runTest("src/testData/box/context-receivers/resolution_override_arguments_2.kt");
+    }
 }
