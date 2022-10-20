@@ -8,3 +8,7 @@ FILE: resolution_circular_proof_single_cycle_rule.kt
     context(R|kotlin/Int|)
     @R|arrow/inject/annotations/ContextResolution|() public final fun main(): R|kotlin/Unit| {
     }
+FILE: __GENERATED DECLARATIONS__.kt
+    package foo.bar
+
+    @R|arrow/inject/annotations/ContextResolved|() public final fun main(): R|kotlin/Unit|
