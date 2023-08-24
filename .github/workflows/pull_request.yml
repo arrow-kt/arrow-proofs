@@ -20,7 +20,7 @@ jobs:
         jvm_target: ['1.8', '11', '15']
 
     steps:
-      - uses: actions/checkout@v3.0.2
+      - uses: actions/checkout@v3.6.0
         with:
           fetch-depth: 0
 
