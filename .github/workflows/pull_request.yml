@@ -35,7 +35,7 @@ jobs:
           arguments: -PkotlinVersion=${{ matrix.kotlin }} -PjvmTargetVersion=${{ matrix.jvm_target }} build --scan --stacktrace
 
       - name: Upload reports
-        uses: actions/upload-artifact@v3.1.0
+        uses: actions/upload-artifact@v3.2.1
         with:
           name: 'reports-${{ matrix.os }}'
           path: '**/build/reports/**'
