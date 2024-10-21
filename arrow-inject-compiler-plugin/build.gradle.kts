@@ -51,7 +51,7 @@ dependencies {
   testImplementation(libs.kotlin.stdlib)
   testImplementation("junit:junit:4.13.2")
 
-  testImplementation(platform("org.junit:junit-bom:5.9.1"))
+  testImplementation(platform("org.junit:junit-bom:5.11.3"))
   testImplementation("org.junit.jupiter:junit-jupiter")
   testImplementation("org.junit.platform:junit-platform-commons")
   testImplementation("org.junit.platform:junit-platform-launcher")
